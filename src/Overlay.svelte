@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "./lib/i18n.svelte";
   // The in-game overlay. Panels draw from local data; the live views show what the Rust side already
   // fetched. Agent select only ever shows the advisor (your own planning), never other players.
   import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -128,8 +129,8 @@
 {#snippet rankCell(r: J, peak = false)}
   {#if !r || r.state === "queued"}<span class="faint">·</span>
   {:else if r.state === "loading"}<span class="faint pulse">…</span>
-  {:else if r.state === "hidden"}<span class="faint">hidden</span>
-  {:else if r.state === "private"}<span class="faint">private</span>
+  {:else if r.state === "hidden"}<span class="faint">{t("hidden")}</span>
+  {:else if r.state === "private"}<span class="faint">{t("private")}</span>
   {:else if r.state === "error"}<span class="faint">n/a</span>
   {:else if peak}{#if r.peak_tier}<Rank tier={r.peak_tier} short />{:else}<span class="faint">–</span>{/if}
   {:else}<Rank tier={r.tier} rr={r.tier ? r.rr : null} short />{/if}
@@ -139,7 +140,7 @@
   {#if !f || f.state === "queued"}<span class="faint">·</span>
   {:else if f.state === "loading"}<span class="faint pulse">…</span>
   {:else if f.state === "ok"}<span class="mono">{f.win}%</span> <span class="faint mono">{f.kd}</span>
-  {:else if f.state === "empty"}<span class="faint">no comp</span>
+  {:else if f.state === "empty"}<span class="faint">{t("no comp")}</span>
   {:else}<span class="faint">{f.state === "hidden" ? "hidden" : "n/a"}</span>{/if}
 {/snippet}
 
@@ -149,13 +150,13 @@
     {#if layout === "advisor"}
       <div class="ov-head">
         <span class="logo"><svg style="color:var(--accent)"><use href="#logo" /></svg></span>
-        <b style="font-size:12px">Comp advisor{advAuto ? " · agent select" : ""}</b>
+        <b style="font-size:12px">{t("Comp advisor")}{advAuto ? " · agent select" : ""}</b>
         <button class="btn btn-icon btn-ghost btn-sm" style="margin-left:auto" aria-label="Close advisor" onclick={() => api.overlay("advisor")}><Icon name="x" /></button>
       </div>
       <select class="input" style="width:100%;margin-bottom:8px" bind:value={advMap}>
         {#each maps as m (m.name)}<option value={m.name}>{m.name}</option>{/each}
       </select>
-      <div class="caps faint" style="font-size:10px;margin-bottom:4px">Teammates locked so far · type them in</div>
+      <div class="caps faint" style="font-size:10px;margin-bottom:4px">{t("Teammates locked so far · type them in")}</div>
       <div class="row" style="gap:4px;flex-wrap:wrap;margin-bottom:8px">
         {#each advTeam as n (n)}<Agent name={n} id={byName(n)?.id} sm title="Remove {n}" onclick={() => (advTeam = advTeam.filter((x) => x !== n))} />{/each}
         {#if advTeam.length < 4}<button class="btn btn-sm" onclick={() => (picking = !picking)}><Icon name={picking ? "x" : "plus"} />{picking ? "Done" : "Add"}</button>{/if}
@@ -171,9 +172,9 @@
             <div style="min-width:0"><b>{i + 1}. {a.name}</b> <span class="faint" style="font-size:10px">{a.role}</span>
               <div class="faint" style="font-size:11px">{a.reasons[0] ?? ""}</div></div>
           </div>
-        {:else}<div class="faint">Mark the agents you own in the app first.</div>{/each}
+        {:else}<div class="faint">{t("Mark the agents you own in the app first.")}</div>{/each}
         {#if advRes.comps?.[0]}
-          <div class="caps faint" style="font-size:10px;margin:8px 0 4px">Best full comp</div>
+          <div class="caps faint" style="font-size:10px;margin:8px 0 4px">{t("Best full comp")}</div>
           <div class="row" style="gap:4px">{#each advRes.comps[0].agents as n (n)}<Agent name={n} id={byName(n)?.id} sm picked={n === advRes.comps[0].you} />{/each}</div>
           <div class="faint" style="font-size:10.5px;margin-top:4px">{advRes.comps[0].roles}</div>
         {/if}
@@ -188,9 +189,9 @@
       {#if live.context?.agent && (live.context.wins + live.context.losses) > 0}<div class="faint" style="font-size:11px;margin-bottom:4px">{live.context.map} + {live.context.agent}: {live.context.wins}–{live.context.losses}</div>{/if}
       {#if live.rematch}<div class="tilt" style="margin:4px 0 6px"><Icon name="users" /><span>{live.rematch}</span></div>{/if}
       {#each [true, false] as mine (mine)}
-        <div class="caps faint" style="font-size:10px;margin:6px 0 2px">{mine ? "Your team" : "Enemy team"}</div>
+        <div class="caps faint" style="font-size:10px;margin:6px 0 2px">{t(mine ? "Your team" : "Enemy team")}</div>
         {#if liveMode === "full"}
-          <div class="lt lt-h"><span></span><span>Player</span><span>Rank</span><span>Peak</span><span>Last act</span><span>Recent</span><span>On agent</span><span>Met</span></div>
+          <div class="lt lt-h"><span></span><span>{t("Player")}</span><span>{t("Rank")}</span><span>{t("Peak")}</span><span>{t("Last act")}</span><span>{t("Recent")}</span><span>{t("On agent")}</span><span>{t("Met")}</span></div>
           {#each liveTeam(mine) as p, i (p.puuid)}
             <div class="lt {p.me ? 'me' : ''}" style="--i:{i}">
               <Agent name={p.agent} id={p.agent_id} sm />
@@ -206,27 +207,28 @@
           {#each liveTeam(mine) as p, i (p.puuid)}
             <div class="lr2 {p.me ? 'me' : ''} {liveMode === 'rail' ? 'wide' : ''}" style="--i:{i}">
               <Agent name={p.agent} id={p.agent_id} sm />
-              <span class="nm">{label(p)}{#if p.met} <span class="faint">· met {p.met}</span>{/if}</span>
+              <span class="nm">{label(p)}{#if p.met} <span class="faint">{t("· met")} {p.met}</span>{/if}</span>
               <span>{@render rankCell(p.rank)}</span>
               {#if liveMode === "rail"}<span>{@render rankCell(p.rank, true)}</span><span>{@render formCell(p.form)}</span>{/if}
             </div>
           {/each}
         {/if}
       {/each}
-      <div class="faint" style="font-size:10px;margin-top:6px">Hidden names stay hidden. {liveMode === "compact" ? "Hold Tab for more." : ""}</div>
+      <div class="faint" style="font-size:10px;margin-top:6px">{t("Hidden names stay hidden.")} {liveMode === "compact" ? "Hold Tab for more." : ""}</div>
     {:else}
       <div class="ov-head">
         <span class="logo"><svg style="color:var(--accent)"><use href="#logo" /></svg></span>
-        <b style="font-size:12px">{board ? "Match result" : PANELS[panel]}</b>
-        {#if edit}<button class="btn btn-sm" style="margin-left:auto" onclick={() => api.overlay("edit_off")}><Icon name="check" />Done</button>
+        <b style="font-size:12px">{t(board ? "Match result" : PANELS[panel])}</b>
+        {#if edit}<button class="btn btn-sm" style="margin-left:auto" onclick={() => api.overlay("edit_off")}><Icon name="check" />{t("Done")}</button>
         {:else}<span class="ov-dots">{#each PANELS as _, i (i)}<i class={!board && i === panel ? "on" : ""}></i>{/each}</span>{/if}
       </div>
 
       {#if board && d.board}
         <div class="row" style="gap:8px;margin-bottom:6px"><span class="big {score[0] > score[1] ? 'win' : score[0] < score[1] ? 'loss' : ''}">{score[0]}–{score[1]}</span>
           <span class="faint" style="font-size:11px">{d.board.map}{#if d.board.rr !== null && d.board.rr !== undefined} · {signed(d.board.rr)} RR{/if}</span></div>
+        {#if d.board.facts?.length}<div class="ov-facts">{#each d.board.facts as f (f)}<div>{f}</div>{/each}</div>{/if}
         {#each [true, false] as mine (mine)}
-          <div class="caps faint" style="font-size:10px;margin:6px 0 2px">{mine ? "Your team" : "Enemy team"}</div>
+          <div class="caps faint" style="font-size:10px;margin:6px 0 2px">{t(mine ? "Your team" : "Enemy team")}</div>
           {#each team(mine) as p, i (p.puuid)}
             <div class="r lr {p.me ? 'me' : ''}" style="--i:{i}">
               <Agent name={p.agent} id={p.agent_id} sm />
@@ -241,20 +243,20 @@
             <div><span class="big {last.result === 'W' ? 'win' : last.result === 'L' ? 'loss' : ''}">{last.score[0]}–{last.score[1]}</span><div class="faint" style="font-size:11px">{last.map}</div></div>
             {#if last.rr !== null && last.rr !== undefined}<span class="badge {last.rr > 0 ? 'win' : 'loss'}" style="margin-left:auto">{signed(last.rr)}</span>{/if}</div>
           <div class="ov-grid"><div><b>{last.k}/{last.d}/{last.a}</b><small>KDA</small></div><div><b>{last.acs}</b><small>ACS</small></div><div><b>{last.hs}%</b><small>HS</small></div></div>
-        {:else}<div class="faint">No matches yet.</div>{/if}
+        {:else}<div class="faint">{t("No matches yet.")}</div>{/if}
       {:else if panel === 1}
         {#if s}
           <div class="row" style="gap:6px;flex-wrap:wrap">{#each s.results as r, i (i)}<span class="badge {r === 'W' ? 'win' : r === 'L' ? 'loss' : ''}">{r}</span>{/each}</div>
-          <div class="ov-grid"><div><b class={s.net_rr > 0 ? "win" : s.net_rr < 0 ? "loss" : ""}>{signed(s.net_rr)}</b><small>Net RR</small></div>
+          <div class="ov-grid"><div><b class={s.net_rr > 0 ? "win" : s.net_rr < 0 ? "loss" : ""}>{signed(s.net_rr)}</b><small>{t("Net RR")}</small></div>
             <div><b>{s.agg.acs}</b><small>ACS</small></div><div><b>{kd(s.agg.k, s.agg.d)}</b><small>K/D</small></div></div>
-          {#if s.active && s.tilt}<div class="tilt"><Icon name="coffee" /><span>{s.loss_streak} losses in a row. A short break usually helps.</span></div>{/if}
-        {:else}<div class="faint">No session yet.</div>{/if}
+          {#if s.active && s.tilt}<div class="tilt"><Icon name="coffee" /><span>{s.loss_streak} {t("losses in a row. A short break usually helps.")}</span></div>{/if}
+        {:else}<div class="faint">{t("No session yet.")}</div>{/if}
       {:else}
         {#if rank?.tier}
           <div class="big">{tierName(rank.tier)}</div>
           <div class="progress" style="--v:{rank.rr}%;margin:10px 0 6px"><i></i></div>
-          <div class="faint" style="font-size:11px">{rank.rr} / 100 RR{#if rank.last_change} · last {signed(rank.last_change)}{/if}{#if rank.peak_tier} · peak {tierName(rank.peak_tier, true)}{/if}</div>
-        {:else}<div class="faint">Rank appears after the first sync.</div>{/if}
+          <div class="faint" style="font-size:11px">{rank.rr} {t("/ 100 RR")}{#if rank.last_change} {t("· last")} {signed(rank.last_change)}{/if}{#if rank.peak_tier} {t("· peak")} {tierName(rank.peak_tier, true)}{/if}</div>
+        {:else}<div class="faint">{t("Rank appears after the first sync.")}</div>{/if}
       {/if}
     {/if}
   </div>

@@ -135,3 +135,9 @@ html.overlay-doc .ov.ov-full { width: 980px; }
 .hero-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); }
 .hero-num { font-family: var(--font-display); font-weight: var(--fw-black); font-size: 40px; line-height: 1; }
 @media (max-width: 900px) { .rank-hero { grid-template-columns: 1fr; } }
+.ov-facts { font-size: 11px; color: var(--text-2); margin: 2px 0 4px; display: grid; gap: 2px; }
+.ov-facts div::before { content: "· "; color: var(--accent-text); }
+
+/* Hindi: the UI fonts have no Devanagari glyphs, so fall back to Windows' Nirmala UI explicitly. */
+html[lang="hi"] body { font-family: var(--font-ui), "Nirmala UI", "Mangal", sans-serif; }
+html[lang="hi"] .h1, html[lang="hi"] .hero-num { font-family: var(--font-display), "Nirmala UI", sans-serif; }

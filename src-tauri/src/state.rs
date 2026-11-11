@@ -91,7 +91,7 @@ pub struct Me {
 
 pub fn default_prefs() -> Value {
     json!({
-        "theme": "ink", "font": "satoshi", "cvd": false, "reduce_motion": "system", "scale": 100,
+        "theme": "ink", "lang": "en", "font": "satoshi", "cvd": false, "reduce_motion": "system", "scale": 100,
         "tilt_after": 3, "daily_cap": 1500,
         "overlay": { "enabled": true, "panel": 0, "opacity": 88, "scale": 100, "x": null, "y": null, "auto_post": true, "post_seconds": 20 },
         "hotkeys_game_only": true,

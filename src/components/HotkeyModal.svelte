@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "../lib/i18n.svelte";
   // Press-to-set hotkey capture. While open, Postplant's own hotkeys are paused so the combination
   // reaches this window; the chosen one is tested with Windows before it is saved.
   import { api, errText } from "../lib/api";
@@ -85,16 +86,16 @@
   <div class="hk-capture" class:has={!!combo}>
     {#if combo}<span class="mono">{combo.split("+").join(" + ")}</span>
     {:else if held}<span class="mono faint">{held}</span>
-    {:else}<span class="faint">Press the combination now…</span>{/if}
+    {:else}<span class="faint">{t("Press the combination now…")}</span>{/if}
   </div>
-  {#if clash}<div class="banner warn mt-4"><Icon name="warn" />Already used for "{clash}". Saving moves it here.</div>{/if}
+  {#if clash}<div class="banner warn mt-4"><Icon name="warn" />{t("Already used for \"")}{clash}{t("\". Saving moves it here.")}</div>{/if}
   {#if error}<div class="banner danger mt-4"><Icon name="alert" />{error}</div>{/if}
-  <p class="faint mt-4" style="font-size:12px">Current: <span class="mono">{current || "off"}</span>. Esc cancels. Your other Postplant hotkeys are paused while this is open.</p>
+  <p class="faint mt-4" style="font-size:12px">{t("Current:")} <span class="mono">{current || "off"}</span>{t(". Esc cancels. Your other Postplant hotkeys are paused while this is open.")}</p>
   {#snippet foot()}
-    <button class="btn btn-ghost" onclick={() => { onsave(""); open = false; }}>Turn off</button>
+    <button class="btn btn-ghost" onclick={() => { onsave(""); open = false; }}>{t("Turn off")}</button>
     <span class="spacer"></span>
-    <button class="btn" onclick={() => (open = false)}>Cancel</button>
-    <button class="btn btn-primary" disabled={!combo || busy} onclick={save}><Icon name="check" />Save</button>
+    <button class="btn" onclick={() => (open = false)}>{t("Cancel")}</button>
+    <button class="btn btn-primary" disabled={!combo || busy} onclick={save}><Icon name="check" />{t("Save")}</button>
   {/snippet}
 </Modal>
 

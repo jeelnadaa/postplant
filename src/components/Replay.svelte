@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "../lib/i18n.svelte";
   // 2D round replay: step through each kill and see where all ten players stood at that moment.
   import { api, errText, type J } from "../lib/api";
   import { mmss, toMinimap } from "../lib/format";
@@ -31,7 +32,7 @@
 </script>
 
 {#if error}<div class="banner danger"><Icon name="alert" />{error}</div>
-{:else if d && !mm}<div class="card empty-inline">No minimap data for {d.map}.</div>
+{:else if d && !mm}<div class="card empty-inline">{t("No minimap data for")} {d.map}.</div>
 {:else if d}
   <div class="grid-12">
     <div class="card col-8" style="padding:8px">
@@ -56,7 +57,7 @@
       <div class="card">
         <div class="row" style="gap:8px">
           <button class="btn btn-icon btn-sm" aria-label="Previous round" onclick={() => setRound(round - 1)}><Icon name="chevron-left" /></button>
-          <b style="flex:1;text-align:center">Round {round + 1} · {r?.winner === myTeam ? "won" : "lost"}</b>
+          <b style="flex:1;text-align:center">{t("Round")} {round + 1} · {r?.winner === myTeam ? "won" : "lost"}</b>
           <button class="btn btn-icon btn-sm" aria-label="Next round" onclick={() => setRound(round + 1)}><Icon name="chevron-right" /></button>
         </div>
         {#if kills.length}<input type="range" min="0" max={kills.length - 1} bind:value={step} style="width:100%;margin-top:12px" />{/if}
@@ -72,8 +73,8 @@
             <span class={vc?.team === myTeam ? "def" : "atk"}>{vc?.name || vc?.agent}</span>
             <span class="spacer"></span><span class="faint" style="font-size:11px">{x.weapon || "ability"}</span>
           </button>
-        {:else}<p class="faint">No kills this round.</p>{/each}
-        {#if dead.size}<div class="faint" style="font-size:11px;margin-top:6px">{dead.size} down before this kill</div>{/if}
+        {:else}<p class="faint">{t("No kills this round.")}</p>{/each}
+        {#if dead.size}<div class="faint" style="font-size:11px;margin-top:6px">{dead.size} {t("down before this kill")}</div>{/if}
       </div>
     </div>
   </div>

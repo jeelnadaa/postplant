@@ -29,15 +29,40 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "publisher": "Postplant contributors",
     "copyright": "MIT OR Apache-2.0",
     "category": "Utility",
     "shortDescription": "Valorant companion: search, analytics, overlay",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
     "windows": {
-      "webviewInstallMode": { "type": "embedBootstrapper" },
-      "nsis": { "installMode": "currentUser", "displayLanguageSelector": false }
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      }
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDE5M0Y4OEY0MzQwMjU2RTAKUldUZ1ZnSTA5SWcvR1kzdlhwK1BQcEIwZm82RkRVVitmUlo0RHBpa21FRTBvRTg2blVMVGlpY2cK",
+      "endpoints": [
+        "https://github.com/jeelnadaa/postplant/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }

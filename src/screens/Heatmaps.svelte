@@ -1,16 +1,25 @@
 <script lang="ts">
-  // Where you die or get kills, per map and side, from your own stored matches (zero requests).
+  import { t } from "../lib/i18n.svelte";
+  // Heatmaps (plan 16): layers me / my team / enemies; events kills, deaths, opening duels, where
+  // rounds end, plants, defuses; filters for side, agent, round type and won/lost rounds.
+  // From your own stored matches only: zero requests.
   import { api, errText, type J } from "../lib/api";
   import { toMinimap } from "../lib/format";
   import { app } from "../lib/store.svelte";
   import Icon from "../components/Icon.svelte";
+  import Select from "../components/Select.svelte";
 
   let map = $state("");
   let event = $state("deaths");
   let side = $state("");
+  let layer = $state("me");
+  let agent = $state("");
+  let outcome = $state("");
+  let rtype = $state("");
   let d = $state<J>(null);
   let error = $state("");
 
+  const EVENTS: [string, string][] = [["deaths", "Deaths"], ["kills", "Kills"], ["opening", "Opening duels"], ["round_end", "Where rounds end"], ["plants", "Spike plants"], ["defuses", "Defuses"]];
   const maps = $derived((app.kb?.maps ?? []).filter((m: J) => m.minimap));
   $effect(() => {
     if (!map && maps.length) map = (maps.find((m: J) => m.in_pool) ?? maps[0]).name;
@@ -19,26 +28,34 @@
     void app.version;
     if (!map) return;
     error = "";
-    api.heatmap(map, event, side).then((r) => (d = r)).catch((e) => (error = errText(e)));
+    api.heatmap({ map, event, side, layer, agent, outcome, rtype }).then((r) => (d = r)).catch((e) => (error = errText(e)));
   });
   const mm = $derived(maps.find((m: J) => m.name === map)?.minimap);
   const pts = $derived(
     (d?.points ?? [])
-      .map(([x, y, won]: [number, number, boolean]) => {
+      .map(([x, y, good]: [number, number, boolean]) => {
         const v = toMinimap(mm, x, y);
-        return v ? { x: v[0] * 1000, y: v[1] * 1000, won } : null;
+        return v ? { x: v[0] * 1000, y: v[1] * 1000, good } : null;
       })
-      .filter(Boolean) as { x: number; y: number; won: boolean }[],
+      .filter(Boolean) as { x: number; y: number; good: boolean }[],
   );
+  const goodLabel = $derived(event === "opening" ? "duel won" : "round won");
+  const color = $derived(event === "deaths" ? "var(--loss)" : event === "kills" || event === "opening" ? "var(--win)" : "var(--accent)");
 </script>
 
-<div class="page-head"><div><h1 class="h1">Heatmaps</h1><div class="sub">From your own matches on this PC · zero requests</div></div></div>
+<div class="page-head"><div><h1 class="h1">{t("Heatmaps")}</h1><div class="sub">{t("From matches you played, stored on this PC · zero requests")}</div></div></div>
 <div class="row mb-4" style="gap:8px;flex-wrap:wrap">
   {#each maps as m (m.name)}<button class="chip" aria-pressed={map === m.name} onclick={() => (map = m.name)}><Icon name="map" />{m.name}</button>{/each}
 </div>
+<div class="row mb-2" style="gap:12px;flex-wrap:wrap">
+  <div class="segmented">{#each EVENTS as [v, l] (v)}<button aria-pressed={event === v} onclick={() => (event = v)}>{t(l)}</button>{/each}</div>
+</div>
 <div class="row mb-4" style="gap:12px;flex-wrap:wrap">
-  <div class="segmented">{#each [["deaths", "Where you die"], ["kills", "Where you get kills"]] as [v, l] (v)}<button aria-pressed={event === v} onclick={() => (event = v)}>{l}</button>{/each}</div>
-  <div class="segmented">{#each [["", "Both sides"], ["atk", "Attack"], ["def", "Defense"]] as [v, l] (v)}<button aria-pressed={side === v} onclick={() => (side = v)}>{l}</button>{/each}</div>
+  {#if event !== "round_end"}<div class="segmented">{#each [["me", "Me"], ["team", "My team"], ["enemy", "Enemies"]] as [v, l] (v)}<button aria-pressed={layer === v} onclick={() => (layer = v)}>{t(l)}</button>{/each}</div>{/if}
+  <div class="segmented">{#each [["", "Both sides"], ["atk", "Attack"], ["def", "Defense"]] as [v, l] (v)}<button aria-pressed={side === v} onclick={() => (side = v)}>{t(l)}</button>{/each}</div>
+  <Select value={rtype} options={[["", "All rounds"], ["pistol", "Pistol"], ["eco", "Your eco"], ["force", "Your force buy"], ["full", "Your full buy"]]} onchange={(v) => (rtype = v)} />
+  <Select value={outcome} options={[["", "Won and lost"], ["won", "Rounds won"], ["lost", "Rounds lost"]]} onchange={(v) => (outcome = v)} />
+  {#if event !== "round_end"}<Select value={agent} options={[["", "Any agent"], ...((app.kb?.agents ?? []).map((a: J) => [a.name, a.name]) as [string, string][])]} onchange={(v) => (agent = v)} />{/if}
 </div>
 {#if error}<div class="banner danger mb-4"><Icon name="alert" />{error}</div>{/if}
 {#if mm}
@@ -46,22 +63,28 @@
     <div class="card col-8" style="padding:8px">
       <svg viewBox="0 0 1000 1000" style="width:100%;height:auto;display:block" role="img" aria-label="{event} on {map}">
         <defs>
-          <radialGradient id="hm-dot"><stop offset="0%" stop-color={event === "deaths" ? "var(--loss)" : "var(--win)"} stop-opacity="0.55" /><stop offset="100%" stop-color={event === "deaths" ? "var(--loss)" : "var(--win)"} stop-opacity="0" /></radialGradient>
+          <radialGradient id="hm-dot"><stop offset="0%" stop-color={color} stop-opacity="0.5" /><stop offset="100%" stop-color={color} stop-opacity="0" /></radialGradient>
         </defs>
         <image href={mm.icon} x="0" y="0" width="1000" height="1000" opacity="0.6" />
         {#each pts as p, i (i)}<circle cx={p.x} cy={p.y} r="34" fill="url(#hm-dot)" />{/each}
-        {#each pts as p, i (i)}<circle cx={p.x} cy={p.y} r="4" class={p.won ? "hm-w" : "hm-l"} />{/each}
+        {#each pts as p, i (i)}<circle cx={p.x} cy={p.y} r="4" class={p.good ? "hm-w" : "hm-l"} />{/each}
       </svg>
     </div>
     <div class="col-4 stack" style="gap:10px">
       <div class="stat-grid" style="grid-template-columns:1fr 1fr">
-        <div class="stat"><div class="v">{pts.length}</div><div class="l">{event === "deaths" ? "Deaths" : "Kills"}</div></div>
-        <div class="stat"><div class="v">{d?.matches ?? 0}</div><div class="l">Matches on {map}</div></div>
+        <div class="stat"><div class="v">{pts.length}</div><div class="l">{EVENTS.find((e) => e[0] === event)?.[1]}</div></div>
+        <div class="stat"><div class="v">{d?.matches ?? 0}</div><div class="l">{t("Matches on")} {map}</div></div>
       </div>
-      <div class="card"><p class="faint" style="margin:0;font-size:13px">Bright areas are where it happens most. Small dots are filled for rounds your team won and hollow for rounds it lost. Use it to spot spots you keep dying in and try a different angle.</p></div>
+      <div class="card">
+        <div class="card-head"><span class="h3">{t("Hot spots")}</span><span class="spacer"></span><span class="faint" style="font-size:11px">{goodLabel} %</span></div>
+        {#each d?.spots ?? [] as sp (sp.name)}
+          <div class="bar-h"><span>{sp.name}</span><span class="b"><i style="width:{Math.round((100 * sp.n) / Math.max(1, pts.length))}%"></i></span><span class="mono" style="text-align:right">{sp.n} · {sp.pct}%</span></div>
+        {:else}<p class="faint" style="margin:0">{t("Nothing here yet with these filters.")}</p>{/each}
+      </div>
+      <p class="faint" style="font-size:12px;margin:0">{t("Small dots are filled when the")} {goodLabel === "duel won" ? "duel was won" : "round was won"} {t("and hollow when it wasn't. Positions are only recorded at kills, plants and defuses.")}</p>
     </div>
   </div>
-{:else if !maps.length}<div class="card empty-inline">Map data is still loading.</div>{/if}
+{:else if !maps.length}<div class="card empty-inline">{t("Map data is still loading.")}</div>{/if}
 
 <style>
   .hm-w { fill: var(--text); }

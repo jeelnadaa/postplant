@@ -63,23 +63,63 @@ jobs:
 
       - name: Build installer
         if: steps.ver.outputs.skip != 'true'
-        run: npm run tauri -- build --bundles nsis
         env:
-          # Optional: set these repository secrets to sign update bundles (plan 20.3).
+          # Signs the update bundle for the in-app updater (plan 20.3). Without the secret the
+          # release still builds, just without latest.json, and the app falls back to a download link.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            npm run tauri -- build --bundles nsis
+          else
+            echo "::warning::TAURI_SIGNING_PRIVATE_KEY is not set: building without signed updates."
+            npm run tauri -- build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          fi
+          mkdir -p out
+          cp src-tauri/target/release/bundle/nsis/*_x64-setup.exe out/
+          cp src-tauri/target/release/bundle/nsis/*_x64-setup.exe.sig out/ 2>/dev/null || true
+
+      - name: Updater manifest (latest.json)
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.version }}"
+          SIG="out/Postplant_${V}_x64-setup.exe.sig"
+          if [ ! -f "$SIG" ]; then echo "No signature, no latest.json."; exit 0; fi
+          node -e '
+            const fs = require("fs");
+            const [v, sig, notes] = process.argv.slice(1);
+            fs.writeFileSync("out/latest.json", JSON.stringify({
+              version: v,
+              notes: fs.readFileSync(notes, "utf8"),
+              pub_date: new Date().toISOString(),
+              platforms: { "windows-x86_64": {
+                signature: fs.readFileSync(sig, "utf8").trim(),
+                url: `https://github.com/jeelnadaa/postplant/releases/download/v${v}/Postplant_${v}_x64-setup.exe`,
+              } },
+            }, null, 2));
+          ' "$V" "$SIG" notes.md
+          cat out/latest.json
+
+      - name: Build offline installer (WebView2 bundled)
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.version }}"
+          npm run tauri -- build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":false,"windows":{"webviewInstallMode":{"type":"offlineInstaller"}}}}'
+          cp "src-tauri/target/release/bundle/nsis/Postplant_${V}_x64-setup.exe" "out/Postplant_${V}_x64-offline-setup.exe"
 
       - name: Package portable zip and checksums
         if: steps.ver.outputs.skip != 'true'
         run: |
           set -euo pipefail
           V="${{ steps.ver.outputs.version }}"
-          mkdir -p out portable
-          cp src-tauri/target/release/bundle/nsis/*_x64-setup.exe out/
+          mkdir -p portable
           cp src-tauri/target/release/postplant.exe portable/Postplant.exe
           echo "Delete this file to make Postplant store its data in %APPDATA% instead of next to the exe." > portable/portable.flag
           (cd portable && 7z a -tzip "../out/Postplant_${V}_x64-portable.zip" Postplant.exe portable.flag > /dev/null)
-          (cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          (cd out && sha256sum *.exe *.zip > SHA256SUMS.txt && cat SHA256SUMS.txt)
 
       - name: Publish GitHub release
         if: steps.ver.outputs.skip != 'true'

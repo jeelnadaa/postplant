@@ -579,45 +579,15 @@ pub fn get_autostart(app: AppHandle) -> Res {
     Ok(json!(app.autolaunch().is_enabled().unwrap_or(false)))
 }
 
-fn ver(v: &str) -> (u64, u64, u64) {
-    let p: Vec<u64> = v
-        .trim_start_matches('v')
-        .split(['.', '-'])
-        .take(3)
-        .map(|x| x.parse().unwrap_or(0))
-        .collect();
-    (
-        p.first().copied().unwrap_or(0),
-        p.get(1).copied().unwrap_or(0),
-        p.get(2).copied().unwrap_or(0),
-    )
-}
-
 /// Compare with the latest GitHub release (plan 20.3, v0.1 behaviour). Never during a match.
 #[tauri::command]
-pub async fn check_update(app: AppHandle, st: State<'_, AppState>) -> Res {
-    if st.game_running.load(Ordering::SeqCst) {
-        return Ok(json!({ "skipped": "game running" }));
-    }
-    let cur = app.package_info().version.to_string();
-    let r = reqwest::Client::new()
-        .get("https://api.github.com/repos/jeelnadaa/postplant/releases/latest")
-        .header(
-            "User-Agent",
-            concat!("Postplant/", env!("CARGO_PKG_VERSION")),
-        )
-        .header("Accept", "application/vnd.github+json")
-        .send()
-        .await
-        .map_err(err)?;
-    if r.status().as_u16() == 404 {
-        return Ok(json!({ "current": cur, "newer": false }));
-    }
-    let v: Value = r.json().await.map_err(err)?;
-    let tag = v["tag_name"].as_str().unwrap_or("").to_string();
-    Ok(
-        json!({ "current": cur, "latest": tag, "newer": ver(&tag) > ver(&cur), "url": v["html_url"], "notes": v["body"], "published_at": v["published_at"] }),
-    )
+pub async fn check_update(app: AppHandle) -> Res {
+    crate::updater::check(&app).await
+}
+
+#[tauri::command]
+pub async fn install_update(app: AppHandle) -> Res {
+    crate::updater::install(&app).await.map(|_| json!(true))
 }
 
 #[tauri::command]
@@ -645,7 +615,7 @@ pub fn usage(st: State<'_, AppState>) -> Res {
 }
 
 #[tauri::command]
-pub fn overlay_data(st: State<'_, AppState>) -> Res {
+pub fn overlay_data(st: State<'_, AppState>, kb: State<'_, Kb>) -> Res {
     let Some(me) = st.me() else {
         return Ok(Value::Null);
     };
@@ -653,7 +623,11 @@ pub fn overlay_data(st: State<'_, AppState>) -> Res {
     let c = st.db.lock().unwrap();
     let h = queries::home(&c, &me, &prefs);
     let last_id = h["last"]["id"].as_str().map(|s| s.to_string());
-    let board = last_id.and_then(|id| queries::match_detail(&c, &me, &id).ok());
+    let board = last_id.and_then(|id| {
+        let mut b = queries::match_detail(&c, &me, &id).ok()?;
+        b["facts"] = crate::insights::match_extras(&c, &kb, &me, &id)["facts"].clone();
+        Some(b)
+    });
     Ok(json!({ "home": h, "board": board, "prefs": prefs, "me": me }))
 }
 
@@ -856,60 +830,66 @@ pub fn advisor_stack(
     advisor::stack(&kb, &map, &list)
 }
 
-/// Where you get kills or die on a map, from your stored matches. Coordinates are game units; the
-/// UI maps them onto the minimap with the transform in maps.json.
+/// Heatmap points and the callouts they cluster in, from your stored matches (zero requests).
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub fn heatmap(
     st: State<'_, AppState>,
+    kb: State<'_, Kb>,
     map: String,
     event: Option<String>,
     side: Option<String>,
+    layer: Option<String>,
+    agent: Option<String>,
+    outcome: Option<String>,
+    rtype: Option<String>,
 ) -> Res {
-    use crate::parse::f;
     let me = need_me(&st)?;
-    let ev = event.unwrap_or_else(|| "deaths".into());
-    let side = side.unwrap_or_default();
-    let c = st.db.lock().unwrap();
-    let rows = queries::my_rows(
-        &c,
-        &me.puuid,
-        &Filter {
-            map: map.clone(),
-            ..Default::default()
-        },
-    );
-    let mut pts = vec![];
-    for r in rows.iter().take(300) {
-        let Ok(raw) = crate::parse::load_raw(&c, &r.id) else {
-            continue;
-        };
-        let m = unwrap_data(&raw);
-        for k in arr(m, "/kills") {
-            if !side.is_empty() && crate::parse::side(&r.team, i(k, "/round")) != side {
-                continue;
-            }
-            let loc = if ev == "kills" {
-                if s(k, "/killer/puuid") != me.puuid {
-                    continue;
-                }
-                arr(k, "/player_locations")
-                    .iter()
-                    .find(|l| s(l, "/player/puuid") == me.puuid)
-                    .and_then(|l| Some((f(l, "/location/x")?, f(l, "/location/y")?)))
-            } else {
-                if s(k, "/victim/puuid") != me.puuid {
-                    continue;
-                }
-                f(k, "/location/x").zip(f(k, "/location/y"))
-            };
-            if let Some((x, y)) = loc {
-                pts.push(json!([x, y, r.result == 'W']));
-            }
-        }
-    }
-    Ok(
-        json!({ "map": map, "event": ev, "side": side, "matches": rows.len().min(300), "points": pts }),
-    )
+    let o = crate::insights::HeatOpts {
+        map,
+        event: event.unwrap_or_else(|| "deaths".into()),
+        side: side.unwrap_or_default(),
+        layer: layer.unwrap_or_else(|| "me".into()),
+        agent: agent.unwrap_or_default(),
+        outcome: outcome.unwrap_or_default(),
+        rtype: rtype.unwrap_or_default(),
+    };
+    Ok(crate::insights::heatmap(
+        &st.db.lock().unwrap(),
+        &kb,
+        &me,
+        &o,
+    ))
+}
+
+#[tauri::command]
+pub fn trade_stats(st: State<'_, AppState>) -> Res {
+    let me = need_me(&st)?;
+    Ok(crate::insights::trades(&st.db.lock().unwrap(), &me))
+}
+
+#[tauri::command]
+pub fn pattern_notes(st: State<'_, AppState>, kb: State<'_, Kb>) -> Res {
+    let me = need_me(&st)?;
+    Ok(crate::insights::patterns(&st.db.lock().unwrap(), &kb, &me))
+}
+
+#[tauri::command]
+pub fn duo_synergy(st: State<'_, AppState>) -> Res {
+    let me = need_me(&st)?;
+    Ok(crate::insights::duos(&st.db.lock().unwrap(), &me))
+}
+
+/// Post-match facts and ability usage vs your average on that agent.
+#[tauri::command]
+pub fn match_extras(st: State<'_, AppState>, kb: State<'_, Kb>, id: String) -> Res {
+    let me = need_me(&st)?;
+    Ok(crate::insights::match_extras(
+        &st.db.lock().unwrap(),
+        &kb,
+        &me,
+        &id,
+    ))
 }
 
 /// Round-by-round positions for the 2D replay: every kill with where everyone stood at that moment.
@@ -946,4 +926,10 @@ pub fn match_replay(st: State<'_, AppState>, id: String) -> Res {
         })
         .collect();
     Ok(json!({ "id": id, "map": s(m, "/metadata/map/name"), "players": players, "rounds": rounds }))
+}
+
+/// Compare HenrikDev's real responses with the fields Postplant reads (1 request).
+#[tauri::command]
+pub async fn field_check(st: State<'_, AppState>) -> Res {
+    crate::fieldcheck::run(&st).await
 }

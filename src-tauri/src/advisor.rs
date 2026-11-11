@@ -28,6 +28,9 @@ pub struct MapInfo {
     pub map_url: String,
     #[serde(default)]
     pub minimap: Option<Value>,
+    /// [super region, region, x, y] from valorant-api.com, for "near B Main" in insights.
+    #[serde(default)]
+    pub callouts: Vec<(String, String, f64, f64)>,
 }
 
 #[derive(Deserialize, Clone, Debug)]

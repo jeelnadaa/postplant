@@ -46,6 +46,7 @@ export const api = {
   setAutostart: (on: boolean) => call("set_autostart", { on }),
   getAutostart: () => call<boolean>("get_autostart"),
   checkUpdate: () => call("check_update"),
+  installUpdate: () => call("install_update"),
   deleteAll: (removeKey: boolean) => call("delete_all_data", { removeKey }),
   usage: () => call("usage"),
   overlayData: () => call("overlay_data"),
@@ -57,7 +58,12 @@ export const api = {
   testHotkey: (combo: string) => call("test_hotkey", { combo }),
   stackPeople: () => call("stack_people"),
   stack: (map: string, players: J[]) => call("advisor_stack", { map, players }),
-  heatmap: (map: string, event: string, side: string) => call("heatmap", { map, event, side }),
+  heatmap: (o: { map: string; event: string; side: string; layer: string; agent: string; outcome: string; rtype: string }) => call("heatmap", o),
+  trades: () => call("trade_stats"),
+  patterns: () => call("pattern_notes"),
+  duos: () => call("duo_synergy"),
+  matchExtras: (id: string) => call("match_extras", { id }),
+  fieldCheck: () => call("field_check"),
   replay: (id: string) => call("match_replay", { id }),
 };
 

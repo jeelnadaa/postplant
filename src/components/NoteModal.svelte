@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "../lib/i18n.svelte";
   import { api, errText } from "../lib/api";
   import { toast } from "../lib/store.svelte";
   import Modal from "./Modal.svelte";
@@ -33,7 +34,7 @@
   </div>
   <textarea class="input textarea" style="width:100%" rows="4" placeholder="What should you remember about them?" bind:value={text}></textarea>
   {#snippet foot()}
-    <button class="btn" onclick={() => (open = false)}>Cancel</button>
-    <button class="btn btn-primary" onclick={save}>Save note</button>
+    <button class="btn" onclick={() => (open = false)}>{t("Cancel")}</button>
+    <button class="btn btn-primary" onclick={save}>{t("Save note")}</button>
   {/snippet}
 </Modal>

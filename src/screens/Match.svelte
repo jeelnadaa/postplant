@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "../lib/i18n.svelte";
   import { api, errText, type J } from "../lib/api";
   import { fmtDate, hms, mmss, queueLabel, signed } from "../lib/format";
   import { nav, toast } from "../lib/store.svelte";
@@ -27,6 +28,11 @@
     load();
   });
   // Current and peak rank of everyone named in the match (cached 6 h; hidden names are never looked up).
+  let extras = $state<J>(null);
+  $effect(() => {
+    api.matchExtras(id).then((r) => (extras = r)).catch(() => {});
+  });
+  const SLOTS: [string, string][] = [["ability1", "Q"], ["ability2", "E"], ["grenade", "C"], ["ultimate", "X"]];
   let ranks = $state<J>({});
   let ranksBusy = $state(false);
   $effect(() => {
@@ -64,27 +70,39 @@
   const reviewed = (round: number | null, kind: string) => d?.reviews?.some((r: J) => r.kind === kind && (r.round ?? null) === round);
 </script>
 
-<div class="row mb-4"><button class="btn btn-ghost btn-sm" onclick={() => history.back()}><Icon name="arrow-left" />Back</button></div>
+<div class="row mb-4"><button class="btn btn-ghost btn-sm" onclick={() => history.back()}><Icon name="arrow-left" />{t("Back")}</button></div>
 {#if error}<div class="banner danger"><Icon name="alert" />{error}</div>{/if}
 {#if d}
   <div class="card mb-4" style="display:flex;align-items:center;gap:24px;background:linear-gradient(100deg,color-mix(in srgb,var({result === 'Victory' ? '--win' : '--loss'}) 14%,transparent),transparent 40%),var(--surface)">
     <span class="display {result === 'Victory' ? 'win' : result === 'Defeat' ? 'loss' : ''}" style="font-size:64px">{mine?.won}–{theirs?.won}</span>
-    <div><div class="h2">{result} · {d.map}</div><div class="muted" style="font-size:13px">{queueLabel(d.queue?.toLowerCase?.() ?? "")} · {fmtDate(d.started_at)} · {Math.round(d.length_ms / 60000)} min{#if d.version} · {d.version}{/if}</div></div>
+    <div><div class="h2">{result} · {d.map}</div><div class="muted" style="font-size:13px">{queueLabel(d.queue?.toLowerCase?.() ?? "")} · {fmtDate(d.started_at)} · {Math.round(d.length_ms / 60000)} {t("min")}{#if d.version} · {d.version}{/if}</div></div>
     <span class="spacer"></span>
     {#if d.rr !== null && d.rr !== undefined}<div class="stat"><div class="v {d.rr > 0 ? 'win' : 'loss'}">{signed(d.rr)}</div><div class="l">RR</div></div>{/if}
     <button class="btn btn-sm" disabled={reviewed(null, "match")} onclick={() => review("match", null, null)}><Icon name="bookmark" />{reviewed(null, "match") ? "In review list" : "Review later"}</button>
   </div>
-  {#if d.recording}<div class="banner info mb-4"><Icon name="video" />Recording found: <b>{d.recording.name}</b>. Every round and death below has a Watch button.</div>{/if}
+  {#if d.recording}<div class="banner info mb-4"><Icon name="video" />{t("Recording found:")} <b>{d.recording.name}</b>{t(". Every round and death below has a Watch button.")}</div>{/if}
+  {#if extras?.facts?.length || extras?.abilities?.this}
+    <div class="grid-12 mb-4">
+      {#if extras.facts?.length}<div class="card col-7"><div class="card-head"><span class="h3">{t("This match")}</span></div>
+        <ul class="reasons" style="margin:0">{#each extras.facts as f (f)}<li>{f}</li>{/each}</ul></div>{/if}
+      {#if extras.abilities?.this}<div class="card col-5"><div class="card-head"><span class="h3">{t("Ability casts per round")}</span><span class="spacer"></span><span class="faint" style="font-size:12px">{t("vs your")} {extras.abilities.games} {t("other")} {extras.abilities.agent} {t("games")}</span></div>
+        {#each SLOTS as [k, key] (k)}
+          {@const v = extras.abilities.this[k]}
+          {@const a = extras.abilities.avg?.[k]}
+          <div class="bar-h"><span class="mono">{key}</span><span class="b"><i style="width:{Math.min(100, v * 50)}%"></i></span><span class="mono" style="text-align:right">{v}{#if extras.abilities.games}<span class="faint"> / {a}</span>{/if}</span></div>
+        {/each}</div>{/if}
+    </div>
+  {/if}
   <div class="tabs mb-4">
-    <button role="tab" class="tab" aria-selected={tab === "score"} onclick={() => (tab = "score")}>Scoreboard</button>
-    <button role="tab" class="tab" aria-selected={tab === "rounds"} onclick={() => (tab = "rounds")}>Rounds<span class="count">{d.rounds.length}</span></button>
-    <button role="tab" class="tab" aria-selected={tab === "deaths"} onclick={() => (tab = "deaths")}>Your deaths<span class="count">{d.deaths.length}</span></button>
-    <button role="tab" class="tab" aria-selected={tab === "replay"} onclick={() => (tab = "replay")}>2D replay</button>
+    <button role="tab" class="tab" aria-selected={tab === "score"} onclick={() => (tab = "score")}>{t("Scoreboard")}</button>
+    <button role="tab" class="tab" aria-selected={tab === "rounds"} onclick={() => (tab = "rounds")}>{t("Rounds")}<span class="count">{d.rounds.length}</span></button>
+    <button role="tab" class="tab" aria-selected={tab === "deaths"} onclick={() => (tab = "deaths")}>{t("Your deaths")}<span class="count">{d.deaths.length}</span></button>
+    <button role="tab" class="tab" aria-selected={tab === "replay"} onclick={() => (tab = "replay")}>{t("2D replay")}</button>
   </div>
 
   {#if tab === "score"}
     <table class="table">
-      <thead><tr><th>Player</th><th>Rank</th><th>Peak</th><th>Now</th><th class="num sorted">ACS ▾</th><th class="num">K</th><th class="num">D</th><th class="num">A</th><th class="num">HS%</th><th class="num">ADR</th><th class="num">FB</th><th></th></tr></thead>
+      <thead><tr><th>{t("Player")}</th><th>{t("Rank")}</th><th>{t("Peak")}</th><th>{t("Now")}</th><th class="num sorted">{t("ACS ▾")}</th><th class="num">K</th><th class="num">D</th><th class="num">A</th><th class="num">{t("HS%")}</th><th class="num">ADR</th><th class="num">FB</th><th></th></tr></thead>
       <tbody>
         {#each [true, false] as mineTeam (mineTeam)}
           <tr class="team-head"><td colspan="12"><span class={mineTeam ? "def" : "atk"}>● {mineTeam ? "Your team" : "Enemy team"}</span>
@@ -93,18 +111,18 @@
             <tr class={p.me ? "is-me" : ""}>
               <td><div class="player-cell"><Agent name={p.agent} id={p.agent_id} sm />
                 <div class="who" style="display:flex;align-items:center;gap:6px;min-width:0">
-                  {#if p.me}<PlayerName name={p.name} tag={p.tag} agent={p.agent} /><span class="badge accent">you</span>
+                  {#if p.me}<PlayerName name={p.name} tag={p.tag} agent={p.agent} /><span class="badge accent">{t("you")}</span>
                   {:else}<button class="row" style="gap:4px" title="Look up this player" onclick={() => p.name && nav("search", { name: p.name, tag: p.tag })}><PlayerName name={p.name} tag={p.tag} agent={p.agent} /></button>{/if}
-                  {#if p.party}<span class="tag good">party</span>{/if}
+                  {#if p.party}<span class="tag good">{t("party")}</span>{/if}
                   {#if p.note?.tags?.length}{#each p.note.tags as t (t)}<span class="tag {t === 'toxic' || t === 'thrower' ? 'bad' : t.startsWith('good') ? 'good' : 'warnish'}">{t}</span>{/each}{/if}
-                  {#if p.met > 0}<span class="faint" style="font-size:11px">met {p.met}×</span>{/if}
+                  {#if p.met > 0}<span class="faint" style="font-size:11px">{t("met")} {p.met}×</span>{/if}
                 </div></div></td>
               <td><Rank tier={p.tier} /></td>
               {#if ranks[p.puuid]?.state === "ok" || ranks[p.puuid]?.state === "unranked"}
                 <td><Rank tier={ranks[p.puuid].peak_tier} short />{#if ranks[p.puuid].peak_season}<span class="faint" style="font-size:11px"> {ranks[p.puuid].peak_season}</span>{/if}</td>
                 <td><Rank tier={ranks[p.puuid].tier} rr={ranks[p.puuid].tier >= 3 ? ranks[p.puuid].rr : null} short /></td>
-              {:else if ranks[p.puuid]?.state === "private"}<td colspan="2" class="faint"><Icon name="lock" /> private</td>
-              {:else if !p.name}<td colspan="2" class="faint">hidden</td>
+              {:else if ranks[p.puuid]?.state === "private"}<td colspan="2" class="faint"><Icon name="lock" /> {t("private")}</td>
+              {:else if !p.name}<td colspan="2" class="faint">{t("hidden")}</td>
               {:else}<td colspan="2" class="faint">{ranksBusy ? "…" : "—"}</td>{/if}
               <td class="num"><b>{p.acs}</b></td><td class="num">{p.k}</td><td class="num">{p.d}</td><td class="num">{p.a}</td>
               <td class="num">{p.hs}%</td><td class="num">{p.adr}</td><td class="num">{p.fb}</td>
@@ -114,24 +132,24 @@
         {/each}
       </tbody>
     </table>
-    <p class="notice mt-2">Rank = rank at match time. Peak and Now are looked up per player (cached 6 hours). Players who hid their name aren't looked up.</p>
+    <p class="notice mt-2">{t("Rank = rank at match time. Peak and Now are looked up per player (cached 6 hours). Players who hid their name aren't looked up.")}</p>
   {:else if tab === "rounds"}
     <div class="round-strip mb-4">
       {#each d.rounds as r (r.n)}<span class={r.won ? "w" : "l"} title="Round {r.n + 1}: {r.result}">{r.n + 1}</span>{#if r.n === 11}<span class="half"></span>{/if}{/each}
     </div>
     <table class="table">
-      <thead><tr><th>Round</th><th>Side</th><th>Result</th><th class="num">Your kills</th><th>You</th><th class="num">Your loadout</th><th></th></tr></thead>
+      <thead><tr><th>{t("Round")}</th><th>{t("Side")}</th><th>{t("Result")}</th><th class="num">{t("Your kills")}</th><th>{t("You")}</th><th class="num">{t("Your loadout")}</th><th></th></tr></thead>
       <tbody>
         {#each d.rounds as r (r.n)}
           <tr>
             <td><b class={r.won ? "win" : "loss"}>{r.n + 1}</b></td>
             <td><span class={r.side}>{r.side === "atk" ? "Attack" : "Defense"}</span></td>
-            <td>{r.won ? "Won" : "Lost"} · {r.result}{#if r.plant} · planted {r.plant}{/if}</td>
+            <td>{r.won ? "Won" : "Lost"} · {r.result}{#if r.plant} {t("· planted")} {r.plant}{/if}</td>
             <td class="num">{r.my_kills}</td>
             <td>{r.died ? "died" : "survived"}</td>
             <td class="num">{r.loadout ?? "—"}</td>
             <td><div class="row" style="justify-content:flex-end;gap:6px">
-              {#if d.recording && r.start_ms !== null && r.start_ms !== undefined}<button class="btn btn-sm" onclick={() => watch(r.start_ms)}><Icon name="video" />Watch</button>{/if}
+              {#if d.recording && r.start_ms !== null && r.start_ms !== undefined}<button class="btn btn-sm" onclick={() => watch(r.start_ms)}><Icon name="video" />{t("Watch")}</button>{/if}
               <button class="btn btn-icon btn-ghost btn-sm" title="Review later" aria-label="Review later" disabled={reviewed(r.n, "round")} onclick={() => review("round", r.n, r.start_ms ?? null)}><Icon name="bookmark" /></button>
             </div></td>
           </tr>
@@ -144,20 +162,20 @@
     <div class="stack" style="gap:10px">
       {#each d.deaths as x (x.time_in_match_ms)}
         <div class="card" style="padding:14px">
-          <div class="card-head" style="margin-bottom:8px"><Icon name="crosshair" /><span class="h3">Round {x.round + 1} · {mmss(x.time_in_round_ms)}</span><span class="spacer"></span>
+          <div class="card-head" style="margin-bottom:8px"><Icon name="crosshair" /><span class="h3">{t("Round")} {x.round + 1} · {mmss(x.time_in_round_ms)}</span><span class="spacer"></span>
             <span class="badge {x.traded ? 'win' : 'loss'}">{x.traded ? "Traded" : "Not traded"}</span></div>
           <div class="stat-grid" style="grid-template-columns:repeat(4,1fr)">
-            <div class="stat stat-sm"><div class="v" style="font-size:18px">{x.killer || x.killer_agent}</div><div class="l">Killed by ({x.killer_agent})</div></div>
-            <div class="stat stat-sm"><div class="v" style="font-size:18px">{x.weapon || "Ability"}</div><div class="l">Weapon</div></div>
-            <div class="stat stat-sm"><div class="v" style="font-size:18px">{x.nearest_ally_m !== null ? `${x.nearest_ally_m} m` : "—"}</div><div class="l">Nearest teammate</div></div>
-            <div class="stat stat-sm"><div class="v" style="font-size:18px">{x.my_loadout} v {x.their_loadout}</div><div class="l">Loadout (you v them)</div></div>
+            <div class="stat stat-sm"><div class="v" style="font-size:18px">{x.killer || x.killer_agent}</div><div class="l">{t("Killed by (")}{x.killer_agent})</div></div>
+            <div class="stat stat-sm"><div class="v" style="font-size:18px">{x.weapon || "Ability"}</div><div class="l">{t("Weapon")}</div></div>
+            <div class="stat stat-sm"><div class="v" style="font-size:18px">{x.nearest_ally_m !== null ? `${x.nearest_ally_m} m` : "—"}</div><div class="l">{t("Nearest teammate")}</div></div>
+            <div class="stat stat-sm"><div class="v" style="font-size:18px">{x.my_loadout} v {x.their_loadout}</div><div class="l">{t("Loadout (you v them)")}</div></div>
           </div>
           <div class="row mt-4" style="gap:8px">
-            {#if d.recording}<button class="btn btn-sm btn-primary" onclick={() => watch(x.time_in_match_ms)}><Icon name="video" />Watch at {hms(Math.max(0, (d.recording.offset_ms + x.time_in_match_ms) / 1000 - 5))}</button>{/if}
+            {#if d.recording}<button class="btn btn-sm btn-primary" onclick={() => watch(x.time_in_match_ms)}><Icon name="video" />{t("Watch at")} {hms(Math.max(0, (d.recording.offset_ms + x.time_in_match_ms) / 1000 - 5))}</button>{/if}
             <button class="btn btn-sm" disabled={reviewed(x.round, "death")} onclick={() => review("death", x.round, x.time_in_match_ms)}><Icon name="bookmark" />{reviewed(x.round, "death") ? "In review list" : "Review later"}</button>
           </div>
         </div>
-      {:else}<div class="card empty-inline">You didn't die in this match. Nice.</div>{/each}
+      {:else}<div class="card empty-inline">{t("You didn't die in this match. Nice.")}</div>{/each}
     </div>
   {/if}
 {:else if !error}

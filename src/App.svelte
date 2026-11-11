@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "./lib/i18n.svelte";
   import { onMount } from "svelte";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
   import { api, errText, on } from "./lib/api";
@@ -33,6 +34,7 @@
   onMount(() => {
     init();
     // Toasts raised by the Rust side (e.g. the live table hotkey with no match running).
+    const upd = on("update-available", (u: { latest: string }) => toast("info", `Postplant ${u.latest} is available`, "Settings → Updates & startup to install it."));
     const un = on("toast", (t: { kind: "ok" | "err" | "warn" | "info"; title: string; text?: string }) => toast(t.kind, t.title, t.text));
     // Drop a .postplant or .json file anywhere to import it.
     const drop = getCurrentWebview().onDragDropEvent((e) => {
@@ -45,6 +47,7 @@
     return () => {
       clearInterval(t);
       un.then((f) => f());
+      upd.then((f) => f());
       drop.then((f) => f());
     };
   });
@@ -73,15 +76,15 @@
   <div class="app-root">
     <div class="shell">
       <aside class="sidebar">
-        <div class="brand"><span class="logo"><svg viewBox="0 0 48 48"><use href="#logo" /></svg>Postplant</span></div>
+        <div class="brand"><span class="logo"><svg viewBox="0 0 48 48"><use href="#logo" /></svg>{t("Postplant")}</span></div>
         {#each NAV as [sec, items] (sec)}
-          <div class="nav-sec caps">{sec}</div>
+          <div class="nav-sec caps">{t(sec)}</div>
           {#each items as [id, ic, label] (id)}
-            <a class="nav-item" href="#/{id}" aria-current={active === id ? "page" : undefined}><Icon name={ic} />{label}</a>
+            <a class="nav-item" href="#/{id}" aria-current={active === id ? "page" : undefined}><Icon name={ic} />{t(label)}</a>
           {/each}
         {/each}
-        <div class="nav-sec caps">App</div>
-        <a class="nav-item" href="#/settings" aria-current={active === "settings" ? "page" : undefined}><Icon name="settings" />Settings</a>
+        <div class="nav-sec caps">{t("App")}</div>
+        <a class="nav-item" href="#/settings" aria-current={active === "settings" ? "page" : undefined}><Icon name="settings" />{t("Settings")}</a>
         <button class="me-card" onclick={() => nav("rank")} title="Your rank">
           <span class="avatar">{app.s.me.name[0]?.toUpperCase()}</span>
           <div style="min-width:0;flex:1;text-align:left">
@@ -92,20 +95,20 @@
       </aside>
       <div class="main">
         <div class="topbar">
-          <button class="cmdk" onclick={() => (app.palette = true)}><Icon name="search" />Search players, screens, actions<span class="keys"><span class="kbd">Ctrl</span><span class="kbd">K</span></span></button>
+          <button class="cmdk" onclick={() => (app.palette = true)}><Icon name="search" />{t("Search players, screens, actions")}<span class="keys"><span class="kbd">Ctrl</span><span class="kbd">K</span></span></button>
           <span class="spacer"></span>
-          {#if app.s.game_running}<span class="status-pill" title="Game-safe mode: no looping animations or blur"><span class="dot warn"></span>VALORANT running</span>{/if}
+          {#if app.s.game_running}<span class="status-pill" title="Game-safe mode: no looping animations or blur"><span class="dot warn"></span>{t("VALORANT running")}</span>{/if}
           <button class="status-pill btnish" onclick={syncNow} title={app.s.last_error ?? "Click to sync now"}>
             <span class="dot {app.s.last_error ? 'warn' : app.s.syncing ? '' : ''}"></span>
             {#key tick}{app.s.syncing ? "Syncing…" : app.s.last_error ? "Sync paused" : `Synced ${timeAgo(app.s.last_sync)}`}{/key}
           </button>
-          <span class="status-pill tooltip"><Icon name="gauge" /><span class="mono">{usage?.minute ?? 0}/{usage?.limit ?? 30}</span><span class="tip">API this minute · {usage?.today ?? 0} today</span></span>
+          <span class="status-pill tooltip"><Icon name="gauge" /><span class="mono">{usage?.minute ?? 0}/{usage?.limit ?? 30}</span><span class="tip">{t("API this minute ·")} {usage?.today ?? 0} {t("today")}</span></span>
           <button class="btn btn-icon btn-ghost" aria-label="Show or hide overlay" title="Show / hide overlay" onclick={() => api.overlay("toggle_overlay")}><Icon name="layers" /></button>
           <button class="btn btn-icon btn-ghost" aria-label="Sync now" title="Sync now" onclick={syncNow}><Icon name="refresh" /></button>
         </div>
         <div class="content">
           {#if app.s.last_error && /key/i.test(app.s.last_error)}
-            <div class="banner danger mb-4"><Icon name="key" /><span>{app.s.last_error}</span><span class="spacer"></span><a href="#/settings?tab=api" class="btn btn-sm">Open API key</a></div>
+            <div class="banner danger mb-4"><Icon name="key" /><span>{app.s.last_error}</span><span class="spacer"></span><a href="#/settings?tab=api" class="btn btn-sm">{t("Open API key")}</a></div>
           {/if}
           <div class="page">
             {#key app.route.name + JSON.stringify(app.route.params)}

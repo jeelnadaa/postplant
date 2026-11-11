@@ -5,6 +5,8 @@ pub mod api;
 pub mod career;
 pub mod commands;
 pub mod db;
+pub mod fieldcheck;
+pub mod insights;
 pub mod live;
 pub mod overlay;
 pub mod parse;
@@ -14,6 +16,7 @@ pub mod recordings;
 pub mod state;
 pub mod sync;
 pub mod transfer;
+pub mod updater;
 
 use state::AppState;
 use std::path::PathBuf;
@@ -88,6 +91,7 @@ pub fn run() {
             overlay::show_main(app, None)
         }))
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -133,6 +137,7 @@ pub fn run() {
             overlay::apply_hotkeys(&handle);
             #[cfg(feature = "live")]
             live::start(handle.clone());
+            updater::start(handle.clone());
             sync::start_background(handle);
             Ok(())
         })
@@ -201,6 +206,12 @@ pub fn run() {
             commands::advisor_stack,
             commands::heatmap,
             commands::match_replay,
+            commands::trade_stats,
+            commands::pattern_notes,
+            commands::duo_synergy,
+            commands::match_extras,
+            commands::field_check,
+            commands::install_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Postplant");

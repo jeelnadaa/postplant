@@ -1,3 +1,4 @@
+import { setLang } from "./i18n.svelte";
 // App-wide reactive state (Svelte 5 runes) and a tiny hash router.
 import { api, errText, on, type J } from "./api";
 
@@ -64,6 +65,7 @@ export function applyPrefs(p: J, game = false) {
   if (game) el.dataset.perf = "game";
   else delete el.dataset.perf;
   el.style.fontSize = `${p.scale ?? 100}%`;
+  setLang(p.lang);
 }
 
 export async function savePrefs(patch: J) {

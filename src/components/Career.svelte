@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "../lib/i18n.svelte";
   // Career stats for anyone: overall plus per agent, map, agent × map, patch, weapon and queue.
   // `d` is the output of career::compute (or from_stored for the quick summary, which lacks round data).
   import type { J } from "../lib/api";
@@ -44,7 +45,7 @@
 </script>
 
 {#if !o.games}
-  <div class="card empty-inline">No matches to show yet.</div>
+  <div class="card empty-inline">{t("No matches to show yet.")}</div>
 {:else}
   <div class="stat-grid mb-4" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
     {#each tiles as [v, l, sub] (l)}
@@ -57,14 +58,14 @@
     </div>
   {/if}
   <div class="tabs mb-2">
-    {#each VIEWS as [k, l] (k)}<button role="tab" class="tab" aria-selected={view === k} onclick={() => (view = k)}>{l}{#if d[k]?.length}<span class="count">{d[k].length}</span>{/if}</button>{/each}
+    {#each VIEWS as [k, l] (k)}<button role="tab" class="tab" aria-selected={view === k} onclick={() => (view = k)}>{t(l)}{#if d[k]?.length}<span class="count">{d[k].length}</span>{/if}</button>{/each}
   </div>
   <div class="card" style="overflow-x:auto;padding:0">
     {#if view === "weapons"}
       <div class="stack" style="gap:10px;padding:16px">{#each d.weapons as w (w.name)}
-        <div class="bar-h"><span>{w.name}</span><span class="b"><i style="width:{w.share}%"></i></span><span class="mono" style="text-align:right">{w.kills} · {w.share}%</span></div>{:else}<p class="faint">No kill data.</p>{/each}</div>
+        <div class="bar-h"><span>{w.name}</span><span class="b"><i style="width:{w.share}%"></i></span><span class="mono" style="text-align:right">{w.kills} · {w.share}%</span></div>{:else}<p class="faint">{t("No kill data.")}</p>{/each}</div>
     {:else if view === "queues"}
-      <table class="table"><thead><tr><th>Mode</th><th class="num">Games</th><th class="num">Win</th></tr></thead><tbody>
+      <table class="table"><thead><tr><th>{t("Mode")}</th><th class="num">{t("Games")}</th><th class="num">{t("Win")}</th></tr></thead><tbody>
         {#each d.queues as q (q.name)}<tr><td>{queueLabel(q.name)}</td><td class="num">{q.games}</td><td class="num">{q.win}%</td></tr>{/each}
       </tbody></table>
     {:else}
@@ -83,7 +84,7 @@
       </tbody></table>
     {/if}
   </div>
-  {#if quick}<p class="faint mt-2" style="font-size:12px">Quick summary from the last {o.games} matches. Load detailed stats for defuses, clutches, KAST, trades and more.</p>{/if}
+  {#if quick}<p class="faint mt-2" style="font-size:12px">{t("Quick summary from the last")} {o.games} {t("matches. Load detailed stats for defuses, clutches, KAST, trades and more.")}</p>{/if}
 {/if}
 
 <style>

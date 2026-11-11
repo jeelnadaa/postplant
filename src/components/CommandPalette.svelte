@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from "../lib/i18n.svelte";
   // Ctrl+K: jump to a screen or look up a Riot ID (plan section 26).
   import { parseRiotId } from "../lib/format";
   import { app, nav } from "../lib/store.svelte";
@@ -62,7 +63,7 @@
         {#each items as it, i (it[2])}
           <button class="menu-item {i === sel ? 'is-active' : ''}" onmouseenter={() => (sel = i)} onclick={() => go(i)}><Icon name={it[1]} />{it[2]}</button>
         {:else}
-          <div class="empty-inline">Nothing matches. Type a Riot ID like Name#tag to look someone up.</div>
+          <div class="empty-inline">{t("Nothing matches. Type a Riot ID like Name#tag to look someone up.")}</div>
         {/each}
       </div>
     </div>
