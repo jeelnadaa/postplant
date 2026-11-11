@@ -1,21 +1,13 @@
 name: Release
 
-# Every push to main that changes the app builds a Windows release with the next version,
-# worked out from Conventional Commits (scripts/next-version.mjs). Add "[skip release]" to a
-# commit message to leave it out. Docs, site and design changes never release.
+# Every push to main builds a Windows release with the next version, worked out from
+# Conventional Commits (scripts/next-version.mjs). Add "[skip release]" to a commit message to
+# leave it out. Pushes that only touch docs, site, design or CI finish early without a release.
 on:
+  # Runs after every push to main. scripts/next-version.mjs decides whether the push changed the
+  # app; if not (docs, site, design or CI only), the run finishes in seconds with "Nothing to release".
   push:
     branches: [main]
-    paths:
-      - "src/**"
-      - "src-tauri/**"
-      - "data/**"
-      - "index.html"
-      - "overlay.html"
-      - "package.json"
-      - "package-lock.json"
-      - "vite.config.ts"
-      - "svelte.config.js"
   workflow_dispatch:
     inputs:
       bump:

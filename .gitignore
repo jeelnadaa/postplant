@@ -7,3 +7,6 @@ Thumbs.db
 *.log
 .env
 src-tauri/gen/
+
+# Local installers dropped in the repo root
+/*.exe
