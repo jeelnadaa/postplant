@@ -1,0 +1,15 @@
+// Cloudflare Workers static-assets config for the Postplant website (site/).
+//   npx wrangler@4 dev      → preview on http://localhost:8787
+//   npx wrangler@4 deploy   → publish to <name>.<your-subdomain>.workers.dev
+// site/_headers (security headers, caching) is applied by Cloudflare automatically.
+// Add a custom domain under "routes" or in the Cloudflare dashboard.
+{
+  "$schema": "https://unpkg.com/wrangler@4/config-schema.json",
+  "name": "postplant-site",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./site",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}
