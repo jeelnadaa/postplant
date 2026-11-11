@@ -4,13 +4,14 @@ Tracks Postplant against the milestones in [plan.md](plan.md) (section 7). Updat
 
 ## Now / Next / Blocked
 
-- **Now:** v0.3: Hindi UI, signed auto-updater and offline installer, meta asset pipeline, heatmap filters, pattern notes, trade stats, duo synergy, post-match facts, API field check.
-- **Next:** run the field check with a real key and fix any renamed fields; performance pass with the game running; review meta sources (VLR.gg, community stats) for terms before automating them; nightly channel.
+- **Now:** v0.4: pro pick rates per map in the advisor (LiquipediaDB, once a key is approved), signed advisor data updates between releases. v0.3: translatable UI, signed auto-updater and offline installer, meta asset pipeline, heatmap filters, pattern notes, trade stats, duo synergy, post-match facts, API field check.
+- **Next:** run the field check with a real key and fix any renamed fields; performance pass with the game running; nightly channel.
 - **Blocked / waiting on owner:**
   - Ask HenrikDev whether a public open-source client with user-supplied keys is allowed.
   - Updater signing key: the key pair is generated and the public key is in `tauri.conf.json`. Add the private key as the `TAURI_SIGNING_PRIVATE_KEY` repository secret to switch on signed updates. Until then releases build unsigned and the app links to the download page.
   - Deploy the site: `npx wrangler login` then `npm run site:deploy`, or connect Workers Builds / add `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` secrets.
   - Code signing (SignPath Foundation or similar).
+  - LiquipediaDB API key for pro data: request one, add it as the `LIQUIPEDIA_API_KEY` secret (`docs/meta-sources.md`).
 
 ## Milestones
 
@@ -66,8 +67,10 @@ Tracks Postplant against the milestones in [plan.md](plan.md) (section 7). Updat
 
 ### M5: Meta pipeline
 - [x] Asset adapter (valorant-api.com: maps, minimaps, callouts, agents, game version), validation, weekly PR-opening workflow, fixture tests
-- [ ] Tier 1/2 meta sources (pick rates, pro comps): terms review first
-- [ ] Signed dataset release and in-app loader (data ships in each release for now)
+- [x] Source terms reviewed (`docs/meta-sources.md`): VLR.gg and Metabot excluded by their terms; LiquipediaDB approved (CC-BY-SA 3.0)
+- [x] Tier 1 adapter (pro pick and win rates per map, pro comps) with fixture tests; runs once the API key is added
+- [ ] Tier 2 (ranked): no source with suitable terms
+- [x] Signed dataset release (`dataset.yml`) and in-app loader with daily check
 
 ### M6: Extras, polish, v1.0
 - [x] Heatmaps, opening duels, ability usage, economy efficiency (damage per 1k credits), agent pool, patch impact
@@ -76,7 +79,7 @@ Tracks Postplant against the milestones in [plan.md](plan.md) (section 7). Updat
 - [x] Pattern notes, where rounds end, heatmap agent / round type / outcome filters
 - [x] Lifetime career stats for you and any looked-up player (per agent, map, agent × map, patch, weapon, mode)
 - [x] Export / import and automatic backups (plan 16.1)
-- [x] English + Hindi UI, colour-blind-safe palettes
+- [x] Translatable UI (English; Hindi translation kept but switched off), colour-blind-safe palettes
 - [x] Installer, portable zip, uninstaller (NSIS)
 - [x] Offline installer (WebView2 bundled)
 - [x] Signed auto-updater, stable channel (needs the signing secret)
@@ -100,3 +103,4 @@ Tracks Postplant against the milestones in [plan.md](plan.md) (section 7). Updat
 - **2026-11-11**: v0.1 implementation. Rust backend (budget governor, HenrikDev client, sync, SQLite, queries, Comp Advisor, backup/export, recordings, overlay, tray, hotkeys) with 25 tests; every Svelte screen and the overlay. Plan fixes: 45-minute sessions everywhere, `rr_changes` table, hotkeys that don't clash with browsers and only work in game, stored-matches polling. Small features: `Ctrl+K` palette, copy Riot ID, region from lookup, tray, start with Windows, sync pill. CI (`ci.yml`), automatic semver releases (`release.yml`), Cloudflare wrangler site config and `site.yml`. Licence: MIT OR Apache-2.0.
 - **2026-11-12**: v0.2. Release workflow runs on every push to `main` (version script skips when nothing app-related changed). Live match module (Riot Client lockfile, presence phase, core-game roster, names only for players who show them, owned agents from entitlements). Overlay layouts: agent-select advisor, round-1 panel, hold-Tab rail, full table; the post-match board now shows the overlay by itself and polls faster after a live match ends. Stack planner (exhaustive over each player's pool). Career engine (`career.rs`) for lifetime stats and lookups, with full matches of other players cached in `ext_matches`. Peak and current rank per player in match detail. Heatmaps, 2D replay, press-to-set hotkey modal with conflict and Windows checks, JSON export date range, backup sizes, drag-and-drop import, merge disabled for another account's backup. Test binaries now embed the Common Controls manifest.
 - **2026-11-12**: v0.3. Hindi UI (`src/lib/i18n.svelte.ts`, `hi.json`, language picker; Nirmala UI fallback for Devanagari). Insights engine (`insights.rs`): heatmaps for six events and three layers with callout-named hot spots, trade stats, pattern notes, duo synergy, post-match facts and ability usage. API field check (`fieldcheck.rs`). Signed updater (`updater.rs`, tauri-plugin-updater, `latest.json` built in the release workflow) and an offline installer. Meta pipeline (`meta-pipeline/`, weekly `meta.yml`) synced callouts for all 13 maps.
+- **2026-11-12**: v0.4. Hindi switched off (translation kept in `hi.json`). Meta sources reviewed: VLR.gg's and Metabot's terms forbid collecting or republishing their data; LiquipediaDB is CC-BY-SA with an API, so Tier 1 comes from there (`meta-pipeline/liquipedia.mjs`, needs a key). Advisor weighs pro pick rate per map (shrunk for small samples, off below 8 games) and lists fitting pro comps. Signed dataset: `build-dataset.mjs` + `dataset.yml` publish to the `dataset` release; `dataset.rs` checks daily, verifies the minisign signature with the app's update key and swaps the knowledge base live.

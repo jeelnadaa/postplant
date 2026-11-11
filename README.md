@@ -20,13 +20,13 @@
 - **Duo synergy**: your win rate with each friend, and which of your agent pairs work best together.
 - **Post-match facts**: three short facts on the match page and the post-match overlay board, plus ability casts against your average on that agent.
 - **People**: players you meet often, with your own notes and tags.
-- **Comp Advisor**: pick a map, enter teammates' agents yourself, get suggestions with reasons and full comps, only from agents you own. **Stack planner**: you and up to four friends, each assigned an agent from their own pool, with the top three line-ups and why. Also opens **in the overlay** (hotkey, or automatically in agent select with Live match on).
+- **Comp Advisor**: pick a map, enter teammates' agents yourself, get suggestions with reasons and full comps, only from agents you own. With pro data published, it also weighs **pro pick rates on that map** and lists pro comps that fit your picks (source: Liquipedia, CC-BY-SA 3.0). Advisor data updates by itself between releases, signed like app updates. **Stack planner**: you and up to four friends, each assigned an agent from their own pool, with the top three line-ups and why. Also opens **in the overlay** (hotkey, or automatically in agent select with Live match on).
 - **Overlay**: last match, session and rank panels; the scoreboard pops up by itself after each match. Click-through, movable, game-safe.
 - **Live match** (opt-in, off by default, behind a warning): reads the Riot Client on your PC to know when you're in agent select or a match. Agent select only opens your Comp Advisor; nothing about other players is read there. In the match: a short round-1 panel, hold **Tab** for rank, peak and form beside the scoreboard, and a full table on a hotkey. Players who hide their name stay hidden.
 - **Recordings**: point it at your ShadowPlay / OBS folder and every round and death gets a **Watch** button that opens the video at that moment. A **Review list** keeps moments to rewatch.
 - **Export / import**: full `.postplant` backups, JSON export (optionally anonymised), merge or replace with a preview, weekly automatic backups.
 - **Updates**: the installed app checks GitHub for a new version (never while VALORANT runs), downloads it, checks its signature and restarts. The portable build only tells you an update is out.
-- **English and हिन्दी (Hindi)** UI: **Settings → Appearance → Language**.
+- **Translatable UI**: every string goes through `src/lib/i18n.svelte.ts`. English only for now; a Hindi translation is in the repo, switched off.
 - **API field check** (Settings → API): checks your newest match for every field Postplant reads, so you can tell at a glance if HenrikDev changed something.
 - Six themes, five fonts, colour-blind mode, text size, `Ctrl+K` command palette, tray icon, start with Windows, global hotkeys that only work while the game runs.
 
@@ -92,7 +92,7 @@ Every push to `main` that changes the app builds and publishes a GitHub Release 
 
 ## Meta data pipeline
 
-`meta-pipeline/` keeps `data/` current. Every Wednesday `.github/workflows/meta.yml` syncs map minimaps, callouts and the game version from valorant-api.com, flags agents missing from `data/agents.json`, validates everything and opens a pull request for review. Run it yourself with `npm run meta:sync`, `npm run meta:validate` and `npm run meta:test`. The advisor data ships inside each release.
+`meta-pipeline/` keeps `data/` current. Every Wednesday `.github/workflows/meta.yml` syncs map minimaps, callouts and the game version from valorant-api.com, pulls pro pick rates per map from the LiquipediaDB API (when the `LIQUIPEDIA_API_KEY` secret is set), validates everything and opens a pull request for review. Merging it runs `dataset.yml`, which signs the data and publishes it to the `dataset` release; apps pick it up within a day. Each app release also bundles it. Which sources are allowed and why: [docs/meta-sources.md](docs/meta-sources.md). Run it yourself with `npm run meta:sync`, `npm run meta:validate` and `npm run meta:test`.
 
 ## Website
 

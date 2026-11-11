@@ -318,10 +318,10 @@ M0, M1, M2 and M3 below, plus the Comp Advisor running on the **knowledge base o
 - [x] Solo-queue mode (teammates' picks entered by hand), learn-for-this-map, stack planner and compact overlay panel.
 
 ### M5: Meta pipeline (3–5 days, can start after M0)
-- [ ] Source review recorded in `docs/meta-sources.md` (section 15.2).
+- [x] Source review recorded in `docs/meta-sources.md` (section 15.2): VLR.gg and Metabot excluded by their terms, LiquipediaDB API approved for Tier 1.
 - [x] Adapters, normalization, validation, CI workflow that opens a PR (asset sync from valorant-api.com; Tier 1/2 adapters wait on the source review).
-- [ ] Signed dataset release and app-side loader (section 15.6).
-- [ ] Advisor upgraded to use Tiers 1 and 2.
+- [x] Signed dataset release and app-side loader (section 15.6).
+- [x] Advisor upgraded to use Tier 1 (pro play, LiquipediaDB). Tier 2 has no source with suitable terms.
 
 ### M6: Extras (section 16), polish and v1.0
 - [ ] Every feature in section 16, each trimmed to what the M0 field check showed:
@@ -333,7 +333,7 @@ M0, M1, M2 and M3 below, plus the Comp Advisor running on the **knowledge base o
   - [x] Duo synergy (per agent pair with each friend)
   - [x] Patch impact (before/after a patch that changed your agent)
   - [x] Post-match summary card (overlay scoreboard after each match)
-  - [x] English + Hindi UI (`lib/i18n`, every string translatable from day one)
+  - [x] Translatable UI (`lib/i18n`); English only for now, Hindi translation kept but off
   - [x] Colour-blind-safe palettes and scalable overlay text
   - [x] Section 25: recording sync (Watch at round/death), When you play best, review list
   - [x] Export / import and automatic backups (section 16.1): `.postplant` backup + JSON export, preview, merge/replace, conflict rules, anonymised export, weekly + safety backups, restore from onboarding
@@ -662,6 +662,8 @@ For an open-source app it is better to **fetch once, centrally**, than have ever
 | **Gametree, Hotspawn, tier-list articles** | Editorial per-map picks | Articles | Useful only as a sanity check during human review. |
 
 **Conclusion:** no source found offers per-map **ranked comp** statistics with sample sizes that we can fetch legitimately. The design must not pretend otherwise.
+
+**Update 2026-11-12:** terms read. VLR.gg's terms forbid scrapers and building a database from its data, and Metabot's allow personal use only, so both are excluded. Tier 1 comes from the **LiquipediaDB API** instead (CC-BY-SA 3.0, API key on approved request). Details in `docs/meta-sources.md`.
 
 ### 15.3 Three evidence tiers
 | Tier | Content | Source | Shown as |
