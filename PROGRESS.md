@@ -73,13 +73,17 @@ Tracks Postplant against the milestones in [plan.md](plan.md) (section 7). Updat
 - [ ] Auto-updater (stable + nightly channels)
 - [ ] Code signing; v1.0 release
 
+- [ ] Section 25.1: Watch in recording at round/death, When you play best (Habits), Review list
+
 ### M7: Live match (opt-in)
 - [ ] Toggle (off by default) with mandatory warning
 - [ ] In-game phase gate, hidden-name respect, live quota budget
-- [ ] Live overlay: round-1 buy-phase panel, hold-Tab rail, full table (Ctrl+Shift+L); rank, peak, last act, level, recent form, notes; Private for private profiles and hidden names
+- [ ] Live overlay: round-1 buy-phase panel, hold-Tab rail, full table (Ctrl+Shift+L); rank, peak, last act, level, recent form, notes; Private for private profiles; hidden-name players shown by agent name
+- [ ] Section 25.2: experience on current agent (1st-time tag), rematch notice, your context line
 
 ## Log
 
 - **2026-11-11**: Plan rewritten for open source; Comp Advisor and meta pipeline redesigned; live match moved to an opt-in toggle; distribution, CI, updater and in-app API key sections added. Landing and download pages built.
 - **2026-11-11**: Brand locked (Postplant, logo C). Full design system in `design/`: six themes retuned so every text colour passes 4.5:1 and light-theme cards separate from the page, components with all modals, 27 screens, overlay. Export/import added to the plan (16.1) and designs. Site switcher removed.
 - **2026-11-11**: Live match detailed (plan section 11) and designed (`design/overlay.html`): buy-phase panel, hold-Tab rail beside Valorant's scoreboard, full table, and every per-player state including Private.
+- **2026-11-11**: Agent portraits (valorant-api.com, monogram fallback) replace two-letter tiles; hidden-name players show their agent name live; after the match every player shows in full except private-profile data. Game-safe hover/press motion (transform/opacity only; overlay has no blur or hover). New features in plan section 25 and designed: recording sync, Habits, Review list, 1st-time-on-agent, rematch notice, context line.

@@ -74,6 +74,7 @@
     .edit-bar { position: absolute; left: 50%; top: 70px; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 14px; border-radius: var(--r-pill); background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow-3); font-size: 13px; }
     .grid-guides { position: absolute; inset: 0; z-index: 1; background-image: linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px); background-size: 40px 40px; }
     .snap { position: absolute; z-index: 2; background: var(--accent); opacity: .7; }
+  .ctx-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 11.5px; color: var(--text-2); padding: 6px 8px; margin: 0 0 6px; border-radius: 8px; background: var(--surface-2); }
   </style>
 </head>
 <body data-page="overlay">
@@ -103,7 +104,7 @@
           <div>• <b style="color:var(--text)">Motion:</b> fade + 8 px slide, 200 ms in, 120 ms out. Numbers never animate while you're in a round.</div>
           <div>• <b style="color:var(--text)">Scale:</b> S 0.85×, M 1×, L 1.2× (and per-DPI). <b style="color:var(--text)">Glass opacity</b> 75–100%, default 88% (readable over a white sky in every theme). It changes only the panel background; below 88% secondary text switches to <code>--text-2</code>.</div>
           <div>• <b style="color:var(--text)">Never during agent select:</b> nothing about other players. Comp Advisor only uses picks you enter yourself.</div>
-          <div>• <b style="color:var(--text)">Live match (opt-in, warning accepted):</b> after the match starts: a buy-phase panel in round 1, a rail while <span class="kbd">Tab</span> is held, and a full table on <span class="kbd">Ctrl</span> <span class="kbd">Shift</span> <span class="kbd">L</span>. Private profiles and hidden names say <b style="color:var(--text)">Private</b>; hidden names are never looked up.</div>
+          <div>• <b style="color:var(--text)">Live match (opt-in, warning accepted):</b> after the match starts: a buy-phase panel in round 1, a rail while <span class="kbd">Tab</span> is held, and a full table on <span class="kbd">Ctrl</span> <span class="kbd">Shift</span> <span class="kbd">L</span>. Private profiles say <b style="color:var(--text)">Private</b>; players who hide their name show their agent's name and are never looked up.</div>
         </div></div>
     </section>
 
@@ -132,31 +133,33 @@
     const T = (cls, t) => `<span class="tag ${cls}">${t}</span>`;
     const LIVE = {
       mine: [
-        { a: "Sova", n: "Kairo", t: "owl", lv: 188, rank: ["diamond", "D3", 41], peak: ["ascendant", "Asc 2", "V26 A2"], last: ["diamond", "D2"], form: { w: 58, kd: "1.12", hs: 24, acs: 231 }, tags: T("good", "duo"), met: "14× · 9W" },
-        { a: "Omen", n: "Nova", t: "ap1", lv: 214, me: true, rank: ["diamond", "D2", 64], peak: ["ascendant", "Asc 1", "V26 A2"], last: ["diamond", "D1"], form: { w: 56, kd: "1.09", hs: 25, acs: 219 } },
+        { a: "Sova", n: "Kairo", on: [7,57], t: "owl", lv: 188, rank: ["diamond", "D3", 41], peak: ["ascendant", "Asc 2", "V26 A2"], last: ["diamond", "D2"], form: { w: 58, kd: "1.12", hs: 24, acs: 231 }, tags: T("good", "duo"), met: "14× · 9W" },
+        { a: "Omen", n: "Nova", on: [4,75], t: "ap1", lv: 214, me: true, rank: ["diamond", "D2", 64], peak: ["ascendant", "Asc 1", "V26 A2"], last: ["diamond", "D1"], form: { w: 56, kd: "1.09", hs: 25, acs: 219 } },
         { a: "Raze", n: "Riven", t: "tx", lv: 97, rank: ["platinum", "P3", 22], peak: ["diamond", "D1", "V25 A6"], last: ["platinum", "P3"], form: "loading", met: "9×" },
         { a: "Viper", n: "Lumen", t: "42", lv: 302, rank: "private", peak: "private", last: "private", form: "private", met: "1× · lost" },
         { a: "Vyse", hidden: true },
       ],
       enemy: [
-        { a: "Jett", n: "Zephyr", t: "eu9", lv: 23, rank: ["immortal", "Imm 1", 18], peak: ["immortal", "Imm 1", "this act"], last: "unranked", form: { w: 71, kd: "1.48", hs: 31, acs: 281 }, tags: T("warnish", "new account") },
-        { a: "Omen", n: "Bao", t: "cn1", lv: 241, rank: ["ascendant", "Asc 1", 12], peak: ["immortal", "Imm 2", "V25 A3"], last: ["ascendant", "Asc 1"], form: { w: 49, kd: "1.02", hs: 20, acs: 207 } },
+        { a: "Jett", n: "Zephyr", on: [9,78], t: "eu9", lv: 23, rank: ["immortal", "Imm 1", 18], peak: ["immortal", "Imm 1", "this act"], last: "unranked", form: { w: 71, kd: "1.48", hs: 31, acs: 281 }, tags: T("warnish", "new account") },
+        { a: "Omen", n: "Bao", on: [0,0], t: "cn1", lv: 241, rank: ["ascendant", "Asc 1", 12], peak: ["immortal", "Imm 2", "V25 A3"], last: ["ascendant", "Asc 1"], form: { w: 49, kd: "1.02", hs: 20, acs: 207 } },
         { a: "Fade", n: "Okto", t: "88", lv: 156, rank: ["diamond", "D2", 77], peak: ["diamond", "D3", "V26 A4"], last: ["diamond", "D2"], form: "queued" },
-        { a: "Killjoy", n: "Mika", t: "2210", lv: 133, rank: ["platinum", "P2", 55], peak: ["diamond", "D1", "V25 A1"], last: ["platinum", "P2"], form: { w: 44, kd: "0.88", hs: 18, acs: 176 }, tags: T("bad", "toxic"), met: "1× · lost" },
-        { a: "Neon", n: "Ash", t: "007", lv: 61, rank: "unranked", peak: ["platinum", "P1", "V26 A3"], last: "none", form: "error" },
+        { a: "Killjoy", n: "Mika", on: [6,50], t: "2210", lv: 133, rank: ["platinum", "P2", 55], peak: ["diamond", "D1", "V25 A1"], last: ["platinum", "P2"], form: { w: 44, kd: "0.88", hs: 18, acs: 176 }, tags: T("bad", "toxic"), met: "1× · lost" },
+        { a: "Neon", n: "Ash", on: [1,0], t: "007", lv: 61, rank: "unranked", peak: ["platinum", "P1", "V26 A3"], last: "none", form: "error" },
       ],
     };
-    const nameCell = (r, tag = true) => r.hidden ? '<span class="hidden-name">Hidden name</span>' : `<b>${r.n}</b>${tag ? `<span class="faint">#${r.t}</span>` : ""}${r.me ? ' <span class="badge accent">you</span>' : ""}`;
-    const railRow = (r) => {
+    const onCell = (r) => !Array.isArray(r.on) ? '<span class="faint">—</span>' : r.on[0] === 0 ? T("warnish", "1st time") : `${r.on[0]} · ${r.on[1]}%`;
+    const firstTime = (r) => Array.isArray(r.on) && r.on[0] === 0 ? T("warnish", "1st time") : "";
+    const nameCell = (r, tag = true) => r.hidden ? window.PP.hiddenName(r.a) : `<b>${r.n}</b>${tag ? `<span class="faint">#${r.t}</span>` : ""}${r.me ? ' <span class="badge accent">you</span>' : ""}`;
+    const railRow = (r, i = 0) => {
       const f = r.hidden ? "private" : r.form;
       const l2 = r.hidden ? "<span>Level hidden · never looked up</span>"
         : `<span>Lv ${r.lv}</span><span>Pk ${cellRank(r.peak, true)}</span>${typeof f === "string" ? cellRank(f) : `<span>${f.w}% win</span>`}`;
-      return `<div class="lr ${r.me ? "me" : ""}">${ag(r.a)}<div style="min-width:0"><div class="l1">${nameCell(r, false)} ${r.tags || ""}${r.met ? `<span class="faint" style="font-size:10.5px">· met ${r.met.split(" ")[0]}</span>` : ""}</div><div class="l2">${l2}</div></div><div>${r.hidden ? PRIV : cellRank(r.rank)}</div></div>`;
+      return `<div class="lr ${r.me ? "me" : ""}" style="--i:${i}">${ag(r.a)}<div style="min-width:0"><div class="l1">${nameCell(r, false)} ${r.tags || ""}${firstTime(r)}${r.met ? `<span class="faint" style="font-size:10.5px">· met ${r.met.split(" ")[0]}</span>` : ""}</div><div class="l2">${l2}</div></div><div>${r.hidden ? PRIV : cellRank(r.rank)}</div></div>`;
     };
     const fullRow = (r) => {
-      if (r.hidden) return `<tr><td>${ag(r.a)}</td><td>${nameCell(r)}</td><td class="num">${PRIV}</td><td>${PRIV}</td><td>${PRIV}</td><td>${PRIV}</td><td colspan="4">${PRIV} <span class="faint" style="font-size:11px">· never looked up</span></td><td class="faint">—</td></tr>`;
+      if (r.hidden) return `<tr><td>${ag(r.a)}</td><td>${nameCell(r)}</td><td class="num">${PRIV}</td><td>${PRIV}</td><td>${PRIV}</td><td>${PRIV}</td><td colspan="4">${PRIV} <span class="faint" style="font-size:11px">· never looked up</span></td><td>${PRIV}</td><td class="faint">—</td></tr>`;
       const f = r.form, fc = typeof f === "string" ? `<td colspan="4">${cellRank(f)}</td>` : `<td class="num">${f.w}%</td><td class="num">${f.kd}</td><td class="num">${f.hs}%</td><td class="num">${f.acs}</td>`;
-      return `<tr class="${r.me ? "me" : ""}"><td>${ag(r.a)}</td><td>${nameCell(r)} ${r.tags || ""}</td><td class="num">${r.lv}</td><td>${cellRank(r.rank)}</td><td>${cellRank(r.peak, true)}${Array.isArray(r.peak) ? ` <span class="faint" style="font-size:10.5px">${r.peak[2]}</span>` : ""}</td><td>${cellRank(r.last, true)}</td>${fc}<td class="faint" style="font-size:11.5px">${r.met || "—"}</td></tr>`;
+      return `<tr class="${r.me ? "me" : ""}"><td>${ag(r.a)}</td><td>${nameCell(r)} ${r.tags || ""}</td><td class="num">${r.lv}</td><td>${cellRank(r.rank)}</td><td>${cellRank(r.peak, true)}${Array.isArray(r.peak) ? ` <span class="faint" style="font-size:10.5px">${r.peak[2]}</span>` : ""}</td><td>${cellRank(r.last, true)}</td>${fc}<td class="num">${typeof r.form === "string" ? cellRank(r.form) : onCell(r)}</td><td class="faint" style="font-size:11.5px">${r.met || "—"}</td></tr>`;
     };
     const teamLbl = (side, label, avg) => `<div class="team-lbl"><span class="${side}">●</span>${label}<span class="avg">avg ${avg}</span></div>`;
 
@@ -179,26 +182,27 @@
         <div class="faint" style="font-size:11px;margin-top:8px">Picks entered by you · only agents you own · <span class="kbd">Ctrl</span><span class="kbd">⇧</span><span class="kbd">A</span></div></div>`,
       live: `<div class="ov ov-mid">${head("Live · Lotus", -1, '<span class="badge warn" style="margin-left:6px">Live</span>')}
         <div class="faint" style="font-size:11px;margin:-2px 0 4px">Round 1 · buy phase · hides in 18 s</div>
+        <div class="ctx-line">${rk("diamond", "D2 · 64")}<span class="loss">L2</span><span>Lotus + Omen <b>12–7</b></span><span class="faint">Rematch: Mika, Bao</span></div>
         ${teamLbl("def", "Your team", "Diamond 2")}${LIVE.mine.map((r) => `<div class="lr ${r.me ? "me" : ""}">${ag(r.a)}<div class="l1">${nameCell(r, false)} ${r.tags || ""}</div><div>${r.hidden ? PRIV : cellRank(r.rank, true)}</div></div>`).join("")}
         ${teamLbl("atk", "Enemy team", "Ascendant 1")}${LIVE.enemy.map((r) => `<div class="lr">${ag(r.a)}<div class="l1">${nameCell(r, false)} ${r.tags || ""}</div><div>${cellRank(r.rank, true)}</div></div>`).join("")}
         <div class="faint" style="font-size:11px;margin-top:8px">Hold <span class="kbd">Tab</span> for peak, level and recent form</div></div>`,
-      rail: `<div class="ov ov-rail">${head("Live · hold Tab", -1, '<span class="faint" style="margin-left:6px;font-size:10.5px">Pk = peak · win % last 10</span>')}
+      rail: `<div class="ov ov-rail is-entering">${head("Live · hold Tab", -1, '<span class="faint" style="margin-left:6px;font-size:10.5px">Pk = peak · win % last 10</span>')}
         ${teamLbl("def", "Your team", "D2")}${LIVE.mine.map(railRow).join("")}
         ${teamLbl("atk", "Enemy team", "Asc 1")}${LIVE.enemy.map(railRow).join("")}
         </div>`,
       full: `<div class="ov ov-full">${head("Live match · Lotus · round 7", -1, '<span class="badge warn" style="margin-left:6px">Live</span><span class="faint" style="margin-left:8px;font-size:12px"><span class="kbd">Ctrl</span><span class="kbd">⇧</span><span class="kbd">L</span> to hide</span>')}
         <table class="ov-table">
-          <tr class="head"><td></td><td><span class="def">● Your team</span></td><td class="num">Lv</td><td>Rank</td><td>Peak</td><td>Last act</td><td class="num">Win</td><td class="num">K/D</td><td class="num">HS</td><td class="num">ACS</td><td>With you</td></tr>
+          <tr class="head"><td></td><td><span class="def">● Your team</span></td><td class="num">Lv</td><td>Rank</td><td>Peak</td><td>Last act</td><td class="num">Win</td><td class="num">K/D</td><td class="num">HS</td><td class="num">ACS</td><td class="num" title="Games and win % on the agent they're playing now, last 10 competitive">On agent</td><td>With you</td></tr>
           ${LIVE.mine.map(fullRow).join("")}
-          <tr class="head"><td></td><td><span class="atk">● Enemy team</span></td><td></td><td></td><td></td><td></td><td colspan="4">Last 10 competitive</td><td></td></tr>
+          <tr class="head"><td></td><td><span class="atk">● Enemy team</span></td><td></td><td></td><td></td><td></td><td colspan="5">Last 10 competitive</td><td></td></tr>
           ${LIVE.enemy.map(fullRow).join("")}
         </table>
-        <div class="row" style="margin-top:4px;font-size:11px"><span class="faint">8 of 10 looked up · 1 hidden name, never looked up · 15 of 18 requests used</span><span class="spacer"></span><span class="faint">Live K/D/A and credits: Valorant's own scoreboard</span></div></div>`,
+        <div class="row" style="margin-top:4px;font-size:11px"><span class="faint">8 of 10 looked up · 1 hidden name, never looked up · 15 of 18 requests used</span><span class="badge" style="margin-left:8px" title="From your local match history">Rematch: 2 of them earlier today · lost 9–13</span><span class="spacer"></span><span class="faint">Live K/D/A and credits: Valorant's own scoreboard</span></div></div>`,
       board: `<div class="ov ov-wide">${head("Match over", -1, '<span class="faint" style="margin-left:8px;font-size:12px">Hides in 14 s · <span class="kbd">Esc</span></span>')}
         <div class="row" style="margin-bottom:6px"><span class="big"><span class="win">Victory</span> 13–9</span><span class="spacer"></span><span class="badge win">+21 RR</span>${rk("diamond", "Diamond 2 · 64")}</div>
         <table class="ov-table">
           <tr class="head"><td></td><td>Your team</td><td>Rank</td><td class="num">ACS</td><td class="num">K/D/A</td><td class="num">HS</td></tr>
-          ${[["Sova", "Kairo", "diamond", "D3", 262, "22/13/8", "26%", '<span class="tag good">duo</span>'], ["Omen", "Nova", "diamond", "D2", 248, "21/14/6", "27%", ""], ["Raze", "Riven", "platinum", "P3", 221, "19/15/3", "19%", ""], ["Vyse", "Hidden", "", "", 180, "14/15/5", "22%", ""], ["Viper", "Lumen", "diamond", "D1", 165, "12/16/9", "24%", '<span class="faint" style="font-size:11px">met 1×</span>']].map(([a, n, t, r, acs, k, hs, x]) => `<tr class="${n === "Nova" ? "me" : ""}"><td>${ag(a)}</td><td>${n === "Hidden" ? '<span class="hidden-name faint">Hidden name</span>' : `<b>${n}</b> ${x}`}</td><td>${t ? rk(t, r) : '<span class="faint">—</span>'}</td><td class="num">${acs}</td><td class="num">${k}</td><td class="num">${hs}</td></tr>`).join("")}
+          ${[["Sova", "Kairo", "diamond", "D3", 262, "22/13/8", "26%", '<span class="tag good">duo</span>'], ["Omen", "Nova", "diamond", "D2", 248, "21/14/6", "27%", ""], ["Raze", "Riven", "platinum", "P3", 221, "19/15/3", "19%", ""], ["Vyse", "Sable", "platinum", "P1", 180, "14/15/5", "22%", '<span class="tag" title="Hid their name during the match"><svg class="eo" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l18 18M9.9 4.2A10 10 0 0 1 12 4c5 0 9 4.5 10 8a12 12 0 0 1-2.2 3.6M6.6 6.6A12 12 0 0 0 2 12c1 3.5 5 8 10 8a10 10 0 0 0 5.4-1.6"/></svg></span>'], ["Viper", "Lumen", "diamond", "D1", 165, "12/16/9", "24%", '<span class="faint" style="font-size:11px">met 1× · private profile</span>']].map(([a, n, t, r, acs, k, hs, x]) => `<tr class="${n === "Nova" ? "me" : ""}"><td>${ag(a)}</td><td>${n === "Hidden" ? window.PP.hiddenName(a) : `<b>${n}</b> ${x}`}</td><td>${t ? rk(t, r) : '<span class="faint">—</span>'}</td><td class="num">${acs}</td><td class="num">${k}</td><td class="num">${hs}</td></tr>`).join("")}
           <tr class="head"><td></td><td>Enemy team</td><td></td><td></td><td></td><td></td></tr>
           ${[["Jett", "Zephyr", "immortal", "Imm1", 281, "24/17/2", "31%"], ["Fade", "Okto", "diamond", "D2", 205, "16/18/7", "23%"], ["Omen", "Bao", "ascendant", "A1", 190, "15/18/6", "20%"], ["Killjoy", "Mika", "platinum", "P2", 158, "11/19/4", "18%"], ["Neon", "Ash", "diamond", "D1", 150, "12/18/3", "21%"]].map(([a, n, t, r, acs, k, hs]) => `<tr><td>${ag(a)}</td><td><b>${n}</b></td><td>${rk(t, r)}</td><td class="num">${acs}</td><td class="num">${k}</td><td class="num">${hs}</td></tr>`).join("")}
         </table>
@@ -213,13 +217,13 @@
       ["session", "Between matches · session with tilt warning", "Appears after the third loss in a row (setting). Warm, never preachy; dismisses with the same hotkey.",
         `${hud}${zones}<div style="position:absolute;right:24px;top:190px;z-index:3">${P.session}</div>`, ["Tilt copy is factual: uses your own numbers"]],
       ["live", "Live · round 1 buy phase (opt-in)", "Only when Live match is on and the match has started; never in agent select. Name and current rank for all 10, auto-hides after 25 s. Sits left, below the minimap.",
-        `${hud}${zones}<div style="position:absolute;left:24px;top:216px;z-index:3">${P.live}</div>`, ["Width 340 px", "Teams sorted by rank", "Hidden name → Private, never looked up"]],
-      ["tab", "Live · hold Tab", "While Tab is held, a rail docks to the right of Valorant's own scoreboard. The game already shows live K/D/A, score and credits; Postplant adds rank, peak, level, recent form and your notes. Rows can't mirror the game's order (it re-sorts by score), so match players by agent icon.",
+        `${hud}${zones}<div style="position:absolute;left:24px;top:216px;z-index:3">${P.live}</div>`, ["Width 340 px", "Teams sorted by rank", "Hidden name → agent name, never looked up"]],
+      ["tab", "Live · hold Tab", "While Tab is held, a rail docks to the right of Valorant's own scoreboard. The game already shows live K/D/A, score and credits; Postplant adds rank, peak, level, recent form, a 1st-time tag for players new to their agent, and your notes. Rows can't mirror the game's order (it re-sorts by score), so match players by agent icon.",
         `${hud}${zone(20, 20, 190, 190, "MINIMAP")}${zone(1060, 20, 300, 150, "KILL FEED")}<div class="vs-board"><span class="cap">Valorant's own scoreboard (not Postplant) · live K/D/A · score · credits</span>${"ddddd".split("").map(() => "<i></i>").join("")}<span class="gap"></span>${"eeeee".split("").map(() => '<i class="e"></i>').join("")}</div>
          <div style="position:absolute;right:16px;top:176px;z-index:3">${P.rail}</div>`, ["Width 300 px: fits beside the scoreboard at 16:9", "K/D, HS %, ACS in the full table", "Shown while Tab is held · fade 120 ms", "Passive key check, never blocks Tab", "Ranks load first, form second"]],
       ["full", "Live · full table (Ctrl+Shift+L)", "Every field, for between rounds or after you die. Toggled by hotkey, also for people who turn off the Tab trigger.",
-        `${hud}${zones}<div style="position:absolute;left:50%;top:174px;transform:translateX(-50%);z-index:3">${P.full}</div>`, ["Width 820 px", "Private profile: name + level from the client, every lookup field Private", "Hidden name: agent only, all fields Private"]],
-      ["post", "Post-match scoreboard", "Auto-shows when a new match is stored, hides after 20 s or on Esc. Centred; the game is in its end screen so nothing is covered.",
+        `${hud}${zones}<div style="position:absolute;left:50%;top:174px;transform:translateX(-50%);z-index:3">${P.full}</div>`, ["Width 820 px", "Private profile: name + level from the client, every lookup field Private", "Hidden name: agent's name, all fields Private"]],
+      ["post", "Post-match scoreboard", "Auto-shows when a new match is stored, hides after 20 s or on Esc. Every player's name, rank at match time and stats come from the match data, including players who hid their name in game (eye-off icon). Only private-profile data stays Private.",
         `${hud}<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3">${P.board}</div>`, ["Width 640 px", "Your row highlighted", "Notes and tags inline"]],
       ["advisor", "Comp Advisor (compact)", "From menus or the main window. You tap teammates' picks; Postplant never reads agent select. Only agents you own are listed.",
         `${hud}${zones}<div style="position:absolute;right:24px;top:190px;z-index:3">${P.advisor}</div>`, ["Same scoring as the app", "Locked agents never shown"]],
@@ -244,10 +248,11 @@
       <section class="scene" id="states"><div class="scene-head"><span class="n">${scenes.length + 1}</span><h3>Live · per-player states</h3><span class="muted" style="font-size:13px">Every field loads on its own. A missing field never blanks the row, and nothing is guessed.</span></div>
         <div class="demo dotted state-grid">${[
           ["Loaded", "All lookups returned.", LIVE.mine[0]],
+          ["First time on agent", "0 games on the agent they're playing in their last 10 competitive. Same request as recent form, no extra cost.", LIVE.enemy[1]],
           ["Loading", "Skeleton per field. Rank loads first, recent form after.", LIVE.mine[2]],
           ["Queued", "Waiting for API budget; requests are spread over at least 60 s.", LIVE.enemy[2]],
           ["Private profile", "HenrikDev returns nothing. Name and level come from the client; every looked-up field says Private.", LIVE.mine[3]],
-          ["Hidden name (streamer mode)", "Agent only. Name reads Hidden name, everything else Private. No lookup is ever made.", LIVE.mine[4]],
+          ["Hidden name (streamer mode)", "Shown by the agent's name with an eye-off icon, as the game does. Everything else is Private. No lookup is ever made.", LIVE.mine[4]],
           ["Unranked · lookup failed", "No rank this act shows Unranked (peak still shows). A failed lookup says so and retries next round.", LIVE.enemy[4]],
           ["New account", "Level under 30. A factual tag, never \"smurf\".", LIVE.enemy[0]],
           ["Your notes", "Tags and \"met N×\" come from your local notes and match history.", LIVE.enemy[3]],

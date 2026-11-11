@@ -209,6 +209,12 @@ textarea.input, .input.textarea { height: auto; min-height: 88px; padding: var(-
 }
 .agent::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(90% 70% at 50% 25%, color-mix(in srgb, var(--role) var(--role-mix, 38%), transparent), transparent 70%); }
 .agent .mono-glyph { position: absolute; top: 9px; left: 0; right: 0; text-align: center; font-family: var(--font-display); font-weight: var(--fw-black); font-size: 26px; line-height: 1; color: var(--text); }
+.agent .face { position: absolute; left: 0; right: 0; top: 0; width: 100%; aspect-ratio: 1; object-fit: cover; z-index: 0; transition: transform var(--dur-3) var(--ease-out); pointer-events: none; }
+.agent:not(.agent-sm)::after { content: ""; position: absolute; inset: 40% 0 0; z-index: 1; background: linear-gradient(180deg, transparent, var(--surface-2) 62%); pointer-events: none; }
+.agent .face ~ .mono-glyph { display: none; }
+.agent-sm .face { inset: 0; height: 100%; }
+.agent .nm { z-index: 2; }
+.agent .lock { z-index: 3; }
 .agent .nm { position: relative; font-weight: var(--fw-medium); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 button.agent:hover { transform: translateY(-2px); border-color: var(--line-2); }
 .agent[aria-pressed="true"] { border-color: var(--accent-text); box-shadow: 0 0 0 2px var(--accent-soft); }
@@ -257,7 +263,8 @@ button.agent:hover { transform: translateY(-2px); border-color: var(--line-2); }
 .player { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .player .who { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
 .player .tagline { font-size: var(--fs-xs); color: var(--text-3); }
-.hidden-name { font-style: italic; color: var(--text-3); }
+.hidden-name { display: inline-flex; align-items: center; gap: 5px; font-weight: var(--fw-medium); color: var(--text-2); }
+.hidden-name .eo { width: 13px; height: 13px; flex: none; color: var(--text-3); }
 
 /* ---------- Match row ---------- */
 .match-row { display: grid; grid-template-columns: 6px 44px 1.4fr 0.9fr 0.8fr 0.8fr 0.7fr 0.8fr 28px; align-items: center; gap: 14px; padding: 10px 14px 10px 0; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--card-shadow); transition: border-color var(--dur-2), transform var(--dur-2) var(--ease-out); overflow: hidden; }
@@ -318,9 +325,9 @@ button.agent:hover { transform: translateY(-2px); border-color: var(--line-2); }
 .toast .d { font-size: var(--fs-sm); color: var(--text-2); }
 .toast .icon { width: 20px; height: 20px; }
 .toast.ok .icon { color: var(--win); } .toast.err .icon { color: var(--loss); } .toast.warn .icon { color: var(--warn); } .toast.info .icon { color: var(--info); }
-.toast .timer { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent-text); animation: toastTimer 5s linear forwards; }
+.toast .timer { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent-text); width: 100%; transform-origin: left; animation: toastTimer 5s linear forwards; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } }
-@keyframes toastTimer { from { width: 100%; } to { width: 0; } }
+@keyframes toastTimer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
 /* ---------- Tooltip & popover ---------- */
 .tooltip { position: relative; display: inline-flex; }
@@ -379,7 +386,7 @@ button.agent:hover { transform: translateY(-2px); border-color: var(--line-2); }
 .chart .dot { fill: var(--surface); stroke: var(--chart-1); stroke-width: 2; }
 
 /* ---------- Overlay (in-game) ---------- */
-.ov { font-family: var(--font-ui); color: var(--text); background: var(--glass); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); border: 1px solid var(--line-2); border-radius: var(--r-lg); box-shadow: var(--shadow-3); padding: 12px 14px; width: 272px; font-size: var(--fs-sm); }
+.ov { font-family: var(--font-ui); color: var(--text); background: var(--glass); border: 1px solid var(--line-2); border-radius: var(--r-lg); box-shadow: var(--shadow-3); padding: 12px 14px; width: 272px; font-size: var(--fs-sm); }
 .ov-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .ov-head .logo svg { width: 14px; height: 14px; }
 .ov-dots { margin-left: auto; display: flex; gap: 3px; }
@@ -391,6 +398,58 @@ button.agent:hover { transform: translateY(-2px); border-color: var(--line-2); }
 .ov-grid small { font-size: 10px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; }
 .ov.edit { outline: 2px dashed var(--accent-text); outline-offset: 4px; cursor: move; }
 .ov .handle { position: absolute; width: 10px; height: 10px; border-radius: 3px; background: var(--accent); border: 2px solid var(--bg); }
-.hotkey-toast { display: inline-flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--r-pill); background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line-2); font-size: var(--fs-sm); box-shadow: var(--shadow-2); }
+.hotkey-toast { display: inline-flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--r-pill); background: var(--glass); border: 1px solid var(--line-2); font-size: var(--fs-sm); box-shadow: var(--shadow-2); }
 /* Overlay glass below the 88% default: promote faint text so it stays readable over bright scenes. */
 .ov[data-glass-low] .faint, .ov[data-glass-low] .caps { color: var(--text-2); }
+
+/* ==========================================================================
+   Hover, press and enter motion. Only transform and opacity animate (GPU
+   compositor, no layout or repaint), so hovering costs next to nothing.
+   ========================================================================== */
+.btn:hover .lucide-arrow-right, .btn:hover .lucide-chevron-right { transform: translateX(3px); }
+.btn .lucide { transition: transform var(--dur-2) var(--ease-out); }
+.btn-primary:active, .chip:active, button.agent:active, .map-tile:active { transform: scale(0.97); }
+.btn-icon:hover .lucide-refresh-cw { transform: rotate(90deg); }
+
+.card.is-link, a.card, .note-insight, .sugg-card { transition: transform var(--dur-3) var(--ease-out), border-color var(--dur-2); }
+.card.is-link:hover, a.card:hover, .sugg-card:hover { transform: translateY(-2px); border-color: var(--line-2); }
+.note-insight:hover { transform: translateX(3px); }
+.note-insight .lucide-chevron-right, .match-row .lucide-chevron-right { transition: transform var(--dur-2) var(--ease-out); }
+.note-insight:hover .lucide-chevron-right, .match-row:hover .lucide-chevron-right { transform: translateX(3px); }
+.match-row .res { transition: transform var(--dur-3) var(--ease-out); transform-origin: left; }
+.match-row:hover .res { transform: scaleX(1.6); }
+
+.agent::before { transition: opacity var(--dur-3); }
+button.agent:hover .face, .agent:hover .face { transform: scale(1.07); }
+button.agent:hover::before { opacity: 1.6; }
+.map-tile:hover { border-color: var(--line-2); }
+
+.nav-item .lucide { transition: transform var(--dur-2) var(--ease-out); }
+.nav-item:hover .lucide { transform: translateX(2px); }
+.table tbody tr td:first-child { box-shadow: inset 0 0 0 transparent; transition: box-shadow var(--dur-1); }
+.table tbody tr:hover td:first-child { box-shadow: inset 2px 0 0 var(--accent-text); }
+
+.tooltip .tip { transition-delay: 0ms; }
+.tooltip:hover .tip { transition-delay: 350ms; }      /* no tooltip flicker when the pointer passes over */
+.menu { transform-origin: top center; }
+:focus-visible { transition: outline-offset var(--dur-1); }
+
+/* Overlay: one-shot enter/exit only. It is click-through in game, so it has no hover states,
+   except the resize handles in edit mode. */
+@keyframes ovIn { from { opacity: 0; transform: translateY(8px); } }
+@keyframes ovRow { from { opacity: 0; transform: translateX(6px); } }
+.ov.is-entering { animation: ovIn var(--dur-2) var(--ease-out) both; }
+.ov.is-entering .lr { animation: ovRow var(--dur-2) var(--ease-out) both; animation-delay: calc(var(--i, 0) * 18ms); }
+.ov.edit .handle { transition: transform var(--dur-1); }
+.ov.edit .handle:hover { transform: scale(1.4); }
+
+/* ==========================================================================
+   Game-safe mode. The app sets data-perf="game" on <html> (main window and
+   overlay) while VALORANT is running. Nothing loops, nothing blurs.
+   ========================================================================== */
+[data-perf="game"] .skeleton { animation: none; background: var(--surface-3); }
+[data-perf="game"] .spinner, [data-perf="game"] .btn.is-loading::after { animation-duration: 1.4s; }
+[data-perf="game"] .scrim { backdrop-filter: none; -webkit-backdrop-filter: none; }
+[data-perf="game"] .progress > i { transition: none; }
+[data-perf="game"] .toast .timer { animation: none; }
+[data-perf="game"] .ov.is-entering .lr { animation: none; }

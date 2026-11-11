@@ -198,7 +198,7 @@ If a shortcut fails to register, Settings shows a warning and offers a rebind. T
 1. **Last match**: result, map, agent, ACS, K/D/A, headshot %, RR change.
 2. **Session**: today's W/L, average ACS, headshot %, K/D, net RR, tilt warning.
 3. **Rank**: current rank, RR, peak rank, RR sparkline.
-4. **Post-match scoreboard** (auto-shows when a new match is detected, hides after N seconds): all 10 players with rank, agent and score, plus your notes and "played before" badges.
+4. **Post-match scoreboard** (auto-shows when a new match is detected, hides after N seconds): all 10 players with name, rank at match time, agent and full stats, plus your notes and "played before" badges. See "After the match" in section 11 for hidden names and private profiles.
 5. **Comp Advisor (compact)**: section 14.
 
 ---
@@ -245,6 +245,9 @@ round_player_stats(match_id, round_no, puuid, score, damage, kills,
                    PRIMARY KEY(match_id, round_no, puuid))
 
 player_notes(puuid PK, tags_json, note, updated_at)     -- local only, never uploaded
+review_items(id PK, match_id, round_no, kind, note,     -- section 25.1 review list
+             created_at, done_at)
+recordings(path PK, started_at, duration_ms, match_id)  -- section 25.1, matched by time; files never modified
 
 agent_pool(puuid, agent_id, comfort INTEGER,            -- 0 = won't play .. 3 = main
            PRIMARY KEY(puuid, agent_id))                -- for me and for stack friends
@@ -327,6 +330,7 @@ M0, M1, M2 and M3 below, plus the Comp Advisor running on the **knowledge base o
   - [ ] Post-match summary card
   - [ ] English + Hindi UI (`lib/i18n`, every string translatable from day one)
   - [ ] Colour-blind-safe palettes and scalable overlay text
+  - [ ] Section 25: recording sync (Watch at round/death), When you play best, review list
   - [ ] Export / import and automatic backups (section 16.1): `.postplant` backup + JSON export, preview, merge/replace, conflict rules, anonymised export, weekly + safety backups, restore from onboarding
 - [ ] Settings, error states, tray icon, start with Windows, performance pass (section 9).
 - [ ] Code signing, auto-updater (section 20), first stable release.
@@ -338,7 +342,7 @@ M0, M1, M2 and M3 below, plus the Comp Advisor running on the **knowledge base o
 - [ ] Re-read Riot's VALORANT policy and the current state of the local client endpoints.
 - [ ] Phase detection: activate only when the match phase is in-game; do nothing during pre-game (agent select).
 - [ ] Read players and agents for the current match; fetch ranks through the governor's live budget (section 13).
-- [ ] Live overlay panel with the "show only what's available" rules: buy-phase compact panel, hold-Tab full panel, Ctrl+Shift+L toggle; per-player states (loading, queued, private profile, hidden name, unranked, error); hidden-name players never looked up.
+- [ ] Live overlay panel with the "show only what's available" rules: buy-phase compact panel, hold-Tab full panel, Ctrl+Shift+L toggle; per-player states (loading, queued, private profile, hidden name, unranked, error); hidden-name players never looked up. Plus section 25.2: experience on current agent, rematch notice, your context line.
 - [ ] Opt-in screen with the risk notice; module disabled by default and removable at build time (`--no-default-features`).
 
 ---
@@ -375,6 +379,15 @@ Making the project public changes the risk. A private tool affected one account;
 | Installer size | under about 15 MB |
 | Cold start | under 2 s |
 | Advisor response | under 50 ms per input change (all local) |
+| Game FPS with overlay shown | average and 1% lows within 1% of overlay hidden (measured with PresentMon/CapFrameX over the same replay route) |
+| Overlay GPU use | under 1% while idle; only one-shot 200 ms entrances |
+
+**Motion rules that keep the game smooth** (enforced in `design/components.css`):
+- Only `transform` and `opacity` animate (compositor only: no layout, no repaint). Hover and press effects in the main window follow this, so they cost almost nothing even while the game runs.
+- While VALORANT is running the app sets `data-perf="game"`: no looping animations (skeleton shimmer, toast timers), no backdrop blur, slower spinners.
+- The overlay is click-through, so it has no hover effects; it has no blur (a transparent window can't blur the game behind it, it would only cost GPU); it animates only when a panel appears or its data changes, and repaints at most once per second.
+- Hidden or minimised windows stop rendering (`requestAnimationFrame` paused, WebView suspended); background work lives in Rust, not in the page.
+- Settings → Appearance → Reduce motion follows Windows by default.
 
 Measure these on a low-end machine (4 cores, 8 GB RAM, integrated GPU) as well as a gaming PC, and publish the numbers in the README.
 
@@ -451,6 +464,13 @@ Everything below appears only when Live match is on (warning accepted) and only 
 - **Hotkey:** `Ctrl+Shift+L` toggles the same full panel, for people who turn off the Tab trigger.
 
 **Tab detection:** a passive check of the Tab key state, only while Valorant is the focused window and Live match is on. It never intercepts, blocks or remaps the key, and nothing is sent to the game. It's a separate setting ("Show while Tab is held", on by default when Live match is on), so anyone who prefers not to have it can use the hotkey instead.
+
+**After the match (all users, live mode or not):** finished-match data includes every player, so the scoreboard, match detail, round replay and people views show everything the match data has:
+- **Name#tag**, account level, agent, team, **rank at match time**, and every stat (ACS, K/D/A, headshot %, ADR, first bloods, economy, kill positions).
+- **Players who hid their name in game:** shown by name if the match data includes it, with an eye-off "hidden in match" tag. If the data anonymises them, they're shown by agent name. Postplant never tries to recover a hidden name any other way (no cross-referencing, no other lookups).
+- **Private profiles:** everything from the match itself still shows. Only what needs their profile (peak rank, act history, recent matches) shows **Private** when you open their card.
+- The live roster seen during the match (section 11) is saved with the match, so ranks looked up live are kept without new requests.
+- M0 field check: confirm in `docs/api-notes.md` how HenrikDev returns players who hid their name, and whether rank at match time is present for every player.
 
 **Not available, by design:** other players' live K/D/A, score, credits or loadouts (the local client doesn't expose them; Valorant's own scoreboard shows them), and party detection (would need reading friends' presence data; left out).
 
@@ -937,3 +957,32 @@ UI default **Satoshi**. Options: General Sans, Geist, Inter, Atkinson Hyperlegib
 - Agent, map and rank art is shown as monograms in the designs; the app uses valorant-api.com images in the same boxes.
 - Never hard-code a colour in a component; add a token instead and check it against the 4.5:1 rule above.
 
+---
+
+## 25. Feature additions (2026-11-11)
+
+Chosen because each one answers a question players actually ask, uses data Postplant already has, and costs **no extra API quota**. Designs are in `design/screens.html` and `design/overlay.html`.
+
+### 25.1 Main app
+
+| Feature | What it does | Why it's useful | Data / cost |
+|---|---|---|---|
+| **Jump to the round in your recording** | Point Postplant at your clips folder (OBS, NVIDIA ShadowPlay/App, AMD ReLive, Medal or any folder of .mp4/.mkv). It matches recordings to matches by the file's start time and length, then every round, death and kill gets **Watch**, which opens the video at that moment (players that accept a start time, such as VLC and mpv, jump straight there; otherwise the timestamp is copied). | Seeing a death is how people actually improve; finding the moment in a 40-minute recording is the part nobody does. | Match start time + event times from stored match data; local file timestamps. Read-only on the folder; videos are never uploaded or modified. |
+| **When you play best** | Win rate and ACS by match number in a session, by hour of day, after 2+ losses in a row, and solo vs duo vs larger party. Plain verdicts such as "Your 5th match onward: 41% win vs 57% in the first three". | Tells you when to stop queueing, which is the cheapest rank gain there is. Builds on the tilt warning. | Local matches (party size from match data). Needs about 40 matches before showing verdicts; shows sample sizes. |
+| **Review list** | "Review later" on any death, round or match; a list with your note per item and a Watch button when a recording exists. | Turns analytics into a habit: mark during the post-match look, review later. | Local only (`review_items` table). |
+
+### 25.2 Live match (opt-in, same rules as section 11)
+
+| Feature | What it shows | Why it's useful | Data / cost |
+|---|---|---|---|
+| **Experience on current agent** | For each player: games and win % on the agent they're playing now, from their last 10 competitive matches; "1st time" tag when it's zero. | Tells you who is comfortable and who is learning, for both teams. | Same request as recent form; no extra cost. |
+| **Rematch notice** | "You played 3 of them earlier today (lost 9–13)" in the panel footer. | Useful context; often explains a lobby. | Local match history. |
+| **Your context line** | Your rank and RR, current streak, and your record on this map with this agent. | Everything about you in one line, without opening the app. | Local data. |
+
+### 25.3 Considered and left out
+- **Party / premade detection:** needs reading other players' presence data from the client; too invasive for a public tool.
+- **Estimated MMR or "expected RR":** Riot doesn't expose MMR; any estimate would look precise and be wrong.
+- **"Smurf score":** unreliable and accusatory. We show facts instead: account level, "new account", peak rank.
+- **Enemy credits/loadouts, live K/D/A:** not available from the client, and Valorant's own scoreboard has them.
+- **In-round tips:** against Riot's policy and distracting.
+- **Goals, CSV export, weekly reports:** excluded earlier by the owner.

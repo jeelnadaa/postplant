@@ -147,7 +147,7 @@
     <!-- MOTION -->
     <section class="sec" id="motion">
       <div class="sec-head"><div><span class="k">05 · Motion</span><h2>Quick, springy, and never in the way</h2></div>
-        <p>Hover 120 ms, small changes 200 ms, panels 320 ms, modals and page changes 520 ms. Entering uses ease-out; toggles use a light spring. The overlay never animates while idle; it only animates when data changes. Everything respects "reduce motion" in Windows.</p></div>
+        <p>Hover 120 ms, small changes 200 ms, panels 320 ms, modals and page changes 520 ms. Entering uses ease-out; toggles use a light spring. The overlay never animates while idle; it only animates when data changes. <b>Game-safe rules:</b> only <code>transform</code> and <code>opacity</code> animate; nothing loops while VALORANT runs (<code>data-perf="game"</code> stops shimmer, blur and timers); the overlay has no blur and no hover (it is click-through), just a 200 ms entrance; hidden windows stop rendering. Everything respects "reduce motion" in Windows.</p></div>
       <div class="demo-grid g4" data-motion></div>
     </section>
 

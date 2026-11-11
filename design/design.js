@@ -34,6 +34,14 @@
   Object.entries(AGENTS).forEach(([r, l]) => l.forEach((a) => (ROLE_OF[a] = r)));
   const MAPS = { Abyss: "#4a6fa5", Bind: "#c98a4b", Corrode: "#7d8f6a", Haven: "#b58a5a", Lotus: "#5a9a8a", Summit: "#8c9fb8", Sunset: "#d07a5a" };
 
+  /* Agent portraits: valorant-api.com displayIcon (square headshot). The app caches these
+     on disk at runtime; nothing is committed. The monogram stays as the fallback. */
+  const AGENT_IDS = {"Astra":"41fb69c1-4189-7b37-f117-bcaf1e96f1bf", "Breach":"5f8d3a7f-467b-97f3-062c-13acf203c006", "Brimstone":"9f0d8ba9-4140-b941-57d3-a7ad57c6b417", "Chamber":"22697a3d-45bf-8dd7-4fec-84a9e28c69d7", "Clove":"1dbf2edd-4729-0984-3115-daa5eed44993", "Cypher":"117ed9e3-49f3-6512-3ccf-0cada7e3823b", "Deadlock":"cc8b64c8-4b25-4ff9-6e7f-37b4da43d235", "Fade":"dade69b4-4f5a-8528-247b-219e5a1facd6", "Gekko":"e370fa57-4757-3604-3648-499e1f642d3f", "Harbor":"95b78ed7-4637-86d9-7e41-71ba8c293152", "Hush":"ddd5a15c-4fbe-42fa-3789-11a55ca5ee04", "Iso":"0e38b510-41a8-5780-5e8f-568b2a4f2d6c", "Jett":"add6443a-41bd-e414-f6ad-e58d267f4e95", "KAY/O":"601dbbe7-43ce-be57-2a40-4abd24953621", "Killjoy":"1e58de9c-4950-5125-93e9-a0aee9f98746", "Miks":"7c8a4701-4de6-9355-b254-e09bc2a34b72", "Neon":"bb2a4828-46eb-8cd1-e765-15848195d751", "Omen":"8e253930-4c05-31dd-1b6c-968525494517", "Phoenix":"eb93336a-449b-9c1b-0a54-a891f7921d69", "Raze":"f94c3b30-42be-e959-889c-5aa313dba261", "Reyna":"a3bfb853-43b2-7238-a4f1-ad90e9e46bcc", "Sage":"569fdd95-4d10-43ab-ca70-79becc718b46", "Skye":"6f2a04ca-43e0-be17-7f36-b3908627744d", "Sova":"320b2a48-4d9b-a075-30f1-1f93a9b638fa", "Tejo":"b444168c-4e35-8076-db47-ef9bf368f384", "Veto":"92eeef5d-43b5-1d4a-8d03-b3927a09034b", "Viper":"707eab51-4836-f488-046a-cda6bf494859", "Vyse":"efba5359-4016-a1e5-7626-b1ae76895940", "Waylay":"df1cb487-4902-002e-5c17-d28e83e78588", "Yoru":"7f94d92c-4234-0a36-9646-3a87eb8b5c89"};
+  const faceUrl = (a) => AGENT_IDS[a] ? "https://media.valorant-api.com/agents/" + AGENT_IDS[a] + "/displayicon.png" : "";
+  const face = (a) => faceUrl(a) ? '<img class="face" src="' + faceUrl(a) + '" alt="" loading="lazy" decoding="async" onerror="this.remove()">' : "";
+  // A player who hides their name is shown by their agent's name, as the game does.
+  const hiddenName = (a) => '<span class="hidden-name" title="Name hidden by the player"><svg class="eo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.2A10 10 0 0 1 12 4c5 0 9 4.5 10 8a12 12 0 0 1-2.2 3.6M6.6 6.6A12 12 0 0 0 2 12c1 3.5 5 8 10 8a10 10 0 0 0 5.4-1.6M3 3l18 18M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>' + a + '</span>';
+
   /* ---------- Render helpers (used by pages via data attributes) ---------- */
   const glyph = (a) => (a === "KAY/O" ? "K/O" : a.slice(0, 2));
   const lockSvg = '<svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
@@ -43,10 +51,13 @@
     if (opts.locked) cls.push("is-locked");
     if (opts.picked) cls.push("is-picked");
     const tag = opts.button ? "button" : "span";
+    const label = opts.button ? "" : ` title="${a}"`;
     const extra = opts.button ? ` type="button" aria-pressed="${opts.pressed ? "true" : "false"}"${opts.locked ? ' aria-disabled="true" title="' + a + ' is locked on your account"' : ""}` : "";
-    return `<${tag} class="${cls.join(" ")}"${extra}><span class="mono-glyph">${glyph(a)}</span><span class="nm">${a}</span>${opts.locked ? lockSvg : ""}</${tag}>`;
+    return `<${tag} class="${cls.join(" ")}"${extra}${label}>${face(a)}<span class="mono-glyph">${glyph(a)}</span><span class="nm">${a}</span>${opts.locked ? lockSvg : ""}</${tag}>`;
   }
-  window.PP = { THEMES, FONTS, AGENTS, ROLE_OF, MAPS, agentTile, glyph };
+  const upgradeFaces = () => document.querySelectorAll(".agent[data-agent]").forEach((el) => { if (!el.querySelector(".face")) el.insertAdjacentHTML("afterbegin", face(el.dataset.agent)); });
+  document.addEventListener("DOMContentLoaded", upgradeFaces); window.addEventListener("load", upgradeFaces);
+  window.PP = { upgradeFaces, THEMES, FONTS, AGENTS, ROLE_OF, MAPS, agentTile, glyph, face, faceUrl, hiddenName };
 
   /* ---------- Theme / font / CVD ---------- */
   function apply(theme, font, cvd) {
