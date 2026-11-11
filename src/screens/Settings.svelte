@@ -231,6 +231,24 @@
       installing = false;
     }
   }
+  let ds = $state<J>(null);
+  let dsBusy = $state(false);
+  const loadDs = () => api.datasetStatus().then((r) => (ds = r)).catch(() => {});
+  loadDs();
+  on("kb-updated", () => loadDs());
+  async function checkDataset() {
+    dsBusy = true;
+    try {
+      const r = await api.checkDataset();
+      toast(r.updated ? "ok" : "info", r.message);
+    } catch (e) {
+      toast("err", "Couldn't check advisor data", errText(e));
+    } finally {
+      dsBusy = false;
+      loadDs();
+    }
+  }
+  const dsDate = (v: number) => (v ? fmtDate(v * 1000) : "unknown");
   async function checkUpdate() {
     updBusy = true;
     try {
@@ -253,8 +271,8 @@
   <div class="stack" style="gap:16px;min-width:0">
     {#if tab === "appearance"}
       <div class="card stack" style="gap:16px">
-        <div class="setting"><div><b>{t("Language")}</b><div class="faint">English · हिन्दी</div></div>
-          <Select value={p.lang ?? "en"} options={LANGS} onchange={(v) => savePrefs({ lang: v })} /></div>
+        {#if LANGS.length > 1}<div class="setting"><div><b>{t("Language")}</b><div class="faint">{LANGS.map((l) => l[1]).join(" · ")}</div></div>
+          <Select value={p.lang ?? "en"} options={LANGS} onchange={(v) => savePrefs({ lang: v })} /></div>{/if}
         <div class="setting"><div><b>{t("Theme")}</b><div class="faint">{t("Ink is the default dark theme. Paper is light.")}</div></div>
           <Select value={p.theme} options={[["ink", "Ink (dark)"], ["midnight", "Midnight"], ["nebula", "Nebula"], ["paper", "Paper (light)"], ["frost", "Frost (light)"], ["sandstone", "Sandstone (light)"], ["system", "Follow Windows"]]} onchange={(v) => savePrefs({ theme: v })} /></div>
         <div class="setting"><div><b>{t("Font")}</b></div>
@@ -388,6 +406,13 @@
           {:else if upd}<span class="faint">{t("You're on the latest version (")}{upd.current}).</span>{/if}</div>
         {#if upd?.newer && upd.notes}<details><summary class="faint" style="cursor:pointer">{t("Changes in")} {upd.latest}</summary><pre class="mono" style="white-space:pre-wrap;font-size:12px;max-height:240px;overflow:auto">{upd.notes}</pre></details>{/if}
         <p class="faint" style="margin:0;font-size:12px">{t("Updates are signed. Postplant only installs one whose signature matches the key built into this app.")}</p>
+        {#if ds}
+          <div class="setting"><div><b>{t("Update advisor data automatically")}</b><div class="faint">{t("Once a day, one request to GitHub for newer maps, agents and pro pick rates between app updates. Signed like app updates; never while VALORANT is running.")}</div></div>
+            <Switch checked={ds.auto} onchange={async (v) => { await savePrefs({ data_updates: v }); loadDs(); }} /></div>
+          <div class="row" style="gap:10px;flex-wrap:wrap"><button class="btn btn-sm" disabled={dsBusy} onclick={checkDataset}><Icon name="refresh" />{t("Check advisor data")}</button>
+            <span class="faint" style="font-size:12px">{t("Loaded:")} {dsDate(ds.version)} ({ds.source === "downloaded" ? t("downloaded") : t("built in")}){#if ds.last_check?.at} · {t("checked")} {timeAgo(ds.last_check.at)}{/if}</span></div>
+          <p class="faint" style="margin:0;font-size:12px">{#if ds.tier1.games}{t("Pro play:")} {ds.tier1.games} {t("games")}{#if ds.tier1.window}, {ds.tier1.window.from} – {ds.tier1.window.to}{/if}. {ds.tier1.attribution}{:else}{t("No pro play data yet: suggestions use role and utility coverage only.")}{/if}</p>
+        {/if}
         <div class="setting"><div><b>{t("Start with Windows")}</b><div class="faint">{t("Starts minimised to the tray")}</div></div>
           <Switch checked={autostart} onchange={async (v) => (autostart = !!(await api.setAutostart(v).catch(() => !v)))} /></div>
         <div class="setting"><div><b>{t("Closing the window keeps Postplant in the tray")}</b></div>
