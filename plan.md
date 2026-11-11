@@ -315,30 +315,31 @@ M0, M1, M2 and M3 below, plus the Comp Advisor running on the **knowledge base o
 ### M4: Comp Advisor v1 (2–3 days)
 - [x] `data/agents.json` and `data/maps.json` knowledge base, reviewed by people (section 14.2).
 - [x] Scoring engine as pure Rust functions with fixture tests.
-- [x] Solo-queue mode (teammates' picks entered by hand) and learn-for-this-map. Stack planner and compact overlay panel still to do.
+- [x] Solo-queue mode (teammates' picks entered by hand), learn-for-this-map, stack planner and compact overlay panel.
 
 ### M5: Meta pipeline (3–5 days, can start after M0)
 - [ ] Source review recorded in `docs/meta-sources.md` (section 15.2).
-- [ ] Adapters, normalization, validation, CI workflow that opens a PR.
+- [x] Adapters, normalization, validation, CI workflow that opens a PR (asset sync from valorant-api.com; Tier 1/2 adapters wait on the source review).
 - [ ] Signed dataset release and app-side loader (section 15.6).
 - [ ] Advisor upgraded to use Tiers 1 and 2.
 
 ### M6: Extras (section 16), polish and v1.0
 - [ ] Every feature in section 16, each trimmed to what the M0 field check showed:
-  - [x] Kill/death heatmaps per map (by side; agent filter still to do)
+  - [x] Kill/death heatmaps per map (by side, agent, round type and outcome; also opening duels, where rounds end, plants, defuses)
   - [x] Opening duel map and win rate
-  - [ ] Ability usage per round vs your own average
+  - [x] Ability usage per round vs your own average
   - [x] Economy results (eco/force/full-buy round win %) and damage per 1,000 credits (Lifetime)
   - [x] Agent pool tracker (results per agent and map; feeds Comp Advisor comfort)
-  - [ ] Duo synergy (per agent pair with each friend)
+  - [x] Duo synergy (per agent pair with each friend)
   - [x] Patch impact (before/after a patch that changed your agent)
   - [x] Post-match summary card (overlay scoreboard after each match)
-  - [ ] English + Hindi UI (`lib/i18n`, every string translatable from day one)
+  - [x] English + Hindi UI (`lib/i18n`, every string translatable from day one)
   - [x] Colour-blind-safe palettes and scalable overlay text
   - [x] Section 25: recording sync (Watch at round/death), When you play best, review list
   - [x] Export / import and automatic backups (section 16.1): `.postplant` backup + JSON export, preview, merge/replace, conflict rules, anonymised export, weekly + safety backups, restore from onboarding
 - [x] Settings, error states, tray icon, start with Windows. Performance pass (section 9) still to measure.
-- [ ] Code signing, auto-updater (section 20), first stable release.
+- [x] Auto-updater (section 20): signed, stable channel, needs the signing secret.
+- [ ] Code signing, first stable release.
 
 ### Site (can run any time)
 - [x] Landing and download pages in `site/` (section 23); `wrangler.jsonc` for Cloudflare Workers static assets.

@@ -15,13 +15,19 @@
 - **Rank**: hero cards for current rank, peak rank and RR; rating over time, RR per match, average gain, roughly how many wins to the next rank, past acts.
 - **Player lookup** by Riot ID (about 3 requests, cached 10 minutes): rank, peak, act record, a quick per-agent and per-map summary of the last 25 competitive games, and **detailed career stats** (the same full set as Lifetime) for 5–25 of their matches at 1 request per match, kept on this PC so asking again is free.
 - **Match detail**: rank at match time plus each player's **peak and current rank**, and a **2D replay** that steps through every kill with where all ten players stood.
-- **Heatmaps**: where you die and where you get kills on each map, by side.
+- **Heatmaps**: kills, deaths, opening duels, where rounds end, plants and defuses on each map, for you, your team or the enemy, filtered by side, agent, round type (pistol, eco, force, full buy) and won or lost rounds, with the hot spots named by callout.
+- **Pattern notes and trades**: plain-language notes such as where you tend to die first on a map, each linked to the rounds it came from; how often your deaths get traded, how fast, and which teammates trade you.
+- **Duo synergy**: your win rate with each friend, and which of your agent pairs work best together.
+- **Post-match facts**: three short facts on the match page and the post-match overlay board, plus ability casts against your average on that agent.
 - **People**: players you meet often, with your own notes and tags.
 - **Comp Advisor**: pick a map, enter teammates' agents yourself, get suggestions with reasons and full comps, only from agents you own. **Stack planner**: you and up to four friends, each assigned an agent from their own pool, with the top three line-ups and why. Also opens **in the overlay** (hotkey, or automatically in agent select with Live match on).
 - **Overlay**: last match, session and rank panels; the scoreboard pops up by itself after each match. Click-through, movable, game-safe.
 - **Live match** (opt-in, off by default, behind a warning): reads the Riot Client on your PC to know when you're in agent select or a match. Agent select only opens your Comp Advisor; nothing about other players is read there. In the match: a short round-1 panel, hold **Tab** for rank, peak and form beside the scoreboard, and a full table on a hotkey. Players who hide their name stay hidden.
 - **Recordings**: point it at your ShadowPlay / OBS folder and every round and death gets a **Watch** button that opens the video at that moment. A **Review list** keeps moments to rewatch.
 - **Export / import**: full `.postplant` backups, JSON export (optionally anonymised), merge or replace with a preview, weekly automatic backups.
+- **Updates**: the installed app checks GitHub for a new version (never while VALORANT runs), downloads it, checks its signature and restarts. The portable build only tells you an update is out.
+- **English and हिन्दी (Hindi)** UI: **Settings → Appearance → Language**.
+- **API field check** (Settings → API): checks your newest match for every field Postplant reads, so you can tell at a glance if HenrikDev changed something.
 - Six themes, five fonts, colour-blind mode, text size, `Ctrl+K` command palette, tray icon, start with Windows, global hotkeys that only work while the game runs.
 
 ## Download
@@ -31,6 +37,7 @@ Get the latest build from [Releases](https://github.com/jeelnadaa/postplant/rele
 | File | What it is |
 |---|---|
 | `Postplant_<ver>_x64-setup.exe` | Installer. Installs for your user only, no admin needed, includes an uninstaller. |
+| `Postplant_<ver>_x64-offline-setup.exe` | Same installer with WebView2 bundled, for PCs without internet or without WebView2. |
 | `Postplant_<ver>_x64-portable.zip` | Portable. Unzip and run; data is kept in a `data` folder next to the exe. |
 | `SHA256SUMS.txt` | Checksums to verify your download. |
 
@@ -82,6 +89,10 @@ Stack: Tauri v2 (Rust), Svelte 5 + TypeScript, SQLite (rusqlite, bundled). See [
 ## Releases and versioning
 
 Every push to `main` that changes the app builds and publishes a GitHub Release automatically ([release.yml](.github/workflows/release.yml)). The version comes from [Conventional Commits](https://www.conventionalcommits.org) since the last tag: `feat:` bumps the minor version, anything else the patch, and `!` / `BREAKING CHANGE` the major (minor while below 1.0). Docs, site and design commits never trigger a release, and `[skip release]` in a commit message leaves it out. You can also run the workflow by hand and choose the bump.
+
+## Meta data pipeline
+
+`meta-pipeline/` keeps `data/` current. Every Wednesday `.github/workflows/meta.yml` syncs map minimaps, callouts and the game version from valorant-api.com, flags agents missing from `data/agents.json`, validates everything and opens a pull request for review. Run it yourself with `npm run meta:sync`, `npm run meta:validate` and `npm run meta:test`. The advisor data ships inside each release.
 
 ## Website
 
