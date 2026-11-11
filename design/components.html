@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en" data-theme="ink" data-font="satoshi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Postplant Design · Components</title>
+  <link rel="icon" href="../site/favicon.svg" type="image/svg+xml">
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="board.css">
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+  <style>
+    .modal-stage { position: relative; min-height: 470px; border-radius: var(--r-xl); overflow: hidden; border: 1px solid var(--line); background: repeating-linear-gradient(135deg, var(--bg-2) 0 12px, var(--bg) 12px 24px); }
+    .modal-stage .scrim { position: absolute; }
+  </style>
+</head>
+<body data-page="components">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="logo" viewBox="0 0 48 48">
+      <path d="M29.05 5.16A19.5 19.5 0 1 1 7.11 14.25" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>
+      <circle cx="16.54" cy="5.98" r="2.6" fill="currentColor"/>
+      <path d="M24 14.5 33.5 24 24 33.5 14.5 24Z" fill="currentColor"/>
+    </symbol>
+  </svg>
+  <header class="dt" data-toolbar></header>
+
+  <main class="board">
+    <section class="hero-b" style="padding-bottom:36px;margin-bottom:48px">
+      <span class="caps">Components</span>
+      <h1 class="display" style="margin:14px 0 10px;font-size:clamp(2.6rem,6vw,5rem)">Every control, <span class="accent">every state.</span></h1>
+      <p>Class names here are the contract for the Svelte components. Everything is interactive: open the dropdowns, flip the switches, fire the toasts. Keyboard: Tab, Arrow keys in menus, Esc closes.</p>
+      <div class="toc"><a class="chip" href="#buttons">Buttons</a><a class="chip" href="#inputs">Inputs</a><a class="chip" href="#dropdowns">Dropdowns &amp; menus</a><a class="chip" href="#controls">Toggles &amp; tabs</a><a class="chip" href="#identity">Ranks, agents, maps</a><a class="chip" href="#data">Cards &amp; tables</a><a class="chip" href="#feedback">Feedback</a><a class="chip" href="#modals">Modals</a><a class="chip" href="#palette">Command palette</a></div>
+    </section>
+
+    <!-- BUTTONS -->
+    <section class="sec" id="buttons">
+      <div class="sec-head"><div><span class="k">01</span><h2>Buttons</h2></div><p>One primary action per view. Danger buttons only inside confirmations. Icon-only buttons always have a tooltip and an aria-label.</p></div>
+      <div class="demo">
+        <div class="row" style="gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary"><i data-lucide="refresh-cw" class="icon"></i>Refresh</button>
+          <button class="btn">Secondary</button>
+          <button class="btn btn-ghost">Ghost</button>
+          <button class="btn btn-danger-soft"><i data-lucide="trash-2" class="icon"></i>Remove key</button>
+          <button class="btn btn-danger">Delete all data</button>
+          <button class="btn btn-primary is-loading">Testing</button>
+          <button class="btn" disabled>Disabled</button>
+          <span class="tooltip"><button class="btn btn-icon" aria-label="Refresh"><i data-lucide="refresh-cw" class="icon"></i></button><span class="tip">Refresh <span class="kbd">F5</span></span></span>
+          <span class="tooltip show"><button class="btn btn-icon btn-ghost" aria-label="More"><i data-lucide="more-horizontal" class="icon"></i></button><span class="tip">More actions</span></span>
+        </div>
+        <hr class="divider" style="margin:20px 0">
+        <div class="row" style="gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary btn-sm">Small</button><button class="btn btn-primary">Medium</button><button class="btn btn-primary btn-lg"><i data-lucide="download" class="icon"></i>Large</button>
+          <button class="btn">Open overlay <span class="keys"><span class="kbd">Ctrl</span><span class="kbd">⇧</span><span class="kbd">H</span></span></button>
+        </div>
+        <div class="specs"><span class="spec">Heights 28 / 36 / 44</span><span class="spec">Primary = accent fill, bold</span><span class="spec">Press: translateY 1px</span><span class="spec">Loading keeps width</span></div>
+      </div>
+    </section>
+
+    <!-- INPUTS -->
+    <section class="sec" id="inputs">
+      <div class="sec-head"><div><span class="k">02</span><h2>Inputs</h2></div><p>Labels above, hint below. Validation appears on blur or submit, never while typing the first characters. The API key field never shows the key in full unless the eye button is pressed.</p></div>
+      <div class="demo-grid g3">
+        <div class="demo stack" style="gap:18px">
+          <div class="field"><label class="label">Riot ID</label>
+            <div class="input"><i data-lucide="user" class="icon"></i><input value="solar"><span class="faint">#</span><input value="quack" style="max-width:70px"></div>
+            <span class="hint">Name and tag, e.g. name#1234</span></div>
+          <div class="field"><label class="label">Search players</label>
+            <div class="input input-lg"><i data-lucide="search" class="icon"></i><input placeholder="Riot ID, e.g. TenZ#0505"><span class="keys"><span class="kbd">Ctrl</span><span class="kbd">K</span></span></div></div>
+        </div>
+        <div class="demo stack" style="gap:18px">
+          <div class="field"><label class="label">HenrikDev API key</label>
+            <div class="input is-ok"><i data-lucide="key-round" class="icon"></i><input value="HDEV-••••••••-••••-7f3a" readonly><button class="btn btn-ghost btn-icon btn-sm" aria-label="Show key"><i data-lucide="eye" class="icon"></i></button></div>
+            <span class="hint ok">✓ Works · Basic key · 30 requests per minute</span></div>
+          <div class="field"><label class="label">HenrikDev API key</label>
+            <div class="input is-error"><i data-lucide="key-round" class="icon"></i><input value="HDEV-1234"><button class="btn btn-ghost btn-icon btn-sm" aria-label="Hide key"><i data-lucide="eye-off" class="icon"></i></button></div>
+            <span class="hint error">That key was rejected (invalid or revoked). <a href="#">How to get a key</a></span></div>
+        </div>
+        <div class="demo stack" style="gap:18px">
+          <div class="field"><label class="label">Note on this player</label>
+            <textarea class="input textarea" placeholder="Only you can see this.">Great Sova, always flashes for entry. Duo again.</textarea>
+            <span class="hint">Stored on this PC only · 48 / 500</span></div>
+          <div class="field"><label class="label">Daily request cap</label>
+            <div class="input" style="max-width:180px"><input value="1500" class="num"><span class="suffix">units / day</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DROPDOWNS -->
+    <section class="sec" id="dropdowns">
+      <div class="sec-head"><div><span class="k">03</span><h2>Dropdowns &amp; menus</h2></div><p>Custom listbox, never the native select (consistent look in every theme). Opens below, flips above near the window edge, max height 320 px with scroll. Search appears automatically above 8 options. Multi-select shows chips in the trigger.</p></div>
+      <div class="demo-grid g4" style="align-items:start">
+        <div class="demo" style="min-height:330px"><span class="demo-label">Single · region</span>
+          <div class="select" data-select style="width:100%">
+            <button type="button" class="select-trigger"><i data-lucide="globe" class="icon"></i><span class="value">Asia Pacific (ap)</span><i data-lucide="chevron-down" class="icon chev"></i></button>
+            <div class="menu" role="listbox">
+              <button class="option" role="option" aria-selected="true"><span data-label>Asia Pacific (ap)</span><i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option"><span data-label>Europe (eu)</span><i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option"><span data-label>North America (na)</span><i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option"><span data-label>Korea (kr)</span><i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option"><span data-label>Latin America (latam)</span><i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option"><span data-label>Brazil (br)</span><i data-lucide="check" class="icon check"></i></button>
+            </div>
+          </div></div>
+        <div class="demo" style="min-height:330px"><span class="demo-label">With search · map</span>
+          <div class="select" data-select style="width:100%">
+            <button type="button" class="select-trigger"><i data-lucide="map" class="icon"></i><span class="value">Lotus</span><i data-lucide="chevron-down" class="icon chev"></i></button>
+            <div class="menu" role="listbox">
+              <div class="menu-search"><div class="input" style="height:32px"><i data-lucide="search" class="icon"></i><input placeholder="Search maps"></div></div>
+              <div class="menu-group caps">Competitive pool</div>
+              <button class="option" role="option"><span data-label>Abyss</span><i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option"><span data-label>Bind</span><i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option"><span data-label>Corrode</span><span class="meta">new</span><i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option"><span data-label>Haven</span><i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option" aria-selected="true"><span data-label>Lotus</span><i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option"><span data-label>Summit</span><i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option"><span data-label>Sunset</span><i data-lucide="check" class="icon check"></i></button>
+              <div class="menu-group caps">Out of rotation</div>
+              <button class="option" role="option" aria-disabled="true"><span data-label>Ascent</span><span class="meta">no meta data</span></button>
+            </div>
+          </div></div>
+        <div class="demo" style="min-height:330px"><span class="demo-label">Multi · filter agents</span>
+          <div class="select" data-select data-multi style="width:100%">
+            <button type="button" class="select-trigger" style="height:auto;min-height:36px;padding-block:4px"><span class="chips-in"><span class="chip" style="height:24px">Omen <i data-lucide="x" class="icon x" style="width:12px"></i></span><span class="chip" style="height:24px">Sova <i data-lucide="x" class="icon x" style="width:12px"></i></span></span><i data-lucide="chevron-down" class="icon chev"></i></button>
+            <div class="menu" role="listbox">
+              <button class="option" role="option" aria-selected="true"><span class="agent agent-sm r-controller" style="width:22px;height:22px"><span class="mono-glyph" style="font-size:11px">Om</span></span>Omen<i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option" aria-selected="true"><span class="agent agent-sm r-initiator" style="width:22px;height:22px"><span class="mono-glyph" style="font-size:11px">So</span></span>Sova<i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option"><span class="agent agent-sm r-duelist" style="width:22px;height:22px"><span class="mono-glyph" style="font-size:11px">Je</span></span>Jett<i data-lucide="check" class="icon check"></i></button>
+              <button class="option" role="option"><span class="agent agent-sm r-sentinel" style="width:22px;height:22px"><span class="mono-glyph" style="font-size:11px">Ki</span></span>Killjoy<i data-lucide="check" class="icon check"></i></button>
+              <div class="menu-sep"></div>
+              <button class="menu-item"><i data-lucide="x" class="icon"></i>Clear selection</button>
+            </div>
+          </div></div>
+        <div class="demo" style="min-height:330px"><span class="demo-label">Action menu (static)</span>
+          <div class="menu is-static" style="width:100%">
+            <button class="menu-item"><i data-lucide="search" class="icon"></i>Look up player<span class="meta">Enter</span></button>
+            <button class="menu-item"><i data-lucide="sticky-note" class="icon"></i>Add note or tag<span class="meta">N</span></button>
+            <button class="menu-item"><i data-lucide="users" class="icon"></i>Compare with me</button>
+            <button class="menu-item"><i data-lucide="copy" class="icon"></i>Copy Riot ID<span class="meta">Ctrl C</span></button>
+            <div class="menu-sep"></div>
+            <button class="menu-item danger"><i data-lucide="eraser" class="icon"></i>Clear note</button>
+          </div></div>
+      </div>
+    </section>
+
+    <!-- CONTROLS -->
+    <section class="sec" id="controls">
+      <div class="sec-head"><div><span class="k">04</span><h2>Toggles, choices, tabs</h2></div><p>Switches apply instantly. Checkboxes and radios are for forms that are confirmed with a button. Segmented controls switch views of the same data; tabs switch sections.</p></div>
+      <div class="demo-grid g3">
+        <div class="demo stack" style="gap:16px">
+          <label class="row" style="gap:12px"><button class="switch" role="switch" aria-checked="true"></button><span>Show overlay on game start</span></label>
+          <label class="row" style="gap:12px"><button class="switch" role="switch" aria-checked="false"></button><span>Start with Windows</span></label>
+          <label class="row" style="gap:12px"><button class="switch danger" role="switch" aria-checked="true"></button><span>Live match <span class="badge warn">Experimental</span></span></label>
+          <hr class="divider">
+          <div class="choice"><button class="check-box" role="checkbox" aria-checked="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button><div><div class="t">I understand the risk</div><div class="d">Required before live match can be turned on.</div></div></div>
+          <div class="choice"><button class="check-box" role="checkbox" aria-checked="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button><div><div class="t">Also delete my match history</div><div class="d">214 matches, 3.1 MB</div></div></div>
+        </div>
+        <div class="demo stack" style="gap:16px">
+          <span class="demo-label">Radio · update channel</span>
+          <div class="choice" data-group="ch"><span class="radio-dot" aria-checked="true"></span><div><div class="t">Stable</div><div class="d">Tested releases. Recommended.</div></div></div>
+          <div class="choice" data-group="ch"><span class="radio-dot" aria-checked="false"></span><div><div class="t">Nightly</div><div class="d">Built on every change. May break.</div></div></div>
+          <span class="demo-label" style="margin-top:8px">Slider · overlay opacity</span>
+          <div class="row" style="gap:14px"><div class="slider" style="flex:1"><span class="rail"></span><span class="fill" style="width:78%"></span><span class="thumb" style="left:78%"></span></div><span class="mono muted">78%</span></div>
+        </div>
+        <div class="demo stack" style="gap:18px">
+          <div class="segmented"><button aria-pressed="true">All</button><button aria-pressed="false"><span class="atk">●</span> Attack</button><button aria-pressed="false"><span class="def">●</span> Defense</button></div>
+          <div class="segmented"><button aria-pressed="false">7 d</button><button aria-pressed="true">30 d</button><button aria-pressed="false">Act</button><button aria-pressed="false">All</button></div>
+          <div class="tabs"><button class="tab" aria-selected="true">Overview</button><button class="tab" aria-selected="false">Matches<span class="count">214</span></button><button class="tab" aria-selected="false">Agents</button><button class="tab" aria-selected="false">Maps</button></div>
+          <div class="row" style="gap:6px;flex-wrap:wrap" data-chipgroup><button class="chip" aria-pressed="true">Competitive</button><button class="chip" aria-pressed="false">Unrated</button><button class="chip" aria-pressed="false">Swiftplay</button><button class="chip" aria-pressed="false">Premier</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- IDENTITY -->
+    <section class="sec" id="identity">
+      <div class="sec-head"><div><span class="k">05</span><h2>Ranks, agents, maps</h2></div><p>Agent tiles have four states: available, selected, picked by a teammate (dimmed) and <b>locked on your account</b> (greyscale + lock, not clickable, tooltip explains). Ownership comes from your agent pool in Settings, auto-filled from agents you've played and, if live mode is on, from the Riot Client.</p></div>
+      <div class="demo-grid g2">
+        <div class="demo"><span class="demo-label">Agent grid · Jett picked by teammate, Hush &amp; Waylay &amp; Veto locked</span>
+          <div data-agent-grid data-locked="Hush,Waylay,Veto,Iso,Tejo" data-picked="Jett" data-pressed="Omen"></div></div>
+        <div class="stack" style="gap:16px">
+          <div class="demo"><span class="demo-label">Rank badges</span>
+            <div class="row" style="gap:24px;flex-wrap:wrap">
+              <span class="rank rank-lg t-diamond"><i class="rank-gem"></i><span><b style="font-size:18px">Diamond 2</b><br><span class="rr">64 RR</span></span></span>
+              <span class="rank t-ascendant"><i class="rank-gem"></i>Ascendant 1 <span class="rr">peak</span></span>
+              <span class="rank t-gold"><i class="rank-gem"></i>Gold 3</span>
+              <span class="rank faint"><i class="rank-gem" style="--tier:var(--surface-3)"></i>Unranked</span>
+            </div></div>
+          <div class="demo"><span class="demo-label">Map tiles (map art at runtime)</span>
+            <div class="demo-grid g4" data-chipgroup style="gap:8px" id="maptiles"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DATA -->
+    <section class="sec" id="data">
+      <div class="sec-head"><div><span class="k">06</span><h2>Cards, stats, tables</h2></div><p>Stats show value, label and, when relevant, a delta vs your baseline. Every data card has an "updated" line. Tables sort on header click; your row is highlighted with an accent bar.</p></div>
+      <div class="demo-grid g3">
+        <div class="card hl"><div class="card-head"><i data-lucide="trophy" class="icon"></i><span class="h3">Last match</span><span class="spacer"></span><span class="updated"><i data-lucide="clock" class="icon" style="width:12px"></i>2 min ago</span></div>
+          <div class="row" style="gap:14px"><span class="display win" style="font-size:52px">13–9</span><div><div class="h3">Victory · Lotus</div><div class="muted" style="font-size:13px">Omen · 41 min · +21 RR</div></div></div>
+          <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-top:16px"><div class="stat stat-sm"><div class="v">248</div><div class="l">ACS</div><div class="d delta up">▲ 31 vs avg</div></div><div class="stat stat-sm"><div class="v">1.50</div><div class="l">K/D</div><div class="d delta up">▲ 0.3</div></div><div class="stat stat-sm"><div class="v">27%</div><div class="l">HS</div><div class="d delta down">▼ 2%</div></div></div></div>
+        <div class="card"><div class="card-head"><i data-lucide="gauge" class="icon"></i><span class="h3">API usage</span><span class="spacer"></span><span class="badge win">Healthy</span></div>
+          <div class="meter"><div class="top"><span>This minute</span><span class="mono">4 / 30</span></div><div class="progress" style="--v:13%"><i></i></div></div>
+          <div class="meter" style="margin-top:14px"><div class="top"><span>Today</span><span class="mono">212 / 1,500</span></div><div class="progress" style="--v:14%"><i></i></div></div>
+          <div class="meter" style="margin-top:14px"><div class="top"><span>Background limit</span><span class="mono">50%</span></div><div class="progress warn" style="--v:50%"><i></i></div></div></div>
+        <div class="card"><div class="card-head"><i data-lucide="activity" class="icon"></i><span class="h3">Form vs baseline</span></div>
+          <svg class="chart" viewBox="0 0 300 120"><defs><linearGradient id="gradA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--chart-1)" stop-opacity=".35"/><stop offset="1" stop-color="var(--chart-1)" stop-opacity="0"/></linearGradient></defs>
+            <g class="grid"><line x1="0" y1="20" x2="300" y2="20"/><line x1="0" y1="60" x2="300" y2="60"/><line x1="0" y1="100" x2="300" y2="100"/></g>
+            <path class="area" d="M0 80 L30 70 L60 76 L90 58 L120 62 L150 44 L180 50 L210 34 L240 40 L270 26 L300 30 L300 110 L0 110Z"/>
+            <path class="line" d="M0 80 L30 70 L60 76 L90 58 L120 62 L150 44 L180 50 L210 34 L240 40 L270 26 L300 30"/>
+            <path class="line base" d="M0 60 L300 60"/><circle class="dot" cx="300" cy="30" r="4"/></svg>
+          <div class="row muted" style="font-size:12px;gap:14px"><span><i style="display:inline-block;width:10px;height:2px;background:var(--chart-1);vertical-align:middle"></i> ACS (rolling 5)</span><span><i style="display:inline-block;width:10px;border-top:2px dashed var(--text-3);vertical-align:middle"></i> Season avg</span></div></div>
+      </div>
+      <div class="demo" style="margin-top:16px"><span class="demo-label">Match row</span>
+        <div class="stack" style="gap:8px">
+          <div class="match-row w"><span class="res"></span><span class="agent agent-sm r-controller"><span class="mono-glyph">Om</span></span><div><b>Lotus</b><div class="faint" style="font-size:12px">Competitive · 2 h ago</div></div><span class="score">13–9</span><span class="rank t-diamond"><i class="rank-gem"></i>+21</span><span class="mono">21/14/6</span><span class="mono">248</span><span class="mono">27%</span><i data-lucide="chevron-right" class="icon faint"></i></div>
+          <div class="match-row l"><span class="res"></span><span class="agent agent-sm r-initiator"><span class="mono-glyph">So</span></span><div><b>Bind</b><div class="faint" style="font-size:12px">Competitive · 3 h ago</div></div><span class="score">7–13</span><span class="rank t-diamond"><i class="rank-gem"></i>−17</span><span class="mono">12/16/9</span><span class="mono">171</span><span class="mono">22%</span><i data-lucide="chevron-right" class="icon faint"></i></div>
+        </div></div>
+    </section>
+
+    <!-- FEEDBACK -->
+    <section class="sec" id="feedback">
+      <div class="sec-head"><div><span class="k">07</span><h2>Banners, toasts, loading, empty</h2></div><p>Banners for lasting conditions (offline, stale data, rate limit). Toasts for results of an action, 5 s, max 3 stacked, bottom-right. Skeletons match the final layout so nothing jumps. Empty states always offer the next step.</p></div>
+      <div class="demo-grid g2">
+        <div class="demo stack" style="gap:10px">
+          <div class="banner offline"><i data-lucide="wifi-off" class="icon"></i><div><b>Offline.</b> Showing saved data from 12 min ago.</div><span class="spacer"></span><button class="btn btn-sm">Retry</button></div>
+          <div class="banner warn"><i data-lucide="timer" class="icon"></i><div><b>Close to the rate limit.</b> Background sync paused for 38 s.</div></div>
+          <div class="banner info"><i data-lucide="database" class="icon"></i><div>Meta data is 24 days old and the game patched since. Suggestions may be off.</div><span class="spacer"></span><button class="btn btn-sm btn-ghost">Details</button></div>
+          <div class="banner danger"><i data-lucide="key-round" class="icon"></i><div><b>API key rejected.</b> It may have been revoked.</div><span class="spacer"></span><button class="btn btn-sm">Fix key</button></div>
+          <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn btn-sm" data-toast="ok">Success toast</button><button class="btn btn-sm" data-toast="err">Error toast</button><button class="btn btn-sm" data-toast="warn">Warning toast</button><button class="btn btn-sm" data-toast="info">Info toast</button></div>
+        </div>
+        <div class="demo-grid g2" style="gap:12px">
+          <div class="card"><span class="demo-label">Loading</span><div class="stack" style="gap:10px"><div class="row"><div class="skeleton" style="width:36px;height:36px;border-radius:10px"></div><div class="stack" style="flex:1;gap:6px"><div class="skeleton" style="height:12px;width:70%"></div><div class="skeleton" style="height:10px;width:40%"></div></div></div><div class="skeleton" style="height:64px;border-radius:12px"></div><div class="skeleton" style="height:12px;width:85%"></div></div></div>
+          <div class="card empty" style="padding:24px 12px"><i data-lucide="swords" class="art"></i><div class="h3">No matches yet</div><div style="font-size:13px">Play a competitive match and it shows up here about a minute after it ends.</div><button class="btn btn-sm">Load older matches</button></div>
+          <div class="card empty" style="padding:24px 12px"><i data-lucide="search-x" class="art"></i><div class="h3">No player found</div><div style="font-size:13px">Check the tag after #. Names are case-insensitive.</div></div>
+          <div class="card empty" style="padding:24px 12px"><i data-lucide="lock" class="art"></i><div class="h3">Private profile</div><div style="font-size:13px">This player hides their match history. Only current rank is shown.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODALS -->
+    <section class="sec" id="modals">
+      <div class="sec-head"><div><span class="k">08</span><h2>Modals</h2></div><p>Title says what will happen; the primary button repeats the verb ("Delete data", not "OK"). Esc and the scrim close everything except blocking warnings. Destructive actions need typing or a checkbox. Focus starts on the safest button. Shown here inline; <button class="btn btn-sm" data-open="live-modal">open one for real</button></p></div>
+      <div class="demo-grid g2">
+        <!-- Live warning -->
+        <div class="modal-stage"><div class="scrim open is-inline"><div class="modal">
+          <div class="modal-head"><span class="modal-icon warn"><i data-lucide="radio" class="icon"></i></span><div><div class="h2">Turn on live match?</div><div class="sub">Experimental · read this first</div></div></div>
+          <div class="modal-body"><div class="callout warn">Live match uses the Riot Client running on your PC. Riot does not support this, it may stop working after any game update, and Riot may treat tools that show other players' information as a rules violation. This could put your account at risk.</div>
+            <p style="margin:12px 0 10px">Postplant never reads game memory and never runs during agent select. You can turn this off at any time.</p>
+            <div class="choice"><button class="check-box" role="checkbox" aria-checked="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button><div class="t" style="color:var(--text)">I understand and accept the risk</div></div></div>
+          <div class="modal-foot"><button class="btn">Keep it off</button><button class="btn btn-danger" aria-disabled="true">Turn on live match</button></div>
+        </div></div></div>
+        <!-- Delete data -->
+        <div class="modal-stage"><div class="scrim open is-inline"><div class="modal">
+          <div class="modal-head"><span class="modal-icon danger"><i data-lucide="trash-2" class="icon"></i></span><div><div class="h2">Delete all local data?</div><div class="sub">This can't be undone.</div></div></div>
+          <div class="modal-body"><p>This removes 214 matches, 1,318 rank snapshots, 23 player notes and your settings from this PC. Your API key stays unless you tick the box.</p>
+            <div class="choice" style="margin-bottom:14px"><button class="check-box" role="checkbox" aria-checked="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button><div class="t" style="color:var(--text)">Also remove my API key</div></div>
+            <div class="field"><label class="label">Type <span class="mono accent">delete</span> to confirm</label><div class="input"><input value="dele"></div></div></div>
+          <div class="modal-foot"><button class="btn">Cancel</button><button class="btn btn-danger" aria-disabled="true">Delete data</button></div>
+        </div></div></div>
+        <!-- Update -->
+        <div class="modal-stage"><div class="scrim open is-inline"><div class="modal modal-lg">
+          <div class="modal-head"><span class="modal-icon"><i data-lucide="sparkles" class="icon"></i></span><div><div class="h2">Postplant 0.4.0 is ready</div><div class="sub">Stable · 9.8 MB · signature verified</div></div><button class="btn btn-ghost btn-icon btn-sm close" aria-label="Close"><i data-lucide="x" class="icon"></i></button></div>
+          <div class="modal-body"><ul style="margin:0;padding-left:18px;color:var(--text)" class="stack"><li><b>Round replay</b> on the minimap for every stored match</li><li>Comp Advisor hides agents you don't own</li><li>Fixed: overlay reappearing after Alt+Tab</li></ul>
+            <div class="banner info" style="margin-top:14px"><i data-lucide="gamepad-2" class="icon"></i>Valorant is running. The update will install when you close the game.</div></div>
+          <div class="modal-foot"><span class="left"><a href="#">Full changelog</a></span><button class="btn">Later</button><button class="btn btn-primary">Install after game</button></div>
+        </div></div></div>
+        <!-- Keybind capture -->
+        <div class="modal-stage"><div class="scrim open is-inline"><div class="modal">
+          <div class="modal-head"><span class="modal-icon"><i data-lucide="keyboard" class="icon"></i></span><div><div class="h2">Set shortcut</div><div class="sub">Show / hide overlay</div></div></div>
+          <div class="modal-body"><div style="display:grid;place-items:center;gap:12px;padding:22px;border-radius:var(--r-lg);border:1px dashed var(--accent-text);background:var(--accent-soft)"><div class="row" style="gap:6px"><span class="kbd" style="height:36px;min-width:52px;font-size:14px">Ctrl</span><span class="kbd" style="height:36px;min-width:52px;font-size:14px">Shift</span><span class="kbd" style="height:36px;min-width:36px;font-size:14px;border-color:var(--accent-text);color:var(--accent-text)">H</span></div><span class="muted" style="font-size:13px">Press the keys you want…</span></div>
+            <div class="banner warn" style="margin-top:12px"><i data-lucide="alert-triangle" class="icon"></i>Ctrl+Shift+H is used by "Discord: toggle mute". Pick another or keep it anyway.</div></div>
+          <div class="modal-foot"><span class="left"><button class="btn btn-ghost btn-sm">Reset to default</button></span><button class="btn">Cancel</button><button class="btn btn-primary">Save</button></div>
+        </div></div></div>
+        <!-- Backfill -->
+        <div class="modal-stage"><div class="scrim open is-inline"><div class="modal">
+          <div class="modal-head"><span class="modal-icon"><i data-lucide="history" class="icon"></i></span><div><div class="h2">Load 20 older matches?</div><div class="sub">Runs in the background at low priority</div></div></div>
+          <div class="modal-body"><div class="stat-grid" style="grid-template-columns:repeat(3,1fr)"><div class="stat stat-sm"><div class="v">~45</div><div class="l">API units</div></div><div class="stat stat-sm"><div class="v">~3</div><div class="l">minutes</div></div><div class="stat stat-sm"><div class="v">1,288</div><div class="l">left today</div></div></div>
+            <p style="margin-top:12px">You can pause it any time; it resumes where it stopped.</p>
+            <div class="select" data-select style="width:100%"><button type="button" class="select-trigger"><span class="value">20 matches</span><i data-lucide="chevron-down" class="icon chev"></i></button><div class="menu"><button class="option" aria-selected="true"><span data-label>20 matches</span><i data-lucide="check" class="icon check"></i></button><button class="option"><span data-label>50 matches</span><i data-lucide="check" class="icon check"></i></button><button class="option"><span data-label>100 matches</span><i data-lucide="check" class="icon check"></i></button></div></div></div>
+          <div class="modal-foot"><button class="btn">Cancel</button><button class="btn btn-primary">Start loading</button></div>
+        </div></div></div>
+        <!-- Unsaved / generic confirm -->
+        <div class="modal-stage"><div class="scrim open is-inline"><div class="modal">
+          <div class="modal-head"><span class="modal-icon"><i data-lucide="save" class="icon"></i></span><div><div class="h2">Save changes to hotkeys?</div><div class="sub">You changed 2 shortcuts.</div></div></div>
+          <div class="modal-body"><p>Leaving now discards them.</p></div>
+          <div class="modal-foot"><button class="btn btn-ghost">Discard</button><button class="btn">Keep editing</button><button class="btn btn-primary">Save</button></div>
+        </div></div></div>
+        <!-- Player note -->
+        <div class="modal-stage"><div class="scrim open is-inline"><div class="modal">
+          <div class="modal-head"><span class="agent agent-sm r-initiator"><span class="mono-glyph">So</span></span><div><div class="h2">Notes · Kairo#owl</div><div class="sub">Played together 6 times · 4W 2L</div></div><button class="btn btn-ghost btn-icon btn-sm close" aria-label="Close"><i data-lucide="x" class="icon"></i></button></div>
+          <div class="modal-body"><div class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:12px" data-chipgroup><button class="chip" aria-pressed="true">Good duo</button><button class="chip" aria-pressed="false">Shotcaller</button><button class="chip" aria-pressed="false">Toxic</button><button class="chip" aria-pressed="false">Smurf?</button><button class="chip" aria-pressed="false">+ Tag</button></div>
+            <textarea class="input textarea" style="width:100%">Great Sova, always flashes for entry.</textarea><span class="hint">Only on this PC. Shown on scoreboards when you meet again.</span></div>
+          <div class="modal-foot"><span class="left"><button class="btn btn-ghost btn-sm" style="color:var(--loss)">Clear</button></span><button class="btn btn-primary">Save note</button></div>
+        </div></div></div>
+        <!-- Agent ownership -->
+        <div class="modal-stage"><div class="scrim open is-inline"><div class="modal modal-lg">
+          <div class="modal-head"><span class="modal-icon"><i data-lucide="lock-open" class="icon"></i></span><div><div class="h2">Which agents do you own?</div><div class="sub">The Comp Advisor only suggests agents you can pick.</div></div></div>
+          <div class="modal-body"><div class="banner info" style="margin-bottom:12px"><i data-lucide="wand-2" class="icon"></i>We ticked 19 agents you've played or that every account starts with. Tap to change.</div>
+            <div data-agent-grid data-sm data-pressed="Brimstone,Jett,Phoenix,Sage,Sova,Omen,Viper,Killjoy,Cypher,Reyna,Raze,Skye,Fade,Neon,Chamber,Astra,Clove,Gekko,Breach"></div></div>
+          <div class="modal-foot"><span class="left">19 of 30 owned</span><button class="btn">Skip</button><button class="btn btn-primary">Save</button></div>
+        </div></div></div>
+        <!-- Export -->
+        <div class="modal-stage"><div class="scrim open is-inline"><div class="modal modal-lg">
+          <div class="modal-head"><span class="modal-icon"><i data-lucide="hard-drive-download" class="icon"></i></span><div><div class="h2">Export your data</div><div class="sub">Saved as a file on this PC. Nothing is uploaded.</div></div><button class="btn btn-ghost btn-icon btn-sm close" aria-label="Close"><i data-lucide="x" class="icon"></i></button></div>
+          <div class="modal-body">
+            <span class="label">Format</span>
+            <div class="stack" style="gap:8px;margin:8px 0 16px">
+              <div class="choice" data-group="exfmt"><button class="radio-dot" role="radio" aria-checked="true"></button><div><div class="t" style="color:var(--text)">Postplant backup <span class="mono faint">.postplant</span></div><div class="d">Everything, ready to import on another PC. Restoring costs no API requests.</div></div></div>
+              <div class="choice" data-group="exfmt"><button class="radio-dot" role="radio" aria-checked="false"></button><div><div class="t" style="color:var(--text)">Open JSON <span class="mono faint">.json</span></div><div class="d">Documented format for your own scripts and tools. Can also be imported.</div></div></div>
+            </div>
+            <span class="label">Include</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin:8px 0 14px">
+              <div class="choice"><button class="check-box" role="checkbox" aria-checked="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button><div class="t" style="color:var(--text)">Matches <span class="faint">214</span></div></div>
+              <div class="choice"><button class="check-box" role="checkbox" aria-checked="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button><div class="t" style="color:var(--text)">Rank history <span class="faint">1,318</span></div></div>
+              <div class="choice"><button class="check-box" role="checkbox" aria-checked="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button><div class="t" style="color:var(--text)">Player notes &amp; tags <span class="faint">23</span></div></div>
+              <div class="choice"><button class="check-box" role="checkbox" aria-checked="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button><div class="t" style="color:var(--text)">Settings, hotkeys, agent pool</div></div>
+            </div>
+            <div class="select" data-select style="width:100%;margin-bottom:14px"><button type="button" class="select-trigger"><i data-lucide="calendar" class="icon"></i><span class="value">All time</span><i data-lucide="chevron-down" class="icon chev"></i></button><div class="menu"><button class="option" aria-selected="true"><span data-label>All time</span><i data-lucide="check" class="icon check"></i></button><button class="option"><span data-label>This act</span><i data-lucide="check" class="icon check"></i></button><button class="option"><span data-label>Last 30 days</span><i data-lucide="check" class="icon check"></i></button></div></div>
+            <div class="set-row" style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;padding:12px 0;border-top:1px solid var(--line)"><div><div class="t" style="font-weight:600">Hide other players' names</div><div class="d muted" style="font-size:13px">For sharing. Replaces every Riot ID except yours with "Player 1", "Player 2"… and drops notes.</div></div><button class="switch" role="switch" aria-checked="false"></button></div>
+            <div class="callout"><i data-lucide="key-round" class="icon"></i> Your API key is never exported.</div>
+          </div>
+          <div class="modal-foot"><span class="left">~3.4 MB</span><button class="btn">Cancel</button><button class="btn btn-primary"><i data-lucide="download" class="icon"></i>Export…</button></div>
+        </div></div></div>
+        <!-- Import: preview + merge -->
+        <div class="modal-stage"><div class="scrim open is-inline"><div class="modal modal-lg">
+          <div class="modal-head"><span class="modal-icon"><i data-lucide="hard-drive-upload" class="icon"></i></span><div><div class="h2">Import a backup</div><div class="sub">postplant-2026-11-02.postplant · 3.1 MB · checksum OK</div></div><button class="btn btn-ghost btn-icon btn-sm close" aria-label="Close"><i data-lucide="x" class="icon"></i></button></div>
+          <div class="modal-body">
+            <div class="row" style="gap:12px;padding:12px;border-radius:var(--r-lg);background:var(--surface-2);margin-bottom:14px"><span class="avatar">N</span><div><b>Nova<span class="faint">#ap1</span></b><div class="faint" style="font-size:12px">Created 2 Nov 2026 · Postplant 0.3.1 · same account as this PC</div></div><span class="spacer"></span><span class="badge win">Matches you</span></div>
+            <div class="stat-grid" style="grid-template-columns:repeat(4,1fr)"><div class="stat stat-sm"><div class="v">38</div><div class="l">New matches</div></div><div class="stat stat-sm"><div class="v">176</div><div class="l">Already here</div></div><div class="stat stat-sm"><div class="v">5</div><div class="l">New notes</div></div><div class="stat stat-sm"><div class="v warn">2</div><div class="l">Note conflicts</div></div></div>
+            <span class="label" style="display:block;margin:16px 0 8px">How to import</span>
+            <div class="segmented" style="width:100%"><button aria-pressed="true" style="flex:1"><i data-lucide="git-merge" class="icon"></i>Merge</button><button aria-pressed="false" style="flex:1"><i data-lucide="replace" class="icon"></i>Replace</button></div>
+            <p class="muted" style="font-size:13px;margin:10px 0 12px">Adds what's missing and keeps everything already on this PC. For notes on the same player, the newer one wins.</p>
+            <div class="select" data-select style="width:100%"><button type="button" class="select-trigger"><i data-lucide="sticky-note" class="icon"></i><span class="value">Note conflicts: keep the newer note</span><i data-lucide="chevron-down" class="icon chev"></i></button><div class="menu"><button class="option" aria-selected="true"><span data-label>Note conflicts: keep the newer note</span><i data-lucide="check" class="icon check"></i></button><button class="option"><span data-label>Note conflicts: keep this PC's note</span><i data-lucide="check" class="icon check"></i></button><button class="option"><span data-label>Note conflicts: keep both (joined)</span><i data-lucide="check" class="icon check"></i></button></div></div>
+            <div class="choice" style="margin-top:12px"><button class="check-box" role="checkbox" aria-checked="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button><div class="t" style="color:var(--text)">Also import settings and hotkeys</div></div>
+          </div>
+          <div class="modal-foot"><span class="left">No API requests needed</span><button class="btn">Cancel</button><button class="btn btn-primary">Import 38 matches</button></div>
+        </div></div></div>
+        <!-- Import: replace (destructive) -->
+        <div class="modal-stage"><div class="scrim open is-inline"><div class="modal">
+          <div class="modal-head"><span class="modal-icon danger"><i data-lucide="replace" class="icon"></i></span><div><div class="h2">Replace all data on this PC?</div><div class="sub">From a backup of a different account</div></div></div>
+          <div class="modal-body"><div class="banner warn" style="margin-bottom:12px"><i data-lucide="user-x" class="icon"></i><div>This backup belongs to <b>Kairo#owl</b>, not Nova#ap1. After replacing, Postplant will track Kairo#owl.</div></div>
+            <p style="margin:0 0 12px">Your current 214 matches, 23 notes and settings are removed. A safety backup is saved first, so you can undo this from Settings → Data &amp; privacy.</p>
+            <div class="field"><label class="label">Type <span class="mono accent">replace</span> to confirm</label><div class="input"><input value=""></div></div></div>
+          <div class="modal-foot"><button class="btn">Cancel</button><button class="btn btn-danger" aria-disabled="true">Back up &amp; replace</button></div>
+        </div></div></div>
+      </div>
+    </section>
+
+    <!-- PALETTE -->
+    <section class="sec" id="palette">
+      <div class="sec-head"><div><span class="k">09</span><h2>Command palette &amp; player card</h2></div><p><span class="kbd">Ctrl</span> <span class="kbd">K</span> from anywhere. Searches players (local first, then the API on Enter), screens and actions. Hovering a name anywhere shows the player card popover.</p></div>
+      <div class="demo-grid g2">
+        <div class="modal-stage" style="min-height:420px"><div class="scrim open is-inline" style="place-items:start center;padding-top:40px"><div class="modal modal-lg" style="width:560px">
+          <div class="input input-lg" style="border:0;border-bottom:1px solid var(--line);border-radius:var(--r-xl) var(--r-xl) 0 0;box-shadow:none;height:56px;padding:0 18px"><i data-lucide="search" class="icon icon-lg"></i><input value="kai"><span class="kbd">Esc</span></div>
+          <div style="padding:8px">
+            <div class="menu-group caps">Players · saved</div>
+            <button class="option is-active"><span class="agent agent-sm r-initiator" style="width:26px;height:26px"><span class="mono-glyph" style="font-size:12px">So</span></span><span><b>Kai</b>ro<span class="faint">#owl</span></span><span class="tag good" style="margin-left:8px">Good duo</span><span class="meta">Diamond 3 · ↵</span></button>
+            <button class="option"><span class="agent agent-sm r-duelist" style="width:26px;height:26px"><span class="mono-glyph" style="font-size:12px">Ne</span></span><span><b>Kai</b>sen<span class="faint">#777</span></span><span class="meta">played against 2×</span></button>
+            <div class="menu-group caps">Search online</div>
+            <button class="option"><i data-lucide="globe" class="icon"></i>Look up “kai” on HenrikDev<span class="meta">~2 units</span></button>
+            <div class="menu-group caps">Actions</div>
+            <button class="option"><i data-lucide="compass" class="icon"></i>Open Comp Advisor<span class="meta">Ctrl ⇧ A</span></button>
+            <button class="option"><i data-lucide="refresh-cw" class="icon"></i>Refresh my data<span class="meta">F5</span></button>
+          </div>
+        </div></div></div>
+        <div class="demo dotted" style="display:grid;place-items:center">
+          <div class="popover">
+            <div class="row" style="gap:12px"><span class="agent agent-sm r-initiator" style="width:44px;height:44px"><span class="mono-glyph">So</span></span><div><b>Kairo</b><span class="faint">#owl</span><div class="row" style="gap:6px;margin-top:2px"><span class="tag good">Good duo</span><span class="badge">ap</span></div></div></div>
+            <div class="row" style="justify-content:space-between;margin:14px 0 10px"><span class="rank t-diamond"><i class="rank-gem"></i>Diamond 3</span><span class="rank peak t-ascendant"><i class="rank-gem"></i>Peak Asc 2</span></div>
+            <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)"><div class="stat stat-sm"><div class="v" style="font-size:22px">231</div><div class="l">ACS</div></div><div class="stat stat-sm"><div class="v" style="font-size:22px">54%</div><div class="l">Win</div></div><div class="stat stat-sm"><div class="v" style="font-size:22px">6</div><div class="l">With you</div></div></div>
+            <div class="row" style="margin-top:12px;gap:8px"><button class="btn btn-sm btn-primary" style="flex:1">Open profile</button><button class="btn btn-sm btn-icon" aria-label="Note"><i data-lucide="sticky-note" class="icon"></i></button></div>
+            <div class="updated" style="margin-top:10px">Cached 4 min ago · refresh costs ~2 units</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Real modal for behaviour demo -->
+  <div class="scrim" id="live-modal" role="dialog" aria-modal="true" aria-labelledby="lm-t"><div class="modal">
+    <div class="modal-head"><span class="modal-icon warn"><i data-lucide="radio" class="icon"></i></span><div><div class="h2" id="lm-t">Turn on live match?</div><div class="sub">Experimental · read this first</div></div></div>
+    <div class="modal-body"><div class="callout warn">Live match uses the Riot Client running on your PC. Riot does not support this, it may stop working after any game update, and Riot may treat tools that show other players' information as a rules violation. This could put your account at risk.</div></div>
+    <div class="modal-foot"><button class="btn" data-close autofocus>Keep it off</button><button class="btn btn-danger" data-close>Turn on</button></div>
+  </div></div>
+
+  <script src="design.js"></script>
+  <script>
+    document.getElementById("maptiles").innerHTML = Object.entries(window.PP.MAPS).slice(0, 4).map(([m, c], i) => `<button class="map-tile" style="--m:${c}" aria-pressed="${i === 0}">${m}</button>`).join("");
+  </script>
+</body>
+</html>

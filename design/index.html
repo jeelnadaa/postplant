@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en" data-theme="ink" data-font="satoshi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Postplant Design · Foundations</title>
+  <link rel="icon" href="../site/favicon.svg" type="image/svg+xml">
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="board.css">
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+</head>
+<body data-page="foundations">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="logo" viewBox="0 0 48 48">
+      <path d="M29.05 5.16A19.5 19.5 0 1 1 7.11 14.25" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>
+      <circle cx="16.54" cy="5.98" r="2.6" fill="currentColor"/>
+      <path d="M24 14.5 33.5 24 24 33.5 14.5 24Z" fill="currentColor"/>
+    </symbol>
+  </svg>
+  <header class="dt" data-toolbar></header>
+
+  <main class="board">
+    <section class="hero-b">
+      <span class="caps">Postplant design system · v1 · 2026-11-11</span>
+      <h1 class="display" style="margin:14px 0 18px">Built to be<br><span class="accent">read in a glance.</span></h1>
+      <p>Everything needed to build Postplant without making design decisions later: brand, six themes, type, tokens, every component and state, every app screen, and the in-game overlay. Use the toolbar to switch theme, font and colour-blind mode; every page follows along.</p>
+      <div class="toc">
+        <a class="chip" href="#brand">Brand</a><a class="chip" href="#themes">Themes</a><a class="chip" href="#type">Typography</a><a class="chip" href="#space">Space &amp; shape</a><a class="chip" href="#motion">Motion</a><a class="chip" href="#icons">Icons</a><a class="chip" href="#data">Data colours</a><a class="chip" href="#voice">Writing</a>
+      </div>
+      <div class="demo-grid g4" style="margin-top:36px">
+        <div class="card flat"><div class="h3">Calm by default</div><p class="muted" style="margin:6px 0 0">Neutral surfaces; colour only means something (win, loss, side, role, accent action).</p></div>
+        <div class="card flat"><div class="h3">Numbers first</div><p class="muted" style="margin:6px 0 0">Big tabular numbers in the display face; labels small and quiet.</p></div>
+        <div class="card flat"><div class="h3">Honest data</div><p class="muted" style="margin:6px 0 0">Every stat can show its sample size, date and source. Missing data is hidden, never faked.</p></div>
+        <div class="card flat"><div class="h3">Out of the way</div><p class="muted" style="margin:6px 0 0">The overlay is glass, small, and silent unless something changed.</p></div>
+      </div>
+    </section>
+
+    <!-- BRAND -->
+    <section class="sec" id="brand">
+      <div class="sec-head"><div><span class="k">01 · Brand</span><h2>Logo: the Pulse</h2></div>
+        <p>A countdown ring with one beep dot, around a planted diamond. The ring is open at the top like a timer in progress. Name is <b>Postplant</b>, written as one word with a capital P. The mark uses the theme's accent text colour; on Paper it uses the text colour because lime on light fails contrast.</p></div>
+      <div class="demo-grid g3">
+        <div class="demo dotted" style="display:grid;place-items:center;min-height:300px">
+          <svg viewBox="0 0 48 48" style="width:180px;height:180px;color:var(--accent-text)"><use href="#logo"/></svg>
+          <div class="specs"><span class="spec">viewBox 48 · stroke 3.6</span><span class="spec">ring r 19.5 · gap 285°→210°</span><span class="spec">dot r 2.6 · diamond 19×19</span></div>
+        </div>
+        <div class="demo" style="display:grid;gap:22px;align-content:center">
+          <span class="demo-label">Lockups</span>
+          <span class="logo" style="font-size:32px;gap:14px"><svg viewBox="0 0 48 48" style="width:44px;height:44px"><use href="#logo"/></svg>Postplant</span>
+          <span class="logo" style="font-size:20px"><svg viewBox="0 0 48 48" style="width:28px;height:28px"><use href="#logo"/></svg>Postplant</span>
+          <span class="logo" style="font-size:14px"><svg viewBox="0 0 48 48" style="width:18px;height:18px"><use href="#logo"/></svg>Postplant</span>
+          <div class="specs"><span class="spec">Wordmark: Satoshi Black, −2% tracking</span><span class="spec">Gap = 0.3 × mark</span><span class="spec">Min mark 14 px</span></div>
+        </div>
+        <div class="demo" style="display:grid;gap:18px;align-content:center">
+          <span class="demo-label">App, tray &amp; taskbar icons</span>
+          <div class="row" style="gap:18px;align-items:flex-end">
+            <div style="width:96px;height:96px;border-radius:22px;background:#0a0b0e;display:grid;place-items:center;box-shadow:var(--shadow-2)"><svg viewBox="0 0 48 48" style="width:62px;height:62px;color:#d7ff3a"><use href="#logo"/></svg></div>
+            <div style="width:48px;height:48px;border-radius:11px;background:#0a0b0e;display:grid;place-items:center"><svg viewBox="0 0 48 48" style="width:31px;height:31px;color:#d7ff3a"><use href="#logo"/></svg></div>
+            <div style="width:24px;height:24px;border-radius:6px;background:#0a0b0e;display:grid;place-items:center"><svg viewBox="0 0 48 48" style="width:17px;height:17px;color:#d7ff3a"><use href="#logo"/></svg></div>
+            <div style="width:16px;height:16px;display:grid;place-items:center"><svg viewBox="0 0 48 48" style="width:16px;height:16px;color:var(--text)"><use href="#logo"/></svg></div>
+          </div>
+          <div class="specs"><span class="spec">App icon: ink tile, lime mark, radius 22.9%</span><span class="spec">Tray 16 px: mark only, follows Windows light/dark</span><span class="spec">Tray when live mode is on: ember dot</span></div>
+          <div class="note"><b>Don't</b> recolour the diamond separately, rotate the mark, add outlines or use any Riot or game logo next to it.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- THEMES -->
+    <section class="sec" id="themes">
+      <div class="sec-head"><div><span class="k">02 · Themes</span><h2>Six themes, three dark, three light</h2></div>
+        <p>Ink is the default. Each theme has the same tokens, so components never hard-code a colour. Every text colour, including the faintest (<code>--text-3</code>), reaches 4.5:1 on every background and surface step of its theme, checked on every element of these pages. Page, sidebar and cards are clearly separate steps; light themes also lift cards with a soft shadow (<code>--card-shadow</code>). "Follow Windows" picks Ink or Paper automatically. Click a card to preview it.</p></div>
+      <div class="demo-grid g3" data-theme-cards></div>
+      <div class="demo" style="margin-top:20px">
+        <span class="demo-label">Tokens in the current theme</span>
+        <div class="swatches" data-swatches></div>
+      </div>
+    </section>
+
+    <!-- TYPE -->
+    <section class="sec" id="type">
+      <div class="sec-head"><div><span class="k">03 · Typography</span><h2>Satoshi for words, Big Shoulders for numbers</h2></div>
+        <p>UI text uses <b>Satoshi</b> by default. Users can switch to General Sans, Geist, Inter or Atkinson Hyperlegible in Settings → Appearance. Headline numbers and the overlay's big results use <b>Big Shoulders Display</b>; data and keys use <b>JetBrains Mono</b>. All numbers use tabular figures.</p></div>
+      <div class="demo-grid g3" style="margin-bottom:20px">
+        <div class="demo"><span class="demo-label">UI · <span data-font-label></span></span><div style="font-size:44px;font-weight:700;letter-spacing:-0.02em;line-height:1">Aa Gg 0123</div><p class="muted" style="margin:10px 0 0">Your opening duels on B Main were won 7 of 11 times this week.</p></div>
+        <div class="demo"><span class="demo-label">Display · Big Shoulders Display 900</span><div class="display" style="font-size:64px">13–9 · 248</div><p class="muted" style="margin:10px 0 0">Scores, ACS, ranks in hero cards and the overlay.</p></div>
+        <div class="demo"><span class="demo-label">Mono · JetBrains Mono</span><div class="mono" style="font-size:30px">21/14/6 · 27%</div><p class="muted" style="margin:10px 0 0">K/D/A, keys, IDs, timestamps, small caps labels.</p></div>
+      </div>
+      <div class="demo">
+        <span class="demo-label">Font options (Settings → Appearance → Font)</span>
+        <div class="demo-grid g5" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))" data-font-cards></div>
+      </div>
+      <div class="demo" style="margin-top:20px">
+        <span class="demo-label">Scale</span>
+        <table class="table">
+          <thead><tr><th>Token</th><th>Size / line</th><th>Use</th><th>Sample</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">--fs-5xl display</td><td class="mono">72 / 0.92</td><td>Hero numbers</td><td class="display" style="font-size:44px">Diamond 2</td></tr>
+            <tr><td class="mono">--fs-3xl display</td><td class="mono">36 / 1</td><td>Stat values</td><td class="display" style="font-size:36px">1.24</td></tr>
+            <tr><td class="mono">--fs-2xl bold</td><td class="mono">26 / 1.1</td><td>Page title</td><td class="h1">Match history</td></tr>
+            <tr><td class="mono">--fs-xl bold</td><td class="mono">20 / 1.3</td><td>Section / modal title</td><td class="h2">Turn on live match?</td></tr>
+            <tr><td class="mono">--fs-lg bold</td><td class="mono">16 / 1.3</td><td>Card title</td><td class="h3">Last match</td></tr>
+            <tr><td class="mono">--fs-md</td><td class="mono">14 / 1.5</td><td>Body (default)</td><td>Suggestions come from aggregate data.</td></tr>
+            <tr><td class="mono">--fs-sm</td><td class="mono">13 / 1.5</td><td>Secondary, tables</td><td style="font-size:13px" class="muted">Updated 2 min ago</td></tr>
+            <tr><td class="mono">caps</td><td class="mono">11 / mono / +6%</td><td>Labels</td><td class="caps">Peak rank</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SPACE -->
+    <section class="sec" id="space">
+      <div class="sec-head"><div><span class="k">04 · Space &amp; shape</span><h2>4 px grid, soft corners, shallow depth</h2></div>
+        <p>Spacing steps 4–64 px. Controls are 28 / 36 / 44 px tall. Radius grows with size: 6 small controls, 10 controls, 14 list rows, 20 cards and modals. Elevation is used only for things that float (menus, modals, toasts, overlay).</p></div>
+      <div class="demo-grid g3">
+        <div class="demo"><span class="demo-label">Spacing</span>
+          <div class="stack" style="gap:6px">
+            <div class="row"><span class="mono faint" style="width:70px">sp-1 4</span><i style="display:block;height:10px;width:4px;background:var(--accent-text);border-radius:2px"></i></div>
+            <div class="row"><span class="mono faint" style="width:70px">sp-2 8</span><i style="display:block;height:10px;width:8px;background:var(--accent-text);border-radius:2px"></i></div>
+            <div class="row"><span class="mono faint" style="width:70px">sp-3 12</span><i style="display:block;height:10px;width:12px;background:var(--accent-text);border-radius:2px"></i></div>
+            <div class="row"><span class="mono faint" style="width:70px">sp-4 16</span><i style="display:block;height:10px;width:16px;background:var(--accent-text);border-radius:2px"></i></div>
+            <div class="row"><span class="mono faint" style="width:70px">sp-6 24</span><i style="display:block;height:10px;width:24px;background:var(--accent-text);border-radius:2px"></i></div>
+            <div class="row"><span class="mono faint" style="width:70px">sp-8 32</span><i style="display:block;height:10px;width:32px;background:var(--accent-text);border-radius:2px"></i></div>
+            <div class="row"><span class="mono faint" style="width:70px">sp-12 48</span><i style="display:block;height:10px;width:48px;background:var(--accent-text);border-radius:2px"></i></div>
+            <div class="row"><span class="mono faint" style="width:70px">sp-16 64</span><i style="display:block;height:10px;width:64px;background:var(--accent-text);border-radius:2px"></i></div>
+          </div></div>
+        <div class="demo"><span class="demo-label">Radius</span>
+          <div class="row" style="gap:12px;flex-wrap:wrap">
+            <div style="width:56px;height:56px;border-radius:var(--r-sm);background:var(--surface-3)"></div>
+            <div style="width:56px;height:56px;border-radius:var(--r-md);background:var(--surface-3)"></div>
+            <div style="width:56px;height:56px;border-radius:var(--r-lg);background:var(--surface-3)"></div>
+            <div style="width:56px;height:56px;border-radius:var(--r-xl);background:var(--surface-3)"></div>
+            <div style="width:56px;height:56px;border-radius:var(--r-pill);background:var(--surface-3)"></div>
+          </div>
+          <div class="specs"><span class="spec">6 · 10 · 14 · 20 · pill</span></div></div>
+        <div class="demo"><span class="demo-label">Elevation</span>
+          <div class="row" style="gap:14px">
+            <div class="card" style="flex:1;box-shadow:var(--shadow-1);padding:14px"><span class="caps">1 · rows</span></div>
+            <div class="card" style="flex:1;box-shadow:var(--shadow-2);padding:14px"><span class="caps">2 · popover</span></div>
+            <div class="card" style="flex:1;box-shadow:var(--shadow-3);padding:14px"><span class="caps">3 · modal</span></div>
+          </div></div>
+      </div>
+    </section>
+
+    <!-- MOTION -->
+    <section class="sec" id="motion">
+      <div class="sec-head"><div><span class="k">05 · Motion</span><h2>Quick, springy, and never in the way</h2></div>
+        <p>Hover 120 ms, small changes 200 ms, panels 320 ms, modals and page changes 520 ms. Entering uses ease-out; toggles use a light spring. The overlay never animates while idle; it only animates when data changes. Everything respects "reduce motion" in Windows.</p></div>
+      <div class="demo-grid g4" data-motion></div>
+    </section>
+
+    <!-- ICONS -->
+    <section class="sec" id="icons">
+      <div class="sec-head"><div><span class="k">06 · Icons</span><h2>Lucide, 2 px stroke</h2></div>
+        <p>Use <b>Lucide</b> (ISC licence) at 16 px in controls and 20 px in headers, stroke 2, colour from text tokens. Agent, map and rank art is loaded at runtime from valorant-api.com and never committed to the repo; the designs use role-tinted monograms in its place.</p></div>
+      <div class="demo"><div class="swatches" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr))" data-icons></div></div>
+    </section>
+
+    <!-- DATA COLOURS -->
+    <section class="sec" id="data">
+      <div class="sec-head"><div><span class="k">07 · Data colours</span><h2>Colour carries meaning, and never alone</h2></div>
+        <p>Win/loss always come with W/L letters or +/−; sides come with ATK/DEF labels; roles with a diamond and name. Colour-blind mode swaps win/loss to blue/orange (toolbar "CVD"). Ranks use a diamond "gem" tinted by tier (the official rank icon replaces it at runtime).</p></div>
+      <div class="demo-grid g2">
+        <div class="demo"><span class="demo-label">Results &amp; sides</span>
+          <div class="row" style="gap:10px;flex-wrap:wrap">
+            <span class="badge win">W · 13–9</span><span class="badge loss">L · 7–13</span><span class="badge">D · 12–12</span>
+            <span class="badge" style="color:var(--atk)">ATK</span><span class="badge" style="color:var(--def)">DEF</span><span class="badge warn">Low sample</span><span class="badge accent">Recommended</span>
+          </div>
+          <div class="row" style="gap:16px;margin-top:18px;flex-wrap:wrap">
+            <span class="role-pill" style="--role:var(--role-duelist)">Duelist</span><span class="role-pill" style="--role:var(--role-initiator)">Initiator</span><span class="role-pill" style="--role:var(--role-controller)">Controller</span><span class="role-pill" style="--role:var(--role-sentinel)">Sentinel</span>
+          </div></div>
+        <div class="demo"><span class="demo-label">Rank tiers</span>
+          <div class="row" style="gap:14px;flex-wrap:wrap">
+            <span class="rank t-iron"><i class="rank-gem"></i>Iron</span><span class="rank t-bronze"><i class="rank-gem"></i>Bronze</span><span class="rank t-silver"><i class="rank-gem"></i>Silver</span><span class="rank t-gold"><i class="rank-gem"></i>Gold</span><span class="rank t-platinum"><i class="rank-gem"></i>Platinum</span><span class="rank t-diamond"><i class="rank-gem"></i>Diamond</span><span class="rank t-ascendant"><i class="rank-gem"></i>Ascendant</span><span class="rank t-immortal"><i class="rank-gem"></i>Immortal</span><span class="rank t-radiant"><i class="rank-gem"></i>Radiant</span>
+          </div></div>
+      </div>
+    </section>
+
+    <!-- VOICE -->
+    <section class="sec" id="voice">
+      <div class="sec-head"><div><span class="k">08 · Writing</span><h2>Talk like a good duo</h2></div>
+        <p>Short, plain, specific. Facts before opinions. Never blame the player, never shout.</p></div>
+      <div class="demo-grid g2">
+        <div class="demo"><span class="demo-label">Do</span><ul class="stack" style="margin:0;padding-left:18px">
+          <li>"2 losses in a row. Take a breather?"</li><li>"Not enough data on Corrode yet (n = 41)."</li><li>"Couldn't reach HenrikDev. Showing saved data."</li><li>"Delete 214 matches? This can't be undone."</li></ul></div>
+        <div class="demo"><span class="demo-label">Don't</span><ul class="stack" style="margin:0;padding-left:18px">
+          <li>"You're tilting!!"</li><li>"Omen is the best agent." (no source, no sample)</li><li>"Error 429."</li><li>"Are you sure?" (says nothing about what happens)</li></ul></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="design.js"></script>
+  <script>
+    (() => {
+      const { THEMES, FONTS } = window.PP;
+      document.querySelector("[data-theme-cards]").innerHTML = THEMES.map((t) => `
+        <button type="button" class="theme-card" data-set-theme="${t.id}" data-theme="${t.id}" aria-pressed="false">
+          <div class="pv">
+            <div class="row"><svg viewBox="0 0 48 48" style="width:18px;height:18px;color:var(--accent-text)"><use href="#logo"/></svg><b>${t.name}</b><span class="spacer"></span><span class="badge">${t.mode}</span></div>
+            <div class="row" style="gap:8px"><span class="btn btn-primary btn-sm" style="pointer-events:none">Primary</span><span class="btn btn-sm" style="pointer-events:none">Secondary</span><span class="badge win">W</span><span class="badge loss">L</span></div>
+            <div class="row" style="gap:10px"><span class="display" style="font-size:32px;color:var(--text)">248</span><div style="flex:1" class="stack"><div class="bar" style="width:90%"></div><div class="bar" style="width:60%;background:var(--accent)"></div></div></div>
+          </div>
+          <div class="meta"><span class="mono" style="font-size:11px;color:var(--text-2)">${t.sw.join(" · ")}</span></div>
+        </button>`).join("");
+      const SW = [["--bg","Background"],["--bg-2","Sidebar"],["--surface","Surface"],["--surface-2","Surface 2"],["--surface-3","Surface 3"],["--text","Text"],["--text-2","Text 2"],["--text-3","Text 3"],["--accent","Accent"],["--accent-text","Accent text"],["--win","Win"],["--loss","Loss"],["--atk","Attack"],["--def","Defense"],["--warn","Warning"],["--info","Info"],["--chart-1","Chart 1"],["--chart-2","Chart 2"],["--chart-3","Chart 3"],["--chart-4","Chart 4"],["--role-duelist","Duelist"],["--role-initiator","Initiator"],["--role-controller","Controller"],["--role-sentinel","Sentinel"]];
+      const draw = () => {
+        const cs = getComputedStyle(document.documentElement);
+        document.querySelector("[data-swatches]").innerHTML = SW.map(([v, n]) => `<div class="swatch"><div class="c" style="background:var(${v})"></div><div class="t"><b>${n}</b>${v} · ${cs.getPropertyValue(v).trim()}</div></div>`).join("");
+      };
+      draw();
+      new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "data-cvd"] });
+      document.querySelector("[data-font-cards]").innerHTML = FONTS.map((f) => `
+        <div class="card flat" style="font-family:var(--f-${f.id}), sans-serif"><div style="font-size:30px;font-weight:700;letter-spacing:-0.02em">${f.name}</div><p style="margin:6px 0 4px">Won 7 of 11 opening duels on B Main · 0123456789</p><span class="caps" style="font-family:var(--font-mono)">${f.note}</span></div>`).join("");
+      const M = [["Hover", "120 ms · ease-out", "hover"], ["Toggle", "320 ms · spring", "spring"], ["Panel", "320 ms · ease-out", "panel"], ["Modal", "520 ms · ease-out", "modal"]];
+      document.querySelector("[data-motion]").innerHTML = M.map(([n, d, k]) => `
+        <div class="demo" style="display:grid;gap:14px"><span class="demo-label">${n} · ${d}</span>
+          <div style="height:80px;border-radius:var(--r-lg);background:var(--surface-2);position:relative;overflow:hidden" data-mo="${k}"><i style="position:absolute;left:12px;top:24px;width:32px;height:32px;border-radius:9px;background:var(--accent);transition:transform ${k === "modal" ? "520ms" : k === "hover" ? "120ms" : "320ms"} ${k === "spring" ? "var(--ease-spring)" : "var(--ease-out)"}"></i></div>
+          <button type="button" class="btn btn-sm" onclick="const i=this.previousElementSibling.querySelector('i');i.style.transform=i.style.transform?'':'translateX(120px)'">Play</button></div>`).join("");
+      const IC = ["search","house","swords","bar-chart-3","users","settings","compass","map","crosshair","target","shield","zap","flame","timer","eye","eye-off","keyboard","move","refresh-cw","download","key-round","lock","alert-triangle","info","check","x","chevron-down","more-horizontal","sticky-note","radio","wifi-off","sun","moon","languages","trash-2","log-out"];
+      document.querySelector("[data-icons]").innerHTML = IC.map((i) => `<div class="swatch" style="display:grid;justify-items:center;gap:8px;padding:16px 8px"><i data-lucide="${i}" class="icon icon-lg"></i><span class="mono faint" style="font-size:10px">${i}</span></div>`).join("");
+      window.addEventListener("load", () => window.PP.icons());
+    })();
+  </script>
+</body>
+</html>

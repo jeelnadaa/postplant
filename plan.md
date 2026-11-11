@@ -37,7 +37,8 @@ This plan is a strong draft that should be **improved, not just executed**. Chal
 6. Analytics: session tracker with tilt warning; breakdowns by agent, map, side and weapon; first-blood, clutch, multi-kill and eco stats; round timeline; form vs baseline; rank view; teammate stats; repeat players; player notes and tags; friends compare.
 7. **Must not use up the API quota.**
 8. **Suggested agent and suggested team comp (agent stack)**, based on the map and teammates' picks, **accurate per map**, with data **pulled from the web** by an agent rather than hand-entered.
-9. **Excluded on request:** goals, crosshair/lineup notes, CSV export, weekly reports, Discord webhook, tray notifications, leaderboard viewer, overlay profiles.
+9. **Export and import** (section 16.1): full `.postplant` backup and an open JSON export; import with a preview, merge or replace; automatic local backups with one-click restore. Moving to a new PC costs zero API requests.
+10. **Excluded on request:** goals, crosshair/lineup notes, CSV export (JSON export covers scripts and tools), weekly reports, Discord webhook, tray notifications, leaderboard viewer, overlay profiles.
 
 ### Decisions already made
 - Stack: Tauri v2 + Svelte + SQLite; HenrikDev API for player data; valorant-api.com for assets (sections 2 and 3).
@@ -260,6 +261,13 @@ meta_map_profile(snapshot_id, map_id, role_mix_json, utility_needs_json,
 settings(key PK, value)
 fetch_log(endpoint, key, fetched_at, status)
 api_usage(minute_bucket, units_used, source)
+
+-- Export / import (section 16.1)
+schema_info(version INTEGER, app_version, created_at)   -- checked on import and before migrations
+backups(id PK, path, kind, created_at, size_bytes,     -- kind: weekly | before_import | before_migration | manual
+        sha256, counts_json)
+import_log(id PK, file_name, format, mode, source_puuid, -- format: backup | json; mode: merge | replace
+           imported_at, counts_json, conflicts_json)
 ```
 
 Headshot % is derived: `headshots / (headshots + bodyshots + legshots)`. A session is computed, not stored: consecutive matches with gaps under 2 hours. Store raw match JSON compressed (zstd) so new features can be computed later from existing data without refetching.
@@ -317,6 +325,7 @@ M0, M1, M2 and M3 below, plus the Comp Advisor running on the **knowledge base o
   - [ ] Post-match summary card
   - [ ] English + Hindi UI (`lib/i18n`, every string translatable from day one)
   - [ ] Colour-blind-safe palettes and scalable overlay text
+  - [ ] Export / import and automatic backups (section 16.1): `.postplant` backup + JSON export, preview, merge/replace, conflict rules, anonymised export, weekly + safety backups, restore from onboarding
 - [ ] Settings, error states, tray icon, start with Windows, performance pass (section 9).
 - [ ] Code signing, auto-updater (section 20), first stable release.
 
@@ -634,8 +643,13 @@ Everything here reads the local database only. Each one depends on what M0 finds
 
 | Feature | What it shows | Data needed |
 |---|---|---|
-| **Kill/death heatmaps per map** | Where you die and get kills, split by side; filter by agent | Kill events with player locations + valorant-api.com minimap transform values |
-| **Opening duel map** | Where your first engagements happen and how often you win them | Same as above |
+| **Heatmaps per map** | **Layers:** Me / My team / Enemies. **Events:** kills, deaths, first bloods, round-ending kills, spike plants, spike defuses. **Filters:** side, agent, round type (pistol, eco, full buy), won/lost rounds. Only from matches you played (your teammates and opponents in those matches); no extra API calls | Kill events carry every player's location at the moment of the kill; rounds carry plant/defuse locations; valorant-api.com minimap transform values |
+| **Where rounds end** | For each map and side: where the last kill of the round happens, which site rounds are decided on, and whether your team wins or loses there | Same as above |
+| **Opening duel map** | Where your first engagements happen and how often you (and your team) win them | Same as above |
+| **2D round replay** | Step through each round on the minimap: all 10 players at every kill, plant and defuse, with view direction, weapon and the kill feed. Positions are known only at those moments, so it steps between snapshots; it does not invent movement in between | Kill events with all players' locations and view direction; plant/defuse events |
+| **Death review** | Every one of your deaths: where, killed by whom and with what, time in round, whether it was traded within 3 s, distance to the nearest teammate (isolation), your loadout value vs theirs | Kill events + round economy |
+| **Trade stats** | Untraded-death %, average time to trade, for you and your team; best trading partners | Kill events |
+| **Pattern notes** | Plain-language notes found in your recent matches, e.g. "first to die on B Main in 6 of 11 attack rounds on Lotus; 5 untraded". Each note links to the rounds it came from. Factual and post-match only; never in-round advice | All of the above |
 | **Ability usage** | Casts per round per ability vs your own average on that agent | `ability_casts` per player |
 | **Economy efficiency** | Damage per 1,000 credits, win rate by loadout value, eco/force/full-buy results | Round economy data |
 | **Agent pool tracker** | Your results per agent and map, with a "comfort" score the advisor reuses | Local matches |
@@ -645,12 +659,77 @@ Everything here reads the local database only. Each one depends on what M0 finds
 | **Localization** | UI in multiple languages; English and Hindi first | `lib/i18n` |
 | **Accessibility** | Colour-blind-safe palettes for win/loss and heatmaps, scalable overlay text | UI only |
 
+**Not possible: live in-round heatmaps or positions.** The local client does not expose player positions; only game memory does, which is forbidden and blocked by Riot. Riot's policy also rejects real-time "go here now" guidance. Everything above is post-match.
+
+### 16.1 Export and import
+
+Lets people back up their history, move to a new PC (or between the installed and portable builds), and use their data in their own tools. Everything is file based; nothing is uploaded. **Restoring a backup costs zero API requests**, which matters because rebuilding 200+ matches from HenrikDev would take hours of quota.
+
+**Export** (Settings → Data & privacy → Export; also in the command palette)
+
+| Format | What it is | Use |
+|---|---|---|
+| **Postplant backup** `.postplant` | A zip: a consistent SQLite snapshot made with `VACUUM INTO` (safe while the app runs), plus `manifest.json` (format version, schema version, app version, created_at, owner PUUID and Riot ID, row counts, SHA-256 of the database file) | Full backup and moving PCs. Default choice |
+| **Open JSON** `.json` | Matches (with rounds, kills, economy), rank history, notes, agent pool and settings in a documented, versioned format (`docs/export-format.md`, JSON Schema in `schemas/export-v1.json`) | Your own scripts and tools. Can be imported back |
+
+Options:
+- What to include: matches, rank history, notes & tags, settings/hotkeys/agent pool.
+- Date range: all time, this act, last 30 days.
+- **Hide other players' names** (for sharing): replaces every Riot ID except yours with "Player 1, Player 2…" consistently within the file, and drops notes and tags.
+
+The file size is estimated before saving. **The API key is never exported**; it lives in Windows Credential Manager, not the database. CSV stays excluded as asked earlier; JSON covers that need.
+
+**Import** (Settings → Data & privacy → Import; "Restore from a backup" on the first setup screen; or drag a file onto the window)
+
+1. **Inspect** (read-only, nothing changes yet):
+   - Verify the zip, manifest and checksum; check the format and schema version; read the counts.
+   - Show a preview: owner account, created date, app version, new matches vs already present, new notes, note conflicts.
+2. **Choose a mode:**
+   - **Merge** (default):
+     - Insert matches, rounds and kills missing by `match_id`, and rank snapshots by timestamp.
+     - Agent pool becomes the union of both.
+     - Note conflicts on the same player follow the chosen rule: keep the newer (default), keep this PC's, or keep both joined.
+     - Settings and hotkeys are imported only if ticked.
+   - **Replace**: wipes local data and restores the file. Needs typing `replace`. A **safety backup is always made first**, so it can be undone from the backups list.
+3. **Different account:** if the file's owner PUUID differs from this PC's, Merge is disabled (stats would mix two people). Replace warns that Postplant will then track the other account.
+4. **Apply** in one SQLite transaction on an attached copy; on any error nothing changes. Then rebuild derived caches (comfort scores, pattern notes) and write `import_log`.
+
+**Version rules:**
+- Older schema: migrate the imported copy forward first.
+- Newer schema than the app: refuse with "Update Postplant to import this file".
+- JSON imports are validated against the schema before any row is written.
+
+**Automatic backups:**
+- Weekly by default, keeping the last 4.
+- One before every Replace import, and one before every schema migration on update.
+- Stored in `<data dir>/backups/`, so the portable build keeps them in `.\data\backups`.
+- Listed in Settings with size and reason. Each has **Restore**, which runs the Replace flow, including its own safety backup.
+- The toggle and the number kept are settings.
+
+**Safety (import files are untrusted input):**
+- Size cap of 500 MB.
+- Zip entries limited to the expected names: no path traversal, no nested archives.
+- The database is opened read-only and checked with `PRAGMA integrity_check` before attaching.
+- Only known tables and columns are copied, with parameterised SQL.
+- Settings are restricted to a whitelist of keys.
+- Nothing in the file is ever executed.
+
+**Implementation:**
+- Rust module `src-tauri/src/transfer/`.
+- Commands: `export_backup`, `export_json`, `inspect_import`, `apply_import`, `list_backups`, `restore_backup`.
+- Unit tests use fixture files, including corrupt, oversized, newer-schema and other-account cases.
+
+**Designs:**
+- Settings → Data & privacy: the Backup & transfer card and the backup list.
+- Setup welcome screen: "Restore from a backup".
+- `design/components.html`: the Export, Import preview and Replace confirmation modals.
+
 ---
 
 ## 17. Open-source project setup
 
 - **License:** MIT OR Apache-2.0 (dual, the common Rust choice). The data files under `data/` and `meta/` are factual compilations; keep source attribution in each manifest.
-- **Docs:** README (what it does, screenshots, install, how to get a HenrikDev key, Riot notice), `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `docs/privacy.md` (every outbound request listed), `docs/compliance.md`, `docs/meta-sources.md`.
+- **Docs:** README (what it does, screenshots, install, how to get a HenrikDev key, Riot notice), `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `docs/privacy.md` (every outbound request listed), `docs/export-format.md` (export/import format), `docs/compliance.md`, `docs/meta-sources.md`.
 - **CI:** fmt, clippy, cargo test, Vitest, Playwright smoke test, meta-pipeline fixture tests, dependency audit (`cargo audit`, `npm audit`), on Windows and Linux runners.
 - **Releases:** tag-driven GitHub Actions build; Tauri updater with signed update manifests; Windows code signing (look at free signing for open-source projects such as SignPath Foundation) so SmartScreen does not scare users.
 - **Contribution paths that don't need Rust:** `data/agents.json` and `data/maps.json` edits, translations, adapter fixtures. Label these "good first issue".

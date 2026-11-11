@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en" data-theme="ink" data-font="satoshi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Postplant Design · Screens</title>
+  <link rel="icon" href="../site/favicon.svg" type="image/svg+xml">
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="board.css">
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+  <style>
+    .col-3 { grid-column: span 3; } .col-4 { grid-column: span 4; } .col-5 { grid-column: span 5; } .col-6 { grid-column: span 6; } .col-7 { grid-column: span 7; } .col-8 { grid-column: span 8; } .col-12 { grid-column: span 12; }
+    .onb { display: grid; grid-template-columns: 280px 1fr; min-height: 0; }
+    .onb-rail { padding: 28px 24px; background: var(--bg-2); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+    .onb-step { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--r-md); color: var(--text-3); font-weight: 500; }
+    .onb-step i.n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line-2); font-family: var(--font-mono); font-size: 11px; font-style: normal; }
+    .onb-step.done { color: var(--text-2); } .onb-step.done i.n { background: var(--win-soft); color: var(--win); border-color: transparent; }
+    .onb-step.on { color: var(--text); background: var(--surface); } .onb-step.on i.n { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+    .onb-main { padding: 48px 56px; display: flex; flex-direction: column; overflow: auto; }
+    .onb-foot { margin-top: auto; padding-top: 24px; display: flex; gap: 10px; justify-content: flex-end; }
+    .guide { counter-reset: g; display: grid; gap: 10px; }
+    .guide li { list-style: none; display: grid; grid-template-columns: 26px 1fr; gap: 10px; font-size: 13px; color: var(--text-2); }
+    .guide li::before { counter-increment: g; content: counter(g); width: 22px; height: 22px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-family: var(--font-mono); font-size: 11px; color: var(--text); }
+    .minimap { width: 100%; height: auto; border-radius: var(--r-lg); background: var(--surface-2); }
+    .minimap .wall { fill: var(--surface-3); stroke: var(--line-2); }
+    .minimap .lbl { fill: var(--text-3); font-family: var(--font-mono); font-size: 9px; letter-spacing: .06em; }
+    .round-strip { display: flex; gap: 3px; }
+    .round-strip span { flex: 1; height: 26px; border-radius: 4px; display: grid; place-items: center; font-family: var(--font-mono); font-size: 9px; color: var(--accent-ink); }
+    .round-strip span.w { background: var(--win); color: var(--win-ink); } .round-strip span.l { background: var(--loss); color: var(--loss-ink); } .round-strip span.on { outline: 2px solid var(--text); outline-offset: 1px; }
+    .round-strip .half { flex: 0 0 8px; background: transparent; }
+    .kf { display: grid; grid-template-columns: 44px 1fr auto 1fr; gap: 8px; align-items: center; font-size: 12px; padding: 6px 8px; border-radius: 8px; }
+    .kf:hover { background: var(--surface-2); }
+    .kf.me { background: var(--accent-soft); } .kf.me .faint { color: var(--text-2); }
+    .slot5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .pslot { height: 132px; border-radius: var(--r-lg); border: 1px dashed var(--line-2); display: grid; place-items: center; text-align: center; color: var(--text-3); font-size: 12px; position: relative; }
+    .pslot.filled { border-style: solid; background: var(--surface-2); color: var(--text); }
+    .pslot.me { border: 1.5px solid var(--accent-text); background: var(--accent-soft); color: var(--accent-text); }
+    .pslot .agent { width: 64px; height: 76px; }
+    .sugg-card { display: grid; grid-template-columns: 64px 1fr auto; gap: 14px; align-items: center; padding: 14px; border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--line); }
+    .sugg-card.top { border-color: color-mix(in srgb, var(--accent-text) 50%, transparent); background: linear-gradient(90deg, var(--accent-soft), transparent 60%), var(--surface); }
+    .reason { display: flex; gap: 6px; align-items: baseline; font-size: 12.5px; color: var(--text-2); }
+    .reason::before { content: "◆"; font-size: 8px; color: var(--accent-text); }
+    .theme-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .theme-pick .theme-card .pv { padding: 12px; gap: 8px; }
+    .set-nav { display: flex; flex-direction: column; gap: 2px; width: 200px; flex: none; }
+    .set-row { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+    .set-row .t { font-weight: 600; } .set-row .d { font-size: 13px; color: var(--text-2); margin-top: 2px; max-width: 560px; }
+    .hk { display: grid; grid-template-columns: 1fr 220px 36px; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .hk .bind { display: flex; gap: 4px; justify-content: flex-end; padding: 6px 10px; border-radius: var(--r-md); border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; }
+    .hk .bind.rec { border-color: var(--accent-text); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .bar-h { display: grid; grid-template-columns: 90px 1fr 54px; gap: 10px; align-items: center; font-size: 12.5px; }
+    .bar-h .b { height: 8px; border-radius: 4px; background: var(--surface-3); overflow: hidden; }
+    .bar-h .b i { display: block; height: 100%; border-radius: inherit; background: var(--chart-1); }
+    .note-insight { display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; align-items: start; padding: 12px; border-radius: var(--r-lg); background: var(--surface-2); }
+    .note-insight .ic { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-3); color: var(--accent-text); }
+  </style>
+</head>
+<body data-page="screens">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="logo" viewBox="0 0 48 48">
+      <path d="M29.05 5.16A19.5 19.5 0 1 1 7.11 14.25" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>
+      <circle cx="16.54" cy="5.98" r="2.6" fill="currentColor"/>
+      <path d="M24 14.5 33.5 24 24 33.5 14.5 24Z" fill="currentColor"/>
+    </symbol>
+    <linearGradient id="gradA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--chart-1)" stop-opacity=".35"/><stop offset="1" stop-color="var(--chart-1)" stop-opacity="0"/></linearGradient>
+  </svg>
+  <header class="dt" data-toolbar></header>
+
+  <main class="board">
+    <section class="hero-b" style="padding-bottom:36px;margin-bottom:48px">
+      <span class="caps">Screens · 1280 × 800 design size · min window 1024 × 680</span>
+      <h1 class="display" style="margin:14px 0 10px;font-size:clamp(2.6rem,6vw,5rem)">Every screen, <span class="accent">ready to build.</span></h1>
+      <p>Frames use the real tokens and components, so they follow the theme, font and colour-blind toggles above. Agent, map and rank art is shown as monograms; the app loads the real art from valorant-api.com at runtime.</p>
+      <div class="toc" id="toc"></div>
+    </section>
+    <div id="frames"></div>
+  </main>
+
+  <script src="design.js"></script>
+  <script>
+  (() => {
+    const { agentTile, ROLE_OF, AGENTS, MAPS, THEMES, FONTS } = window.PP;
+    const ic = (n, c = "") => `<i data-lucide="${n}" class="icon ${c}"></i>`;
+    const ag = (a, sm = true) => agentTile(a, { sm });
+    const rk = (t, label, extra = "") => `<span class="rank t-${t}"><i class="rank-gem"></i>${label}${extra}</span>`;
+    const logo = (s = 16) => `<svg viewBox="0 0 48 48" style="width:${s}px;height:${s}px"><use href="#logo"/></svg>`;
+
+    // seeded random for stable mock data
+    let seed = 42; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+
+    const NAV = [
+      ["Play", [["home", "house", "Home"], ["matches", "swords", "Matches"], ["analytics", "bar-chart-3", "Analytics"], ["rank", "trending-up", "Rank"], ["advisor", "compass", "Comp Advisor"]]],
+      ["Players", [["search", "search", "Search"], ["people", "users", "People & notes"]]],
+    ];
+    function shell(active, body, opts = {}) {
+      const nav = NAV.map(([sec, items]) => `<div class="nav-sec caps">${sec}</div>` + items.map(([id, icn, label]) =>
+        `<a class="nav-item" ${id === active ? 'aria-current="page"' : ""}>${ic(icn)}${label}${id === "matches" ? '<span class="badge accent">2 new</span>' : ""}</a>`).join("")).join("");
+      return `<div class="window">
+        <div class="titlebar"><span class="logo">${logo()}Postplant</span><span class="faint">${opts.title || ""}</span><div class="winctl"><span>${ic("minus")}</span><span>${ic("square", "")}</span><span class="x">${ic("x")}</span></div></div>
+        <div class="shell">
+          <aside class="sidebar">${nav}
+            <div class="nav-sec caps">App</div><a class="nav-item" ${active === "settings" ? 'aria-current="page"' : ""}>${ic("settings")}Settings</a>
+            <div class="me-card"><span class="avatar">N</span><div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px">Nova<span class="faint">#ap1</span></div>${rk("diamond", "Diamond 2", ' <span class="rr">64</span>')}</div>${ic("chevrons-up-down", "faint")}</div>
+          </aside>
+          <div class="main">
+            <div class="topbar">
+              <div class="cmdk">${ic("search")}Search players, screens, actions<span class="keys"><span class="kbd">Ctrl</span><span class="kbd">K</span></span></div>
+              <span class="spacer"></span>
+              ${opts.live ? `<span class="status-pill" style="border-color:color-mix(in srgb,var(--loss) 40%,transparent)"><span class="dot" style="background:var(--loss);box-shadow:0 0 0 3px var(--loss-soft)"></span>Live match on</span>` : ""}
+              <span class="status-pill"><span class="dot ${opts.offline ? "off" : opts.rate ? "warn" : ""}"></span>${opts.offline ? "Offline" : opts.rate ? "Paused · 38 s" : "Synced 1 min ago"}</span>
+              <span class="status-pill tooltip">${ic("gauge")}<span class="mono">4/30</span><span class="tip">API this minute · 212 today</span></span>
+              <button class="btn btn-icon btn-ghost" aria-label="Overlay">${ic("layers")}</button>
+              <button class="btn btn-icon btn-ghost" aria-label="Refresh">${ic("refresh-cw")}</button>
+            </div>
+            <div class="content">${opts.banner || ""}${body}</div>
+          </div>
+        </div></div>`;
+    }
+    const frames = [];
+    const frame = (id, title, desc, html, specs = []) => frames.push({ id, title, desc, html, specs });
+
+    /* ---------- Onboarding ---------- */
+    const STEPS = ["Welcome", "API key", "Your Riot ID", "Agents you own", "Overlay check"];
+    const onb = (i, body, foot) => `<div class="window sm" style="grid-template-rows:var(--titlebar-h) 1fr">
+      <div class="titlebar"><span class="logo">${logo()}Postplant</span><span class="faint">Setup</span><div class="winctl"><span>${ic("minus")}</span><span class="x">${ic("x")}</span></div></div>
+      <div class="onb"><div class="onb-rail"><span class="logo" style="font-size:20px;margin-bottom:22px">${logo(26)}Postplant</span>
+        ${STEPS.map((s, k) => `<div class="onb-step ${k < i ? "done" : k === i ? "on" : ""}"><i class="n">${k < i ? "✓" : k + 1}</i>${s}</div>`).join("")}
+        <div style="margin-top:auto" class="faint"><div class="caps">Private by design</div><p style="font-size:12px;margin:6px 0 0">Your data stays on this PC. No account, no telemetry.</p></div></div>
+        <div class="onb-main">${body}<div class="onb-foot">${foot}</div></div></div></div>`;
+
+    frame("onb-1", "Setup · Welcome", "First launch. Language and theme can be set right away.", onb(0, `
+      <div style="color:var(--accent-text)">${logo(64)}</div>
+      <h1 class="display" style="font-size:64px;margin:22px 0 10px">Welcome to<br>Postplant</h1>
+      <p class="muted" style="max-width:460px;font-size:15px">Let's get you set up. It takes about two minutes: an API key, your Riot ID, the agents you own and a quick overlay check.</p>
+      <div class="row" style="gap:12px;margin-top:22px">
+        <div class="select" data-select style="width:200px"><button class="select-trigger">${ic("languages")}<span class="value">English</span>${ic("chevron-down", "chev")}</button><div class="menu"><button class="option" aria-selected="true"><span data-label>English</span>${ic("check", "check")}</button><button class="option"><span data-label>हिन्दी (Hindi)</span>${ic("check", "check")}</button></div></div>
+        <div class="segmented"><button aria-pressed="true">${ic("moon")}Dark</button><button aria-pressed="false">${ic("sun")}Light</button><button aria-pressed="false">${ic("monitor")}System</button></div>
+      </div>`, `<button class="btn btn-ghost btn-lg" style="margin-right:auto">${ic("hard-drive-upload")}Restore from a backup</button><button class="btn btn-primary btn-lg">Get started ${ic("arrow-right")}</button>`), ["Display 64", "Language + theme before anything else", "Restore skips straight to the API key step with history already loaded"]);
+
+    frame("onb-2", "Setup · API key", "The key is entered and tested in the app, with the how-to guide beside it.", onb(1, `
+      <span class="caps">Step 2 of 5</span><h2 class="h1" style="margin:8px 0 6px">Add your HenrikDev API key</h2>
+      <p class="muted" style="margin:0 0 22px;max-width:560px">Postplant uses the free community HenrikDev API. Riot doesn't give personal keys for VALORANT.</p>
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:24px">
+        <div class="stack" style="gap:14px">
+          <div class="field"><label class="label">API key</label><div class="input input-lg is-ok">${ic("key-round")}<input value="HDEV-••••••••-••••-7f3a">${'<button class="btn btn-ghost btn-icon btn-sm" aria-label="Show">' + ic("eye") + "</button>"}</div><span class="hint ok">✓ Key works · Basic · 30 requests per minute</span></div>
+          <div class="row"><button class="btn">${ic("clipboard-paste")}Paste</button><button class="btn">${ic("plug-zap")}Test key</button></div>
+          <div class="callout" style="margin-top:6px">${ic("shield-check")} Stored in Windows Credential Manager. Only ever sent to HenrikDev.</div>
+        </div>
+        <div class="card flat"><div class="h3" style="margin-bottom:12px">How to get a key</div>
+          <ol class="guide" style="margin:0;padding:0"><li>Open <a>docs.henrikdev.xyz</a> and join their Discord.</li><li>Use their key bot to create a <b style="color:var(--text)">Basic</b> key. Free and instant.</li><li>Paste it here and press <b style="color:var(--text)">Test key</b>.</li></ol>
+          <div class="divider"></div><div class="faint" style="font-size:12px">Need more than 30/min? Apply for an Advanced key (90/min); replies take 1–2 weeks.</div>
+          <button class="btn btn-sm btn-block" style="margin-top:12px">${ic("external-link")}Open HenrikDev docs</button></div>
+      </div>`, `<button class="btn btn-ghost">Back</button><button class="btn btn-primary btn-lg">Continue ${ic("arrow-right")}</button>`), ["Guide panel never needs the internet", "Test = 1 cheap request"]);
+
+    frame("onb-3", "Setup · Riot ID & region", "Resolves the PUUID once; shows the found account before continuing.", onb(2, `
+      <span class="caps">Step 3 of 5</span><h2 class="h1" style="margin:8px 0 22px">Who are you in game?</h2>
+      <div class="row" style="gap:12px;align-items:flex-end">
+        <div class="field" style="flex:1"><label class="label">Riot ID</label><div class="input input-lg">${ic("user")}<input value="Nova"><span class="faint">#</span><input value="ap1" style="max-width:80px"></div></div>
+        <div class="field"><label class="label">Region</label><div class="select" data-select style="width:220px"><button class="select-trigger" style="height:44px">${ic("globe")}<span class="value">Asia Pacific (ap)</span>${ic("chevron-down", "chev")}</button><div class="menu"><button class="option" aria-selected="true"><span data-label>Asia Pacific (ap)</span>${ic("check", "check")}</button><button class="option"><span data-label>Europe (eu)</span>${ic("check", "check")}</button><button class="option"><span data-label>North America (na)</span>${ic("check", "check")}</button></div></div></div>
+      </div>
+      <div class="card hl" style="margin-top:22px;display:flex;gap:16px;align-items:center"><span class="avatar" style="width:56px;height:56px;font-size:22px">N</span><div><div class="h3">Nova<span class="faint">#ap1</span> <span class="badge win">Found</span></div><div class="muted" style="font-size:13px">Level 214 · last played 3 hours ago</div></div><span class="spacer"></span>${rk("diamond", "Diamond 2", ' <span class="rr">64 RR</span>')}</div>
+      <p class="faint" style="font-size:12px">We'll load your last 20 matches next (about 45 API units, in the background).</p>`, `<button class="btn btn-ghost">Back</button><button class="btn btn-primary btn-lg">That's me ${ic("arrow-right")}</button>`));
+
+    frame("onb-4", "Setup · Agents you own", "Pre-filled from the starter agents plus every agent found in your match history. The Comp Advisor never suggests a locked agent.", onb(3, `
+      <span class="caps">Step 4 of 5</span><h2 class="h1" style="margin:8px 0 6px">Which agents can you play?</h2>
+      <p class="muted" style="margin:0 0 14px">Tap to change. Locked agents won't be suggested.</p>
+      <div class="banner info" style="margin-bottom:14px">${ic("wand-2")}<div>19 ticked automatically: 5 starter agents + 14 you've played recently.</div></div>
+      <div data-agent-grid data-sm data-pressed="Brimstone,Jett,Phoenix,Sage,Sova,Omen,Viper,Killjoy,Cypher,Reyna,Raze,Skye,Fade,Neon,Chamber,Astra,Clove,Gekko,Breach"></div>`,
+      `<span class="muted" style="margin-right:auto;align-self:center">19 of 30</span><button class="btn btn-ghost">Back</button><button class="btn btn-primary btn-lg">Continue ${ic("arrow-right")}</button>`));
+
+    frame("onb-5", "Setup · Overlay check", "Explains borderless mode and tests the hotkey before finishing.", onb(4, `
+      <span class="caps">Step 5 of 5</span><h2 class="h1" style="margin:8px 0 18px">Last thing: the overlay</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <div class="card"><div class="h3">1 · Set display mode</div><p class="muted" style="font-size:13px">In Valorant: Settings → Video → General → Display Mode → <b style="color:var(--text)">Windowed Fullscreen</b>. Overlays can't draw over exclusive fullscreen.</p><div class="row muted" style="font-size:12px">${ic("info")} You only do this once.</div></div>
+        <div class="card hl"><div class="h3">2 · Try the shortcut</div><p class="muted" style="font-size:13px">Press it now to show the overlay over this window.</p><div class="row" style="gap:6px;margin:14px 0"><span class="kbd" style="height:34px;min-width:50px;font-size:13px">Ctrl</span><span class="kbd" style="height:34px;min-width:50px;font-size:13px">Shift</span><span class="kbd" style="height:34px;min-width:34px;font-size:13px;color:var(--accent-text);border-color:var(--accent-text)">H</span></div><span class="hint ok">✓ Works. You can change shortcuts in Settings.</span></div>
+      </div>
+      <div class="set-row" style="border:0;padding-top:20px"><div><div class="t">Start Postplant with Windows</div><div class="d">Starts minimised to the tray. Uses no network until Valorant runs.</div></div><button class="switch" role="switch" aria-checked="true"></button></div>`,
+      `<button class="btn btn-ghost">Back</button><button class="btn btn-primary btn-lg">Finish setup ${ic("check")}</button>`));
+
+    /* ---------- Home ---------- */
+    const recent = [["w","Lotus","Omen","13–9","+21","21/14/6","248","27%","2 h"],["l","Bind","Sova","7–13","−17","12/16/9","171","22%","3 h"],["w","Summit","Omen","13–11","+18","18/15/4","226","25%","3 h"],["w","Haven","Viper","13–6","+24","19/9/7","264","31%","Yesterday"],["l","Sunset","Omen","11–13","−15","15/17/8","198","24%","Yesterday"]];
+    const matchRow = ([r, m, a, s, rr, kda, acs, hs, t]) => `<div class="match-row ${r}"><span class="res"></span>${ag(a)}<div><b>${m}</b><div class="faint" style="font-size:12px">Competitive · ${t}</div></div><span class="score">${s}</span>${rk("diamond", rr)}<span class="mono">${kda}</span><span class="mono">${acs}</span><span class="mono">${hs}</span>${ic("chevron-right", "faint")}</div>`;
+    frame("home", "Home", "What happened, how today is going, and how you're trending. Everything reads the local database; the sync status lives in the top bar.", shell("home", `
+      <div class="page-head"><div><h1 class="h1">Good evening, Nova</h1><div class="sub">Session: 3 matches · started 1 h 40 min ago</div></div><span class="spacer"></span><button class="btn">${ic("layers")}Overlay <span class="keys"><span class="kbd">Ctrl</span><span class="kbd">⇧</span><span class="kbd">H</span></span></button></div>
+      <div class="grid-12">
+        <div class="card hl col-5"><div class="card-head">${ic("trophy")}<span class="h3">Last match</span><span class="spacer"></span><span class="updated">${ic("clock")}2 min ago</span></div>
+          <div class="row" style="gap:16px">${ag("Omen", false)}<div><div class="display win" style="font-size:56px">13–9</div><div class="muted" style="font-size:13px">Victory · Lotus · 41 min · <span class="win">+21 RR</span></div></div></div>
+          <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-top:16px"><div class="stat stat-sm"><div class="v">248</div><div class="l">ACS</div><div class="d delta up">▲ 31</div></div><div class="stat stat-sm"><div class="v">1.50</div><div class="l">K/D</div><div class="d delta up">▲ 0.3</div></div><div class="stat stat-sm"><div class="v">27%</div><div class="l">HS</div><div class="d delta down">▼ 2</div></div><div class="stat stat-sm"><div class="v">4</div><div class="l">First bloods</div></div></div>
+          <div class="row" style="margin-top:14px"><button class="btn btn-sm">${ic("list")}Scoreboard</button><button class="btn btn-sm">${ic("play")}Round replay</button></div></div>
+        <div class="card col-4"><div class="card-head">${ic("flame")}<span class="h3">Today</span><span class="spacer"></span><span class="badge win">+28 RR</span></div>
+          <div class="row" style="gap:20px"><div class="stat"><div class="v"><span class="win">2</span><span class="faint">–</span><span class="loss">1</span></div><div class="l">W–L</div></div><div class="stat"><div class="v">215</div><div class="l">Avg ACS</div></div><div class="stat"><div class="v">1.18</div><div class="l">K/D</div></div></div>
+          <div class="round-strip" style="margin-top:18px"><span class="w">W</span><span class="l">L</span><span class="w">W</span><span style="background:var(--surface-3)"></span><span style="background:var(--surface-3)"></span><span style="background:var(--surface-3)"></span></div>
+          <p class="faint" style="font-size:12px;margin:10px 0 0">Tilt warning after 3 losses in a row (Settings).</p></div>
+        <div class="card col-3"><div class="card-head">${ic("trending-up")}<span class="h3">Rank</span></div>
+          <span class="rank rank-lg t-diamond"><i class="rank-gem"></i><span><b style="font-size:20px">Diamond 2</b><br><span class="rr">64 / 100 RR</span></span></span>
+          <div class="progress" style="--v:64%;margin:14px 0 8px"><i></i></div><div class="muted" style="font-size:12px">~2 wins to Diamond 3</div>
+          <div class="divider"></div>${rk("ascendant", "Peak · Ascendant 1", "")}</div>
+        <div class="card col-8"><div class="card-head">${ic("activity")}<span class="h3">Form vs baseline</span><span class="spacer"></span><div class="segmented"><button aria-pressed="true">ACS</button><button aria-pressed="false">K/D</button><button aria-pressed="false">HS%</button></div></div>
+          <svg class="chart" viewBox="0 0 700 170"><g class="grid"><line x1="0" y1="20" x2="700" y2="20"/><line x1="0" y1="80" x2="700" y2="80"/><line x1="0" y1="140" x2="700" y2="140"/></g>
+            <path class="area" d="M0 120 L50 105 L100 112 L150 90 L200 96 L250 74 L300 82 L350 64 L400 70 L450 54 L500 62 L550 46 L600 52 L650 38 L700 42 L700 160 L0 160Z"/>
+            <path class="line" d="M0 120 L50 105 L100 112 L150 90 L200 96 L250 74 L300 82 L350 64 L400 70 L450 54 L500 62 L550 46 L600 52 L650 38 L700 42"/><path class="line base" d="M0 80 L700 80"/><circle class="dot" cx="700" cy="42" r="5"/>
+            <g class="axis"><text x="0" y="168">20 matches ago</text><text x="640" y="168">Latest</text><text x="660" y="76">avg 214</text></g></svg></div>
+        <div class="card col-4"><div class="card-head">${ic("lightbulb")}<span class="h3">Notes from your games</span></div>
+          <div class="stack" style="gap:8px">
+            <div class="note-insight"><span class="ic">${ic("crosshair")}</span><div style="font-size:13px">First to die on <b>B Main (Lotus)</b> in 6 of 11 attack rounds; 5 not traded.</div>${ic("chevron-right", "faint")}</div>
+            <div class="note-insight"><span class="ic">${ic("coins")}</span><div style="font-size:13px">Force-buy win rate <b>18%</b> vs 41% average this act.</div>${ic("chevron-right", "faint")}</div>
+            <div class="note-insight"><span class="ic">${ic("users")}</span><div style="font-size:13px">With <b>Kairo#owl</b>: 4W 2L, best as Omen + Sova.</div>${ic("chevron-right", "faint")}</div>
+          </div></div>
+        <div class="col-12"><div class="row" style="margin-bottom:10px"><span class="h3">Recent matches</span><span class="spacer"></span><a>View all</a></div><div class="stack" style="gap:8px">${recent.slice(0, 3).map(matchRow).join("")}</div></div>
+      </div>`, { title: "Home" }), ["Grid 12 col · gap 16", "Insights link to the rounds they came from"]);
+
+    /* ---------- Search ---------- */
+    frame("search", "Search", "Recent and saved players come from the local database (free). Searching online is explicit and shows its cost.", shell("search", `
+      <div style="max-width:760px;margin:24px auto 0">
+        <h1 class="display" style="font-size:52px;margin-bottom:16px">Find a player</h1>
+        <div class="input input-lg" style="height:56px;font-size:18px">${ic("search", "icon-lg")}<input value="TenZ#0505"><button class="btn btn-primary">Search <span class="kbd" style="background:transparent;border-color:rgba(0,0,0,.2);color:inherit">↵</span></button></div>
+        <div class="row faint" style="font-size:12px;margin-top:8px">${ic("info")}Online lookups cost ~2 API units and are cached for 10 minutes.</div>
+        <div class="row" style="margin:28px 0 10px"><span class="h3">Recent</span><span class="spacer"></span><button class="btn btn-ghost btn-sm">Clear</button></div>
+        <div class="stack" style="gap:8px">
+          ${[["Kairo","owl","Sova","diamond","Diamond 3","Good duo","good","6 games together"],["Zephyr","eu9","Jett","immortal","Immortal 1","","","played against 2×"],["Mika","2210","Killjoy","platinum","Platinum 2","Toxic","bad","1 game"],["hidden","","Reyna","","","","","name hidden"]].map(([n,t,a,tier,r,tag,tc,meta]) => `
+            <div class="match-row" style="grid-template-columns:44px 1.6fr 1fr 1fr 28px;padding-left:12px">${ag(a)}<div>${n === "hidden" ? '<span class="hidden-name">Hidden name</span>' : `<b>${n}</b><span class="faint">#${t}</span>`} ${tag ? `<span class="tag ${tc}">${tag}</span>` : ""}<div class="faint" style="font-size:12px">${meta}</div></div>${tier ? rk(tier, r) : '<span class="faint">—</span>'}<span class="updated">${n === "hidden" ? "can't look up" : "cached 4 min ago"}</span>${ic("chevron-right", "faint")}</div>`).join("")}
+        </div>
+      </div>`, { title: "Search" }));
+
+    /* ---------- Profile ---------- */
+    frame("profile", "Player profile", "Same layout for you and anyone you look up. Private profiles hide the tabs that would be empty.", shell("search", `
+      <div class="card" style="display:flex;gap:20px;align-items:center;margin-bottom:16px;background:linear-gradient(110deg,var(--accent-soft),transparent 45%),var(--surface)">
+        <span class="agent r-initiator" style="width:84px;height:96px"><span class="mono-glyph" style="font-size:34px;top:14px">So</span><span class="nm">Main</span></span>
+        <div><div class="row"><span class="h1">Kairo<span class="faint">#owl</span></span><span class="tag good">Good duo</span><span class="badge">ap</span></div><div class="muted" style="font-size:13px;margin-top:4px">Level 188 · last played 1 h ago · you've played together 6 times (4W 2L)</div>
+          <div class="row" style="gap:8px;margin-top:12px"><button class="btn btn-sm">${ic("sticky-note")}Edit note</button><button class="btn btn-sm">${ic("users")}Compare with me</button><button class="btn btn-sm btn-ghost">${ic("copy")}Copy ID</button></div></div>
+        <span class="spacer"></span>
+        <div class="stack" style="gap:10px;align-items:flex-end"><span class="rank rank-lg t-diamond"><i class="rank-gem"></i><span><b style="font-size:20px">Diamond 3</b><br><span class="rr">41 RR</span></span></span>${rk("ascendant", "Peak Ascendant 2", "")}<span class="updated">${ic("clock")}Updated 4 min ago ${'<button class="btn btn-ghost btn-sm">' + ic("refresh-cw") + "</button>"}</span></div>
+      </div>
+      <div class="tabs" style="margin-bottom:16px"><button class="tab" aria-selected="true">Overview</button><button class="tab" aria-selected="false">Matches<span class="count">20</span></button><button class="tab" aria-selected="false">Agents</button><button class="tab" aria-selected="false">Maps</button><button class="tab" aria-selected="false">With you</button></div>
+      <div class="grid-12">
+        <div class="col-12 stat-grid" style="grid-template-columns:repeat(6,1fr)">${[["54%","Win rate","20 matches"],["231","ACS",""],["1.12","K/D",""],["24%","Headshot",""],["142","ADR",""],["19%","First blood","of rounds"]].map(([v,l,d]) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div><div class="d faint">${d}</div></div>`).join("")}</div>
+        <div class="card col-7"><div class="card-head"><span class="h3">Top agents</span></div><table class="table"><thead><tr><th>Agent</th><th class="num">Games</th><th class="num">Win</th><th class="num">ACS</th><th class="num">K/D</th><th class="num">HS</th></tr></thead><tbody>
+          ${[["Sova",9,"56%",224,"1.08","23%"],["Fade",5,"60%",238,"1.21","25%"],["Omen",4,"50%",209,"0.98","21%"],["Skye",2,"50%",251,"1.30","27%"]].map(([a,g,w,acs,kd,hs]) => `<tr><td><div class="player">${ag(a)}<b>${a}</b></div></td><td class="num">${g}</td><td class="num">${w}</td><td class="num">${acs}</td><td class="num">${kd}</td><td class="num">${hs}</td></tr>`).join("")}</tbody></table></div>
+        <div class="card col-5"><div class="card-head"><span class="h3">Maps</span></div><div class="stack" style="gap:10px">${[["Lotus",71],["Haven",62],["Summit",55],["Bind",44],["Sunset",38]].map(([m,v]) => `<div class="bar-h"><span>${m}</span><span class="b"><i style="width:${v}%"></i></span><span class="mono" style="text-align:right">${v}%</span></div>`).join("")}</div><p class="faint" style="font-size:12px;margin:12px 0 0">Win rate · competitive · this act</p></div>
+      </div>`, { title: "Kairo#owl" }));
+
+    /* ---------- Matches ---------- */
+    frame("matches", "Match history", "Filters are custom dropdowns; filtering is instant because everything is local.", shell("matches", `
+      <div class="page-head"><div><h1 class="h1">Matches</h1><div class="sub">214 stored · oldest 14 Aug 2026</div></div><span class="spacer"></span><button class="btn">${ic("history")}Load older</button></div>
+      <div class="row" style="gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <div class="select" data-select style="min-width:150px"><button class="select-trigger">${ic("gamepad-2")}<span class="value">Competitive</span>${ic("chevron-down", "chev")}</button><div class="menu"><button class="option" aria-selected="true"><span data-label>Competitive</span>${ic("check","check")}</button><button class="option"><span data-label>All queues</span>${ic("check","check")}</button><button class="option"><span data-label>Unrated</span>${ic("check","check")}</button></div></div>
+        <div class="select" data-select style="min-width:140px"><button class="select-trigger">${ic("map")}<span class="value placeholder">All maps</span>${ic("chevron-down", "chev")}</button><div class="menu">${Object.keys(MAPS).map((m) => `<button class="option"><span data-label>${m}</span>${ic("check","check")}</button>`).join("")}</div></div>
+        <div class="select" data-select style="min-width:150px"><button class="select-trigger">${ic("user-round")}<span class="value placeholder">All agents</span>${ic("chevron-down", "chev")}</button><div class="menu"><button class="option"><span data-label>Omen</span>${ic("check","check")}</button><button class="option"><span data-label>Sova</span>${ic("check","check")}</button><button class="option"><span data-label>Viper</span>${ic("check","check")}</button></div></div>
+        <div class="segmented"><button aria-pressed="true">All</button><button aria-pressed="false">Wins</button><button aria-pressed="false">Losses</button></div>
+        <span class="spacer"></span><span class="muted" style="font-size:13px">Showing 214 · <span class="win">118W</span> <span class="loss">94L</span> 2D</span>
+      </div>
+      <div class="match-row" style="background:transparent;border-color:transparent;padding-block:0" ><span></span><span class="caps">Agent</span><span class="caps">Map</span><span class="caps">Score</span><span class="caps">RR</span><span class="caps">K/D/A</span><span class="caps">ACS</span><span class="caps">HS</span><span></span></div>
+      <div class="stack" style="gap:8px;margin-top:6px">${recent.concat(recent.slice(0, 3)).map(matchRow).join("")}</div>`, { title: "Matches" }));
+
+    /* ---------- Match detail: scoreboard ---------- */
+    const team = (rows, me) => rows.map(([n, t, a, tier, r, acs, k, d, as, hs, extra]) => `<tr class="${n === me ? "is-me" : ""}"><td><div class="player">${ag(a)}<div class="who">${n === "hidden" ? '<span class="hidden-name">Hidden name</span>' : `<b>${n}<span class="faint" style="font-weight:400">#${t}</span></b>`}<span class="tagline">${extra || a}</span></div></div></td><td>${tier ? rk(tier, r) : '<span class="faint">—</span>'}</td><td class="num">${acs}</td><td class="num">${k}</td><td class="num">${d}</td><td class="num">${as}</td><td class="num">${hs}</td><td>${n !== "hidden" && n !== me ? `<button class="btn btn-ghost btn-sm">${ic("search")}</button>` : ""}</td></tr>`).join("");
+    frame("match", "Match detail · Scoreboard", "Your row highlighted. Notes and 'played before' show inline. Hidden names are never looked up.", shell("matches", `
+      <div class="row" style="gap:16px;margin-bottom:14px"><button class="btn btn-ghost btn-sm">${ic("arrow-left")}Matches</button></div>
+      <div class="card" style="display:flex;align-items:center;gap:24px;margin-bottom:14px;background:linear-gradient(100deg,color-mix(in srgb,var(--win) 14%,transparent),transparent 40%),var(--surface)">
+        <span class="display win" style="font-size:64px">13–9</span><div><div class="h2">Victory · Lotus</div><div class="muted" style="font-size:13px">Competitive · 11 Nov 2026, 19:42 · 41 min · patch 13.09</div></div><span class="spacer"></span>
+        <div class="stat"><div class="v win">+21</div><div class="l">RR</div></div><div class="stat"><div class="v">248</div><div class="l">Your ACS · 2nd</div></div></div>
+      <div class="tabs" style="margin-bottom:12px"><button class="tab" aria-selected="true">Scoreboard</button><button class="tab" aria-selected="false">Round replay</button><button class="tab" aria-selected="false">Heatmap</button><button class="tab" aria-selected="false">Economy</button><button class="tab" aria-selected="false">Deaths<span class="count">14</span></button></div>
+      <table class="table"><thead><tr><th>Player</th><th>Rank</th><th class="num sorted">ACS ▾</th><th class="num">K</th><th class="num">D</th><th class="num">A</th><th class="num">HS%</th><th></th></tr></thead><tbody>
+        <tr class="team-head"><td colspan="8"><span class="def">● Your team · Defense first</span> <span class="badge win" style="margin-left:6px">Won</span></td></tr>
+        ${team([["Kairo","owl","Sova","diamond","Diamond 3",262,22,13,8,"26%",'<span class="tag good">Good duo</span> · 6 together'],["Nova","ap1","Omen","diamond","Diamond 2",248,21,14,6,"27%"],["Riven","tx","Raze","platinum","Platinum 3",221,19,15,3,"19%"],["hidden","","Vyse","","",180,14,15,5,"22%","agent only"],["Lumen","42","Viper","diamond","Diamond 1",165,12,16,9,"24%",'played against 1×']], "Nova")}
+        <tr class="team-head"><td colspan="8"><span class="atk">● Enemy team</span></td></tr>
+        ${team([["Zephyr","eu9","Jett","immortal","Immortal 1",281,24,17,2,"31%",'<span class="tag warnish">Smurf?</span>'],["Okto","88","Fade","diamond","Diamond 2",205,16,18,7,"23%"],["Bao","cn1","Omen","ascendant","Ascendant 1",190,15,18,6,"20%"],["Mika","2210","Killjoy","platinum","Platinum 2",158,11,19,4,"18%",'<span class="tag bad">Toxic</span>'],["Ash","007","Neon","diamond","Diamond 1",150,12,18,3,"21%"]], "")}
+      </tbody></table>`, { title: "Lotus · 13–9" }), ["Row 52 px", "Click a name: player card popover", "Rank = rank at match time"]);
+
+    /* ---------- Round replay ---------- */
+    const mapSvg = (inner, w = 460, h = 460) => `<svg class="minimap" viewBox="0 0 400 400" style="max-width:${w}px">
+        <rect class="wall" x="40" y="40" width="110" height="100" rx="8"/><rect class="wall" x="250" y="40" width="110" height="100" rx="8"/><rect class="wall" x="150" y="160" width="100" height="80" rx="8"/><rect class="wall" x="60" y="260" width="280" height="40" rx="8"/><rect class="wall" x="160" y="320" width="80" height="60" rx="8"/><rect class="wall" x="70" y="150" width="30" height="100" rx="6"/><rect class="wall" x="300" y="150" width="30" height="100" rx="6"/>
+        <text class="lbl" x="60" y="60">A SITE</text><text class="lbl" x="270" y="60">B SITE</text><text class="lbl" x="178" y="200">MID</text><text class="lbl" x="170" y="355">ATK SPAWN</text>${inner}</svg>`;
+    const pl = (x, y, side, dir, label, dead) => `<g transform="translate(${x} ${y})" opacity="${dead ? 0.35 : 1}"><path d="M0 0 L${Math.cos(dir) * 26} ${Math.sin(dir) * 26}" stroke="${side === "a" ? "var(--atk)" : "var(--def)"}" stroke-width="1.5" opacity=".6"/><circle r="9" fill="${side === "a" ? "var(--atk)" : "var(--def)"}" stroke="var(--bg)" stroke-width="2"/><text y="3.5" text-anchor="middle" font-size="9" font-weight="700" fill="var(--bg)" font-family="var(--font-ui)">${label}</text>${dead ? '<path d="M-6 -6 L6 6 M6 -6 L-6 6" stroke="var(--text)" stroke-width="2"/>' : ""}</g>`;
+    frame("replay", "Match detail · Round replay", "Steps between snapshots (each kill, plant, defuse). No invented movement. Arrow keys step, space plays.", shell("matches", `
+      <div class="row" style="gap:10px;margin-bottom:12px"><button class="btn btn-ghost btn-sm">${ic("arrow-left")}Lotus · 13–9</button><span class="spacer"></span><div class="segmented"><button aria-pressed="true">Replay</button><button aria-pressed="false">Deaths</button><button aria-pressed="false">Economy</button></div></div>
+      <div class="round-strip" style="margin-bottom:6px">${"wwlwlwwlwwlw".split("").map((r, i) => `<span class="${r} ${i === 7 ? "on" : ""}">${i + 1}</span>`).join("")}<span class="half"></span>${"lwwwwlwwlw".split("").map((r, i) => `<span class="${r}">${i + 13}</span>`).join("")}</div>
+      <div class="row faint" style="font-size:11px;margin-bottom:14px;gap:16px"><span><span class="def">●</span> Defense half</span><span><span class="atk">●</span> Attack half</span><span class="spacer"></span><span>Round 8 · Lost · Spike detonated · Eco (you: 1,900)</span></div>
+      <div style="display:grid;grid-template-columns:460px 1fr;gap:18px">
+        <div class="card" style="padding:12px">${mapSvg(pl(300, 90, "a", 2.4, "Ra") + pl(280, 120, "a", 3.6, "Ja") + pl(330, 110, "a", 3.1, "Fa") + pl(250, 180, "a", 3.9, "Om", true) + pl(210, 300, "a", 4.8, "KJ") + pl(318, 72, "d", 0.8, "So", true) + pl(200, 210, "d", 0.4, "Om") + pl(110, 90, "d", 0.2, "Vi") + pl(350, 160, "d", 4.2, "Ra", true) + pl(90, 200, "d", 5.5, "Vy") + '<g transform="translate(305 95)"><rect x="-7" y="-7" width="14" height="14" rx="2" transform="rotate(45)" fill="var(--warn)"/></g>')}
+          <div class="row" style="gap:10px;margin-top:10px"><button class="btn btn-icon btn-sm">${ic("skip-back")}</button><button class="btn btn-icon btn-sm btn-primary">${ic("play")}</button><button class="btn btn-icon btn-sm">${ic("skip-forward")}</button>
+            <div style="flex:1;position:relative;height:22px"><div style="position:absolute;top:10px;left:0;right:0;height:3px;border-radius:2px;background:var(--surface-3)"></div><div style="position:absolute;top:10px;left:0;width:58%;height:3px;border-radius:2px;background:var(--accent-text)"></div>${[12, 30, 41, 58, 72, 88].map((p, i) => `<span style="position:absolute;left:${p}%;top:5px;width:3px;height:13px;border-radius:2px;background:${i === 3 ? "var(--warn)" : "var(--text-2)"}"></span>`).join("")}</div><span class="mono muted" style="font-size:12px">1:12</span></div></div>
+        <div class="stack" style="gap:12px">
+          <div class="card" style="padding:14px"><div class="card-head" style="margin-bottom:8px"><span class="h3">Kill feed · round 8</span><span class="spacer"></span><span class="caps">snapshot 4 of 6</span></div>
+            ${[["0:31","Ra","Raze","Judge","Sova",""],["0:44","Ja","Jett","Vandal","Raze",""],["0:58","Vi","Viper","Phantom","Omen (enemy)",""],["1:09","Ja","Jett","Operator","Omen (you)","me"],["1:12","—","Spike planted","","B site",""],["1:47","Om","Omen","Ghost","Fade",""]].map(([t, g, k, w, v, me], i) => `<div class="kf ${me} ${i === 3 ? "" : ""}" style="${i === 3 ? "outline:1px solid var(--line-2)" : ""}"><span class="mono faint">${t}</span><span><b>${k}</b></span><span class="badge">${w || "—"}</span><span style="text-align:right">${v}</span></div>`).join("")}</div>
+          <div class="card" style="padding:14px"><div class="card-head" style="margin-bottom:8px">${ic("crosshair")}<span class="h3">Your death this round</span><span class="spacer"></span><span class="badge loss">Not traded</span></div>
+            <div class="stat-grid" style="grid-template-columns:repeat(4,1fr)"><div class="stat stat-sm"><div class="v" style="font-size:20px">1:09</div><div class="l">Time</div></div><div class="stat stat-sm"><div class="v" style="font-size:20px">Mid</div><div class="l">Where</div></div><div class="stat stat-sm"><div class="v" style="font-size:20px">24 m</div><div class="l">Nearest ally</div></div><div class="stat stat-sm"><div class="v" style="font-size:20px">1.9k v 4.7k</div><div class="l">Loadout</div></div></div>
+            <p class="muted" style="font-size:12.5px;margin:10px 0 0">Killed by Jett (Operator) from B Link. No teammate within 20 m.</p></div>
+        </div>
+      </div>`, { title: "Round replay" }), ["Minimap from valorant-api.com (displayIcon + transform)", "Blue = defense, orange = attack", "Your dot has a white ring"]);
+
+    /* ---------- Heatmap ---------- */
+    const heatDots = () => { seed = 7; let s = ""; const C = [[120, 100, "k", "me"], [140, 210, "d", "me"], [300, 90, "k", "team"], [200, 190, "d", "team"], [310, 200, "d", "enemy"], [100, 300, "k", "enemy"], [260, 300, "k", "me"]];
+      C.forEach(([cx, cy, kind, who]) => { for (let i = 0; i < 16; i++) { const x = cx + (rnd() - 0.5) * 70, y = cy + (rnd() - 0.5) * 60; const col = kind === "k" ? "var(--win)" : "var(--loss)"; s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${who === "me" ? 4 : 3}" fill="${col}" opacity="${who === "me" ? 0.9 : 0.45}" ${who === "enemy" ? 'stroke="var(--text)" stroke-width=".8" fill-opacity=".2"' : ""}/>`; } }); return s; };
+    frame("heatmap", "Analytics · Heatmaps", "Layers: Me / My team / Enemies. Events: kills, deaths, first bloods, round-ending kills, plants, defuses. Only matches you played.", shell("analytics", `
+      <div class="page-head"><div><h1 class="h1">Analytics</h1><div class="sub">Lotus · competitive · last 30 days · 23 matches · 512 rounds</div></div></div>
+      <div class="tabs" style="margin-bottom:16px"><button class="tab" aria-selected="false">Overview</button><button class="tab" aria-selected="true">Heatmaps</button><button class="tab" aria-selected="false">Where rounds end</button><button class="tab" aria-selected="false">Trades</button><button class="tab" aria-selected="false">Economy</button><button class="tab" aria-selected="false">Abilities</button><button class="tab" aria-selected="false">Patch impact</button></div>
+      <div style="display:grid;grid-template-columns:480px 1fr;gap:18px">
+        <div class="card" style="padding:12px">${mapSvg(heatDots(), 480)}
+          <div class="row faint" style="font-size:11px;gap:14px;margin-top:8px"><span><span class="win">●</span> Kills</span><span><span class="loss">●</span> Deaths</span><span>● solid = you · faded = team · ring = enemies</span></div></div>
+        <div class="stack" style="gap:14px">
+          <div class="card"><span class="caps">Layers</span><div class="row" style="gap:6px;margin:8px 0 14px;flex-wrap:wrap"><button class="chip" aria-pressed="true">${ic("user")}Me</button><button class="chip" aria-pressed="true">${ic("users")}My team</button><button class="chip" aria-pressed="true">${ic("swords")}Enemies</button></div>
+            <span class="caps">Events</span><div class="row" style="gap:6px;margin:8px 0 14px;flex-wrap:wrap"><button class="chip" aria-pressed="true">Kills</button><button class="chip" aria-pressed="true">Deaths</button><button class="chip" aria-pressed="false">First bloods</button><button class="chip" aria-pressed="false">Round-ending kills</button><button class="chip" aria-pressed="false">Plants</button><button class="chip" aria-pressed="false">Defuses</button></div>
+            <div class="row" style="gap:8px;flex-wrap:wrap">
+              <div class="select" data-select><button class="select-trigger">${ic("map")}<span class="value">Lotus</span>${ic("chevron-down", "chev")}</button><div class="menu">${Object.keys(MAPS).map((m) => `<button class="option" ${m === "Lotus" ? 'aria-selected="true"' : ""}><span data-label>${m}</span>${ic("check","check")}</button>`).join("")}</div></div>
+              <div class="segmented"><button aria-pressed="true">Both</button><button aria-pressed="false">ATK</button><button aria-pressed="false">DEF</button></div>
+              <div class="select" data-select style="min-width:150px"><button class="select-trigger">${ic("coins")}<span class="value">All buys</span>${ic("chevron-down", "chev")}</button><div class="menu"><button class="option" aria-selected="true"><span data-label>All buys</span>${ic("check","check")}</button><button class="option"><span data-label>Pistol</span>${ic("check","check")}</button><button class="option"><span data-label>Eco</span>${ic("check","check")}</button><button class="option"><span data-label>Force</span>${ic("check","check")}</button><button class="option"><span data-label>Full buy</span>${ic("check","check")}</button></div></div>
+              <div class="segmented"><button aria-pressed="true">All rounds</button><button aria-pressed="false">Won</button><button aria-pressed="false">Lost</button></div>
+            </div></div>
+          <div class="grid-12" style="gap:12px">
+            <div class="card col-6"><span class="caps">Your deaths by area</span><div class="stack" style="gap:8px;margin-top:10px">${[["B Main", 31], ["Mid", 24], ["A Lobby", 17], ["C Link", 12]].map(([m, v]) => `<div class="bar-h"><span>${m}</span><span class="b"><i style="width:${v * 2.5}%;background:var(--loss)"></i></span><span class="mono" style="text-align:right">${v}%</span></div>`).join("")}</div></div>
+            <div class="card col-6"><span class="caps">Untraded deaths</span><div class="stat" style="margin-top:6px"><div class="v loss">42%</div><div class="l">You · team average 35%</div></div><div class="progress loss" style="--v:42%;margin-top:12px"><i></i></div></div>
+          </div>
+        </div>
+      </div>`, { title: "Analytics" }));
+
+    /* ---------- Analytics overview ---------- */
+    frame("analytics", "Analytics · Overview", "Breakdowns by agent, map, side and weapon, plus economy and patch impact. All zero-quota.", shell("analytics", `
+      <div class="page-head"><div><h1 class="h1">Analytics</h1><div class="sub">Competitive · this act · 96 matches</div></div><span class="spacer"></span><div class="segmented"><button aria-pressed="false">7 d</button><button aria-pressed="false">30 d</button><button aria-pressed="true">Act</button><button aria-pressed="false">All</button></div></div>
+      <div class="tabs" style="margin-bottom:16px"><button class="tab" aria-selected="true">Overview</button><button class="tab" aria-selected="false">Heatmaps</button><button class="tab" aria-selected="false">Where rounds end</button><button class="tab" aria-selected="false">Trades</button><button class="tab" aria-selected="false">Economy</button><button class="tab" aria-selected="false">Abilities</button><button class="tab" aria-selected="false">Patch impact</button></div>
+      <div class="grid-12">
+        <div class="col-12 stat-grid" style="grid-template-columns:repeat(6,1fr)">${[["56%","Win rate","▲ 3 vs last act","up"],["219","ACS","▲ 12","up"],["1.09","K/D","",""],["25%","Headshot","▼ 1","down"],["38%","Opening duels won","",""],["142","Damage / 1k credits","",""]].map(([v,l,d,c]) => `<div class="stat"><div class="v">${v}</div><div class="l">${l}</div><div class="d delta ${c}">${d}</div></div>`).join("")}</div>
+        <div class="card col-6"><div class="card-head"><span class="h3">By agent</span></div><table class="table"><thead><tr><th>Agent</th><th class="num">Games</th><th class="num">Win</th><th class="num">ACS</th><th class="num">FB%</th></tr></thead><tbody>${[["Omen",38,"58%",214,"9%"],["Viper",21,"57%",222,"8%"],["Sova",19,"47%",201,"11%"],["Clove",11,"64%",236,"13%"]].map(([a,g,w,acs,fb]) => `<tr><td><div class="player">${ag(a)}<b>${a}</b></div></td><td class="num">${g}</td><td class="num">${w}</td><td class="num">${acs}</td><td class="num">${fb}</td></tr>`).join("")}</tbody></table></div>
+        <div class="card col-6"><div class="card-head"><span class="h3">By map &amp; side</span></div><table class="table"><thead><tr><th>Map</th><th class="num">Games</th><th class="num atk">ATK win</th><th class="num def">DEF win</th><th class="num">Overall</th></tr></thead><tbody>${[["Lotus",23,"52%","61%","57%"],["Summit",19,"44%","58%","53%"],["Bind",16,"41%","49%","44%"],["Haven",14,"55%","60%","64%"]].map(([m,g,a,d,o]) => `<tr><td><b>${m}</b></td><td class="num">${g}</td><td class="num">${a}</td><td class="num">${d}</td><td class="num">${o}</td></tr>`).join("")}</tbody></table></div>
+        <div class="card col-4"><div class="card-head"><span class="h3">Economy</span></div><div class="stack" style="gap:10px">${[["Pistol",54],["Eco",21],["Force",18],["Bonus",33],["Full buy",58]].map(([m,v]) => `<div class="bar-h"><span>${m}</span><span class="b"><i style="width:${v}%;background:var(--chart-2)"></i></span><span class="mono" style="text-align:right">${v}%</span></div>`).join("")}</div><p class="faint" style="font-size:12px;margin:10px 0 0">Round win rate by your buy</p></div>
+        <div class="card col-4"><div class="card-head"><span class="h3">Weapons</span></div><div class="stack" style="gap:10px">${[["Vandal",41,"27%"],["Phantom",23,"24%"],["Sheriff",9,"38%"],["Spectre",8,"17%"]].map(([w,v,hs]) => `<div class="bar-h"><span>${w}</span><span class="b"><i style="width:${v * 2}%"></i></span><span class="mono" style="text-align:right">${hs} HS</span></div>`).join("")}</div><p class="faint" style="font-size:12px;margin:10px 0 0">Share of kills · headshot %</p></div>
+        <div class="card col-4"><div class="card-head"><span class="h3">Patch impact · Omen</span><span class="spacer"></span><span class="badge">13.09</span></div>
+          <svg class="chart" viewBox="0 0 300 110"><g class="grid"><line x1="0" y1="20" x2="300" y2="20"/><line x1="0" y1="90" x2="300" y2="90"/></g><path class="line" d="M0 70 L40 64 L80 72 L120 60 L160 40 L200 44 L240 34 L300 30"/><path d="M150 5 V100" stroke="var(--warn)" stroke-dasharray="3 4"/><g class="axis"><text x="156" y="14">13.09</text></g></svg>
+          <div class="row" style="gap:16px"><div class="stat stat-sm"><div class="v">48%</div><div class="l">before · 17 g</div></div><div class="stat stat-sm"><div class="v win">62%</div><div class="l">after · 21 g</div></div></div></div>
+      </div>`, { title: "Analytics" }));
+
+    /* ---------- Rank ---------- */
+    frame("rank", "Rank", "RR graph from your own snapshots, act comparison and an estimate to the next rank.", shell("rank", `
+      <div class="page-head"><div><h1 class="h1">Rank</h1><div class="sub">V26 Act 6 · 96 competitive matches</div></div><span class="spacer"></span><div class="select" data-select><button class="select-trigger">${ic("calendar")}<span class="value">V26 Act 6</span>${ic("chevron-down", "chev")}</button><div class="menu"><button class="option" aria-selected="true"><span data-label>V26 Act 6</span>${ic("check","check")}</button><button class="option"><span data-label>V26 Act 5</span>${ic("check","check")}</button><button class="option"><span data-label>V26 Act 4</span>${ic("check","check")}</button></div></div></div>
+      <div class="grid-12">
+        <div class="card hl col-4"><span class="rank rank-lg t-diamond"><i class="rank-gem"></i><span><b class="display" style="font-size:42px">Diamond 2</b><br><span class="rr">64 / 100 RR</span></span></span><div class="progress" style="--v:64%;margin:18px 0 8px"><i></i></div><div class="row muted" style="font-size:13px">~2 wins to Diamond 3<span class="spacer"></span>avg +19 / −16</div>
+          <div class="divider"></div><div class="row">${rk("ascendant", "Peak · Ascendant 1")}<span class="spacer"></span><span class="faint" style="font-size:12px">V26 Act 2</span></div></div>
+        <div class="card col-8"><div class="card-head"><span class="h3">RR this act</span><span class="spacer"></span><span class="badge win">+186 net</span></div>
+          <svg class="chart" viewBox="0 0 700 200"><g class="grid">${[30, 80, 130, 180].map((y) => `<line x1="0" y1="${y}" x2="700" y2="${y}"/>`).join("")}</g><g class="axis"><text x="4" y="26">Diamond 3</text><text x="4" y="76">Diamond 2</text><text x="4" y="126">Diamond 1</text><text x="4" y="176">Platinum 3</text></g>
+            <path class="area" d="M60 170 L110 150 L160 158 L210 130 L260 140 L310 118 L360 96 L410 110 L460 84 L510 92 L560 70 L610 78 L660 58 L700 52 L700 190 L60 190Z"/><path class="line" d="M60 170 L110 150 L160 158 L210 130 L260 140 L310 118 L360 96 L410 110 L460 84 L510 92 L560 70 L610 78 L660 58 L700 52"/><circle class="dot" cx="700" cy="52" r="5"/></svg></div>
+        <div class="card col-12"><div class="card-head"><span class="h3">Act by act</span></div><table class="table"><thead><tr><th>Act</th><th>Final rank</th><th>Peak</th><th class="num">Games</th><th class="num">Win</th><th class="num">ACS</th><th class="num">K/D</th></tr></thead><tbody>${[["V26 Act 6 (now)","diamond","Diamond 2","diamond","Diamond 3",96,"56%",219,"1.09"],["V26 Act 5","diamond","Diamond 1","diamond","Diamond 2",84,"52%",208,"1.03"],["V26 Act 4","platinum","Platinum 3","diamond","Diamond 1",71,"51%",201,"1.01"]].map(([a,t,r,pt,p,g,w,acs,kd]) => `<tr><td><b>${a}</b></td><td>${rk(t, r)}</td><td>${rk(pt, p)}</td><td class="num">${g}</td><td class="num">${w}</td><td class="num">${acs}</td><td class="num">${kd}</td></tr>`).join("")}</tbody></table></div>
+      </div>`, { title: "Rank" }));
+
+    /* ---------- Comp Advisor: solo ---------- */
+    frame("advisor", "Comp Advisor · Solo queue", "Map + teammates' picks in, ranked picks for you out. Locked agents are never suggested; teammates' picks are shown dimmed. Every suggestion shows reasons, evidence tier, sample and date.", shell("advisor", `
+      <div class="page-head"><div><h1 class="h1">Comp Advisor</h1><div class="sub">Dataset 2026-11-09 · patch 13.09 · Diamond+ ranked + pro play</div></div><span class="spacer"></span><div class="segmented"><button aria-pressed="true">${ic("user")}Solo queue</button><button aria-pressed="false">${ic("users")}Stack planner</button><button aria-pressed="false">${ic("graduation-cap")}Learn a map</button></div></div>
+      <div style="display:grid;grid-template-columns:1fr 400px;gap:18px">
+        <div class="stack" style="gap:14px">
+          <div class="row" style="gap:8px">${Object.entries(MAPS).map(([m, c]) => `<button class="map-tile" style="--m:${c};flex:1;height:56px;font-size:13px" aria-pressed="${m === "Lotus"}">${m}</button>`).join("")}</div>
+          <div class="slot5">
+            <div class="pslot filled">${agentTile("Raze", {})}<span class="faint" style="position:absolute;bottom:8px;font-size:11px">Teammate</span></div>
+            <div class="pslot filled">${agentTile("Fade", {})}<span class="faint" style="position:absolute;bottom:8px;font-size:11px">Teammate</span></div>
+            <div class="pslot filled">${agentTile("Viper", {})}<span class="faint" style="position:absolute;bottom:8px;font-size:11px">Teammate</span></div>
+            <div class="pslot">${ic("plus")}<br>Teammate 4<br><span class="faint">not picked yet</span></div>
+            <div class="pslot me"><div><span class="display" style="font-size:30px">You</span><br><span style="font-size:11px">next pick</span></div></div>
+          </div>
+          <div class="card" style="padding:14px"><div class="row" style="margin-bottom:8px"><span class="caps">Tap teammates' picks</span><span class="spacer"></span><span class="faint" style="font-size:12px">${ic("lock")} = not owned by you (still selectable for teammates)</span></div>
+            <div data-agent-grid data-sm data-picked="Raze,Fade,Viper" data-locked="Hush,Waylay,Veto,Iso,Tejo,Miks"></div></div>
+        </div>
+        <div class="stack" style="gap:10px">
+          <div class="row"><span class="h3">Best picks for you</span><span class="spacer"></span><span class="badge accent">High confidence</span></div>
+          <div class="sugg-card top">${agentTile("Omen", {})}<div><div class="row"><b style="font-size:16px">Omen</b><span class="role-pill" style="--role:var(--role-controller)">Controller</span></div><div class="reason">Lotus wants two smokes; you have one</div><div class="reason">In 37 of 37 pro comps on Lotus (pro, n = 37 maps)</div><div class="reason">Your best agent here: 61% in 18 games</div></div><div class="stat stat-sm" style="text-align:right"><div class="v accent">92</div><div class="l">score</div></div></div>
+          <div class="sugg-card">${agentTile("Vyse", {})}<div><div class="row"><b style="font-size:16px">Vyse</b><span class="role-pill" style="--role:var(--role-sentinel)">Sentinel</span></div><div class="reason">No sentinel yet</div><div class="reason">+2.1% win rate on Lotus, Diamond+ (ranked, n = 4,210)</div></div><div class="stat stat-sm" style="text-align:right"><div class="v">78</div><div class="l">score</div></div></div>
+          <div class="sugg-card">${agentTile("Killjoy", {})}<div><div class="row"><b style="font-size:16px">Killjoy</b><span class="role-pill" style="--role:var(--role-sentinel)">Sentinel</span></div><div class="reason">No sentinel yet</div><div class="reason">Comfort: 9 games, 56%</div></div><div class="stat stat-sm" style="text-align:right"><div class="v">71</div><div class="l">score</div></div></div>
+          <div class="card" style="padding:14px"><div class="row"><span class="caps">Best full comps with your picks</span></div>
+            ${[["Raze,Fade,Viper,Omen,Vyse","57.8%","n 412","Pro"],["Raze,Fade,Viper,Omen,Killjoy","55.1%","n 268","Ranked"]].map(([c, w, n, src]) => `<div class="row" style="gap:6px;margin-top:10px">${c.split(",").map((a) => ag(a)).join("")}<span class="spacer"></span><div style="text-align:right"><b class="mono">${w}</b><div class="faint" style="font-size:11px">${n} · ${src}</div></div></div>`).join("")}</div>
+          <p class="faint" style="font-size:11.5px;margin:0">Suggestions from aggregate data. Play what you play well. Postplant never selects or locks an agent.</p>
+        </div>
+      </div>`, { title: "Comp Advisor" }), ["Score 0–100 (weights in data/advisor-weights.json)", "Evidence: Pro / Ranked / Role coverage", "Hush shows 'limited data'"]);
+
+    /* ---------- Stack planner ---------- */
+    frame("stack", "Comp Advisor · Stack planner", "For a 5-stack: each friend's owned agents and comfort; the planner assigns the best comp across people.", shell("advisor", `
+      <div class="page-head"><div><h1 class="h1">Comp Advisor</h1><div class="sub">Stack planner · Summit</div></div><span class="spacer"></span><div class="segmented"><button aria-pressed="false">${ic("user")}Solo queue</button><button aria-pressed="true">${ic("users")}Stack planner</button><button aria-pressed="false">${ic("graduation-cap")}Learn a map</button></div></div>
+      <div class="grid-12">
+        ${[["Nova (you)","Omen","Viper,Clove,Sova","N"],["Kairo","Fade","Sova,Skye,Breach","K"],["Riven","Neon","Raze,Jett,Neon","R"],["Lumen","Cypher","Killjoy,Cypher,Sage","L"],["Mika","Vyse","Vyse,Chamber,Deadlock","M"]].map(([n, pick, pool, i], k) => `
+          <div class="card ${k === 0 ? "hl" : ""}" style="grid-column:span 12/5;padding:14px;grid-column:auto">
+          </div>`).join("").replace(/<div class="card[^>]*>\s*<\/div>/g, "")}
+        <div class="col-12" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
+          ${[["Nova","you","Omen",["Omen","Viper","Clove","Sova"]],["Kairo","","Fade",["Sova","Skye","Fade","Breach"]],["Riven","","Neon",["Raze","Jett","Neon"]],["Lumen","","Cypher",["Killjoy","Cypher","Sage"]],["Mika","","Vyse",["Vyse","Chamber","Deadlock"]]].map(([n, you, pick, pool]) => `
+            <div class="card ${you ? "hl" : ""}" style="padding:14px;display:grid;gap:12px;justify-items:center;text-align:center">
+              <div class="row" style="width:100%"><span class="avatar">${n[0]}</span><b>${n}</b>${you ? '<span class="badge accent">you</span>' : ""}<span class="spacer"></span>${ic("more-horizontal","faint")}</div>
+              ${agentTile(pick, {})}<div><b>${pick}</b><div class="faint" style="font-size:12px">${ROLE_OF[pick]}</div></div>
+              <div class="row" style="gap:4px;flex-wrap:wrap;justify-content:center">${pool.map((a) => `<span style="${a === pick ? "outline:2px solid var(--accent-text);border-radius:8px" : "opacity:.75"}">${ag(a)}</span>`).join("")}</div>
+              <span class="faint" style="font-size:11px">${pool.length} agents in pool</span></div>`).join("")}
+        </div>
+        <div class="card col-8"><div class="row"><span class="h3">Why this comp</span><span class="spacer"></span><span class="badge accent">Score 88</span><span class="badge">Pro + ranked</span></div>
+          <div class="stack" style="gap:6px;margin-top:10px"><div class="reason">Summit: Neon + Fade core with two sentinels holding the walls (Champions 2026, n = 18 maps)</div><div class="reason">Everyone plays a top-3 comfort agent (avg 61% win rate)</div><div class="reason">Covers smokes, recon, flash, two anchors and an entry</div></div></div>
+        <div class="card col-4"><span class="caps">Alternatives</span>${[["Omen, Sova, Raze, Killjoy, Vyse", 84], ["Viper, Fade, Neon, Cypher, Chamber", 81]].map(([c, s]) => `<div class="row" style="margin-top:10px;font-size:13px"><span>${c}</span><span class="spacer"></span><b class="mono">${s}</b></div>`).join("")}<button class="btn btn-sm btn-block" style="margin-top:12px">${ic("shuffle")}Swap two players</button></div>
+      </div>`, { title: "Stack planner" }));
+
+    /* ---------- Learn a map ---------- */
+    frame("learn", "Comp Advisor · Learn a map", "Suggests 1–2 agents worth adding to your pool for a map, with the reason and what you already cover.", shell("advisor", `
+      <div class="page-head"><div><h1 class="h1">Learn a map</h1><div class="sub">What to add to your pool for Bind</div></div><span class="spacer"></span><div class="segmented"><button aria-pressed="false">Solo queue</button><button aria-pressed="false">Stack planner</button><button aria-pressed="true">Learn a map</button></div></div>
+      <div class="grid-12">
+        <div class="card col-7 hl"><div class="row" style="gap:16px">${agentTile("Brimstone", {})}<div><div class="h2">Brimstone</div><div class="reason">Bind has no mid; double-controller comps are most common in pro play (n = 22 maps)</div><div class="reason">You own him and have 0 games on Bind</div><div class="reason">Your controller results elsewhere are strong (Omen 58%)</div></div></div>
+          <div class="divider"></div><div class="row" style="gap:10px"><span class="caps">Pairs well with your pool</span>${["Omen", "Viper", "Skye"].map((a) => ag(a)).join("")}</div></div>
+        <div class="card col-5"><div class="h3" style="margin-bottom:10px">Your Bind coverage</div>${[["Smokes", 80, ""], ["Recon / flash", 55, ""], ["Site anchor", 35, "warn"], ["Entry", 20, "loss"]].map(([l, v, c]) => `<div class="meter" style="margin-bottom:12px"><div class="top"><span>${l}</span><span class="mono">${v}%</span></div><div class="progress ${c}" style="--v:${v}%"><i></i></div></div>`).join("")}</div>
+      </div>`, { title: "Learn a map" }));
+
+    /* ---------- People ---------- */
+    frame("people", "People & notes", "Duos, repeat players and your private notes, all from local matches.", shell("people", `
+      <div class="page-head"><div><h1 class="h1">People</h1><div class="sub">482 players met · 23 notes</div></div><span class="spacer"></span><div class="input" style="width:260px">${ic("search")}<input placeholder="Filter by name or tag"></div></div>
+      <div class="tabs" style="margin-bottom:16px"><button class="tab" aria-selected="true">Duos</button><button class="tab" aria-selected="false">Met before</button><button class="tab" aria-selected="false">Notes<span class="count">23</span></button><button class="tab" aria-selected="false">Compare</button></div>
+      <div class="grid-12">
+        <div class="card col-8"><table class="table"><thead><tr><th>Player</th><th class="num">Together</th><th class="num">Win</th><th>Best pair</th><th>Tags</th><th></th></tr></thead><tbody>
+          ${[["Kairo","owl","Sova",14,"64%","Omen + Sova","Good duo","good"],["Riven","tx","Raze",9,"56%","Viper + Raze","",""],["Lumen","42","Viper",6,"50%","Omen + Viper","Shotcaller","info"],["Mika","2210","Killjoy",4,"25%","—","Toxic","bad"]].map(([n,t,a,g,w,p,tag,tc]) => `<tr><td><div class="player">${ag(a)}<div class="who"><b>${n}<span class="faint" style="font-weight:400">#${t}</span></b></div></div></td><td class="num">${g}</td><td class="num ${parseInt(w) >= 50 ? "win" : "loss"}">${w}</td><td>${p}</td><td>${tag ? `<span class="tag ${tc}">${tag}</span>` : ""}</td><td><button class="btn btn-ghost btn-sm">${ic("sticky-note")}</button></td></tr>`).join("")}</tbody></table></div>
+        <div class="card col-4"><div class="card-head"><span class="h3">Compare · you vs Kairo</span></div>
+          ${[["ACS", 219, 231], ["K/D", 1.09, 1.12], ["HS%", 25, 24], ["First blood", 11, 19], ["Clutch", 17, 12]].map(([l, a, b]) => `<div style="display:grid;grid-template-columns:44px 1fr 72px 1fr 44px;gap:8px;align-items:center;margin-bottom:10px;font-size:12.5px"><b class="mono ${a >= b ? "accent" : ""}">${a}</b><span class="progress" style="--v:${(a / (a + b)) * 100}%;transform:scaleX(-1)"><i></i></span><span class="faint" style="text-align:center">${l}</span><span class="progress" style="--v:${(b / (a + b)) * 100}%"><i style="background:var(--chart-2)"></i></span><b class="mono" style="text-align:right">${b}</b></div>`).join("")}
+          <p class="faint" style="font-size:11.5px;margin:6px 0 0">From 14 shared matches (free). Their other games cached 6 min ago.</p></div>
+      </div>`, { title: "People" }));
+
+    /* ---------- Settings ---------- */
+    const SET_NAV = [["appearance", "palette", "Appearance"], ["api", "key-round", "API key & usage"], ["overlay", "layers", "Overlay & hotkeys"], ["advisor", "compass", "Comp Advisor"], ["live", "radio", "Live match"], ["updates", "download", "Updates"], ["data", "database", "Data & privacy"], ["about", "info", "About"]];
+    const settings = (active, body) => shell("settings", `<div class="row" style="align-items:flex-start;gap:28px"><nav class="set-nav"><h1 class="h1" style="margin:0 0 14px 12px">Settings</h1>${SET_NAV.map(([id, i, l]) => `<a class="nav-item" ${id === active ? 'aria-current="page"' : ""}>${ic(i)}${l}${id === "live" ? '<span class="badge warn">Beta</span>' : ""}</a>`).join("")}</nav><div style="flex:1;min-width:0;max-width:820px">${body}</div></div>`, { title: "Settings" });
+
+    frame("set-appearance", "Settings · Appearance", "Six themes as cards, font dropdown with live preview, language, colour-blind mode, UI scale. All apply instantly.", settings("appearance", `
+      <div class="h2">Appearance</div><p class="muted" style="margin:4px 0 16px">Changes apply instantly.</p>
+      <div class="row" style="margin-bottom:10px"><span class="caps">Theme</span><span class="spacer"></span><label class="row muted" style="font-size:13px">Follow Windows (Ink / Paper)<button class="switch" role="switch" aria-checked="false"></button></label></div>
+      <div class="theme-pick">${THEMES.map((t) => `<button class="theme-card" data-set-theme="${t.id}" data-theme="${t.id}" aria-pressed="false"><div class="pv"><div class="row"><svg viewBox="0 0 48 48" style="width:14px;height:14px;color:var(--accent-text)"><use href="#logo"/></svg><b style="font-size:13px">${t.name}</b><span class="spacer"></span><span class="badge">${t.mode}</span></div><div class="row" style="gap:6px"><span class="btn btn-primary btn-sm" style="pointer-events:none;height:22px;font-size:11px">Primary</span><span class="badge win">W</span><span class="badge loss">L</span></div></div></button>`).join("")}</div>
+      <div class="set-row"><div><div class="t">Font</div><div class="d">Satoshi is the default. Atkinson Hyperlegible is designed for low vision.</div></div>
+        <div class="select" data-select="font" style="width:240px"><button class="select-trigger">${ic("type")}<span class="value" data-font-label></span>${ic("chevron-down", "chev")}</button><div class="menu">${FONTS.map((f) => `<button class="option" data-value="${f.id}"><span style="font-family:var(--f-${f.id})">${f.name}</span><span class="meta">${f.note.split("·")[0]}</span>${ic("check", "check")}</button>`).join("")}</div></div></div>
+      <div class="set-row"><div><div class="t">Language</div><div class="d">More languages welcome via translations on GitHub.</div></div><div class="select" data-select style="width:240px"><button class="select-trigger">${ic("languages")}<span class="value">English</span>${ic("chevron-down", "chev")}</button><div class="menu"><button class="option" aria-selected="true"><span data-label>English</span>${ic("check","check")}</button><button class="option"><span data-label>हिन्दी (Hindi)</span>${ic("check","check")}</button></div></div></div>
+      <div class="set-row"><div><div class="t">Colour-blind-safe colours</div><div class="d">Wins and losses use blue and orange instead of green and red.</div></div><button class="switch" role="switch" aria-checked="false" data-cvd-switch></button></div>
+      <div class="set-row"><div><div class="t">Interface scale</div><div class="d">Main window only. The overlay has its own scale.</div></div><div class="segmented"><button aria-pressed="false">90%</button><button aria-pressed="true">100%</button><button aria-pressed="false">110%</button><button aria-pressed="false">125%</button></div></div>
+      <div class="set-row"><div><div class="t">Reduce motion</div><div class="d">Follows Windows by default.</div></div><div class="segmented"><button aria-pressed="true">System</button><button aria-pressed="false">On</button><button aria-pressed="false">Off</button></div></div>`));
+
+    frame("set-api", "Settings · API key & usage", "Edit, test or remove the key; live usage from the budget governor; caps.", settings("api", `
+      <div class="h2">API key &amp; usage</div><p class="muted" style="margin:4px 0 16px">Postplant uses the HenrikDev API with your own key.</p>
+      <div class="card" style="display:grid;grid-template-columns:1fr 260px;gap:20px">
+        <div class="field"><label class="label">HenrikDev API key</label><div class="input is-ok">${ic("key-round")}<input value="HDEV-••••••••-••••-7f3a" readonly><button class="btn btn-ghost btn-icon btn-sm">${ic("eye")}</button></div><span class="hint ok">✓ Tested 3 days ago · Basic · 30 / min</span>
+          <div class="row" style="margin-top:10px"><button class="btn btn-sm">${ic("pencil")}Change</button><button class="btn btn-sm">${ic("plug-zap")}Test</button><button class="btn btn-sm btn-danger-soft">${ic("trash-2")}Remove</button></div></div>
+        <div class="card flat" style="padding:14px"><b style="font-size:13px">Don't have a key?</b><ol class="guide" style="margin:10px 0 0;padding:0"><li>Join HenrikDev's Discord from docs.henrikdev.xyz</li><li>Create a Basic key with their bot</li><li>Paste it here</li></ol></div>
+      </div>
+      <div class="grid-12" style="margin-top:16px">
+        <div class="card col-6"><div class="card-head"><span class="h3">Usage</span><span class="spacer"></span><span class="badge win">Healthy</span></div>
+          <div class="meter"><div class="top"><span>This minute</span><span class="mono">4 / 30</span></div><div class="progress" style="--v:13%"><i></i></div></div>
+          <div class="meter" style="margin-top:12px"><div class="top"><span>Today</span><span class="mono">212 / 1,500</span></div><div class="progress" style="--v:14%"><i></i></div></div>
+          <svg class="chart" viewBox="0 0 300 70" style="margin-top:12px">${Array.from({ length: 30 }, (_, i) => { const h = [2, 3, 1, 0, 0, 4, 6, 2, 1, 0, 0, 0, 3, 5, 2, 1, 1, 0, 0, 2, 7, 3, 1, 0, 0, 1, 2, 4, 3, 1][i] * 7; return `<rect class="bar" x="${i * 10}" y="${66 - h}" width="7" height="${h}" rx="2"/>`; }).join("")}</svg><div class="faint" style="font-size:11px">Units per minute, last 30 minutes</div></div>
+        <div class="card col-6"><div class="card-head"><span class="h3">Limits</span></div>
+          <div class="set-row" style="padding-top:0"><div><div class="t">Daily soft cap</div><div class="d">Background sync pauses past this.</div></div><div class="input" style="width:150px"><input value="1500" class="num"><span class="suffix">units</span></div></div>
+          <div class="set-row"><div><div class="t">Background share</div><div class="d">Max share of the per-minute limit for background work.</div></div><div class="segmented"><button aria-pressed="false">25%</button><button aria-pressed="true">50%</button></div></div>
+          <div class="set-row" style="border:0"><div><div class="t">Poll while playing</div><div class="d">Backs off 3 → 6 → 12 min when nothing changes.</div></div><button class="switch" role="switch" aria-checked="true"></button></div></div>
+      </div>`));
+
+    frame("set-overlay", "Settings · Overlay & hotkeys", "Hotkey rows with click-to-record, conflict warnings, overlay appearance with live preview.", settings("overlay", `
+      <div class="h2">Overlay &amp; hotkeys</div><p class="muted" style="margin:4px 0 16px">Shortcuts work while Valorant is focused (Windowed Fullscreen).</p>
+      <div class="grid-12">
+        <div class="card col-7"><div class="card-head"><span class="h3">Hotkeys</span><span class="spacer"></span><button class="btn btn-ghost btn-sm">Reset all</button></div>
+          ${[["Show / hide overlay", "Ctrl,Shift,H", ""], ["Move / resize (edit mode)", "Ctrl,Shift,M", ""], ["Next panel", "Ctrl,Shift,Tab", ""], ["Open Comp Advisor", "Ctrl,Shift,A", ""], ["Reset overlay position", "Ctrl,Shift,R", "warn"], ["Force refresh", "Ctrl,Shift,F5", ""], ["Open main window", "Ctrl,Shift,O", "rec"]].map(([l, k, s]) => `<div class="hk"><div><div style="font-weight:500">${l}</div>${s === "warn" ? '<div class="hint" style="color:var(--warn)">Also used by another app</div>' : ""}</div><div class="bind ${s === "rec" ? "rec" : ""}">${s === "rec" ? '<span class="muted" style="font-size:12px">Press keys…</span>' : k.split(",").map((x) => `<span class="kbd">${x}</span>`).join("")}</div><button class="btn btn-ghost btn-icon btn-sm">${ic("rotate-ccw")}</button></div>`).join("")}</div>
+        <div class="card col-5"><div class="card-head"><span class="h3">Overlay</span></div>
+          <div style="height:150px;border-radius:12px;background:linear-gradient(180deg,#4a5160,#2b2723);position:relative;margin-bottom:14px;overflow:hidden"><div class="ov" style="position:absolute;right:10px;top:10px;width:150px;padding:8px 10px;transform-origin:top right"><div class="caps" style="font-size:9px">Last match</div><div class="big" style="font-size:20px"><span class="win">Win</span> 13–9</div></div></div>
+          <div class="field"><span class="label">Opacity</span><div class="row"><div class="slider" style="flex:1"><span class="rail"></span><span class="fill" style="width:78%"></span><span class="thumb" style="left:78%"></span></div><span class="mono muted">78%</span></div></div>
+          <div class="field" style="margin-top:12px"><span class="label">Scale</span><div class="segmented"><button aria-pressed="false">S</button><button aria-pressed="true">M</button><button aria-pressed="false">L</button></div></div>
+          <div class="set-row"><div><div class="t">Auto-show scoreboard</div><div class="d">After a match, hides after 20 s</div></div><button class="switch" role="switch" aria-checked="true"></button></div>
+          <div class="set-row" style="border:0"><div><div class="t">Tilt warning</div><div class="d">After 3 losses in a row</div></div><button class="switch" role="switch" aria-checked="true"></button></div></div>
+      </div>`));
+
+    frame("set-advisor", "Settings · Comp Advisor", "Agent ownership (auto-detected + editable), meta bracket, data freshness.", settings("advisor", `
+      <div class="h2">Comp Advisor</div><p class="muted" style="margin:4px 0 16px">Only agents you own are suggested.</p>
+      <div class="card"><div class="card-head"><span class="h3">Agents you own</span><span class="badge">19 / 30</span><span class="spacer"></span><button class="btn btn-sm">${ic("wand-2")}Re-detect</button></div>
+        <div class="banner info" style="margin-bottom:12px">${ic("info")}<div>Detected from the 5 starter agents and agents in your match history. ${'<b>'}Live match on?${'</b>'} Ownership is also read from the Riot Client.</div></div>
+        <div data-agent-grid data-sm data-pressed="Brimstone,Jett,Phoenix,Sage,Sova,Omen,Viper,Killjoy,Cypher,Reyna,Raze,Skye,Fade,Neon,Chamber,Astra,Clove,Gekko,Breach"></div></div>
+      <div class="set-row"><div><div class="t">Rank bracket for ranked data</div><div class="d">Defaults to your current rank ± one tier.</div></div><div class="select" data-select style="width:220px"><button class="select-trigger"><span class="value">Diamond+</span>${ic("chevron-down","chev")}</button><div class="menu"><button class="option"><span data-label>All ranks</span>${ic("check","check")}</button><button class="option"><span data-label>Platinum+</span>${ic("check","check")}</button><button class="option" aria-selected="true"><span data-label>Diamond+</span>${ic("check","check")}</button><button class="option"><span data-label>Immortal+</span>${ic("check","check")}</button></div></div></div>
+      <div class="set-row"><div><div class="t">Meta dataset</div><div class="d">2026-11-09 · patch 13.09 · signature verified · checks daily</div></div><button class="btn btn-sm">${ic("refresh-cw")}Check now</button></div>`));
+
+    frame("set-live", "Settings · Live match (on)", "The toggle, the warning (always visible while on), connection status, and what is shown.", settings("live", `
+      <div class="row"><div class="h2">Live match</div><span class="badge warn">Experimental</span></div><p class="muted" style="margin:4px 0 16px">Opponents' current and peak rank once a match has started.</p>
+      <div class="card" style="border-color:color-mix(in srgb,var(--loss) 40%,transparent)">
+        <div class="set-row" style="padding-top:0"><div><div class="t">Live match</div><div class="d">Turned on 11 Nov 2026 · you accepted the risk notice</div></div><button class="switch danger" role="switch" aria-checked="true"></button></div>
+        <div class="callout danger" style="margin-top:14px">Live match uses the Riot Client running on your PC. Riot does not support this, it may stop working after any game update, and Riot may treat tools that show other players' information as a rules violation. This could put your account at risk. Postplant never reads game memory and never runs during agent select.</div>
+      </div>
+      <div class="grid-12" style="margin-top:16px">
+        <div class="card col-6"><div class="card-head"><span class="h3">Status</span></div>
+          ${[["Riot Client", "Connected", "win"], ["Match phase", "Agent select · waiting", "warn"], ["Lookups this match", "0 of 9", ""], ["Hidden names", "skipped, never looked up", ""]].map(([l, v, c]) => `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)"><span class="muted">${l}</span><span class="spacer"></span><b class="${c}">${v}</b></div>`).join("")}</div>
+        <div class="card col-6"><div class="card-head"><span class="h3">Show in live panel</span></div>
+          ${[["Current rank", true], ["Peak rank", true], ["Recent win rate", false], ["Your notes & tags", true]].map(([l, on]) => `<div class="choice" style="padding:6px 0"><button class="check-box" role="checkbox" aria-checked="${on}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></button><div class="t">${l}</div></div>`).join("")}</div>
+      </div>`, ), );
+    frames[frames.length - 1].html = frames[frames.length - 1].html.replace('class="window"', 'class="window"');
+
+    frame("set-updates", "Settings · Updates", "Channel, automatic checks, never during a match.", settings("updates", `
+      <div class="h2">Updates</div><p class="muted" style="margin:4px 0 16px">Updates are signed and verified before install.</p>
+      <div class="card hl" style="display:flex;align-items:center;gap:16px"><span class="modal-icon">${ic("check")}</span><div><b>Postplant 0.3.2 is up to date</b><div class="muted" style="font-size:13px">Checked 2 h ago · stable channel</div></div><span class="spacer"></span><button class="btn">${ic("refresh-cw")}Check now</button></div>
+      <div class="set-row"><div><div class="t">Channel</div></div><div class="segmented"><button aria-pressed="true">Stable</button><button aria-pressed="false">Nightly</button></div></div>
+      <div class="set-row"><div><div class="t">Check automatically</div><div class="d">At start and every 6 hours.</div></div><button class="switch" role="switch" aria-checked="true"></button></div>
+      <div class="set-row"><div><div class="t">Install updates</div><div class="d">Never while Valorant is running.</div></div><div class="select" data-select style="width:220px"><button class="select-trigger"><span class="value">Ask me</span>${ic("chevron-down","chev")}</button><div class="menu"><button class="option" aria-selected="true"><span data-label>Ask me</span>${ic("check","check")}</button><button class="option"><span data-label>When the game closes</span>${ic("check","check")}</button><button class="option"><span data-label>On next restart</span>${ic("check","check")}</button></div></div></div>`));
+
+    frame("set-data", "Settings · Data & privacy", "Export and import (move to a new PC with zero API cost), automatic backups with one-click restore, what's sent where, and the delete flow. Export, import and replace modals are on the Components page.", settings("data", `
+      <div class="h2">Data &amp; privacy</div><p class="muted" style="margin:4px 0 14px">Everything is stored on this PC. Nothing is sent anywhere except the requests listed here.</p>
+      <div class="stat-grid" style="grid-template-columns:repeat(4,1fr)"><div class="stat stat-sm"><div class="v">214</div><div class="l">Matches</div></div><div class="stat stat-sm"><div class="v">1,318</div><div class="l">Rank snapshots</div></div><div class="stat stat-sm"><div class="v">23</div><div class="l">Notes</div></div><div class="stat stat-sm"><div class="v">3.1 MB</div><div class="l">On disk</div></div></div>
+      <div class="grid-12" style="margin-top:14px;gap:14px">
+        <div class="card col-7" style="padding:16px"><div class="card-head" style="margin-bottom:10px">${ic("arrow-left-right")}<span class="h3">Backup &amp; transfer</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button class="btn btn-lg" style="justify-content:flex-start;height:auto;padding:12px;text-align:left">${ic("hard-drive-download", "icon-lg")}<span><b>Export</b><br><span class="faint" style="font-size:12px;font-weight:400">Backup or open JSON</span></span></button>
+            <button class="btn btn-lg" style="justify-content:flex-start;height:auto;padding:12px;text-align:left">${ic("hard-drive-upload", "icon-lg")}<span><b>Import</b><br><span class="faint" style="font-size:12px;font-weight:400">Merge or replace</span></span></button>
+          </div>
+          <div class="row" style="margin:14px 0 6px"><span class="caps">Automatic backups</span><span class="spacer"></span><span class="faint" style="font-size:12px">Weekly · keeps 4</span><button class="switch" role="switch" aria-checked="true"></button></div>
+          ${[["Today, 09:12", "Before import", "3.1 MB"], ["4 Nov 2026", "Weekly", "2.9 MB"], ["28 Oct 2026", "Weekly", "2.6 MB"]].map(([d, why, sz]) => `<div class="row" style="padding:7px 0;border-top:1px solid var(--line);font-size:13px">${ic("archive", "faint")}<span>${d}</span><span class="badge">${why}</span><span class="spacer"></span><span class="faint mono" style="font-size:12px">${sz}</span><button class="btn btn-ghost btn-sm">${ic("rotate-ccw")}Restore</button></div>`).join("")}
+        </div>
+        <div class="card col-5" style="padding:16px"><div class="card-head" style="margin-bottom:6px">${ic("globe")}<span class="h3">Outbound requests</span></div>
+          ${[["api.henrikdev.xyz", "Matches, ranks, lookups"], ["valorant-api.com", "Agent, map, rank images"], ["github.com", "Updates, meta dataset"], ["127.0.0.1", "Riot Client, live mode only"]].map(([h, d]) => `<div style="padding:7px 0;border-bottom:1px solid var(--line)"><div class="mono" style="font-size:12px">${h}</div><div class="muted" style="font-size:12px">${d}</div></div>`).join("")}
+          <p class="faint" style="font-size:12px;margin:8px 0 0">Exports and backups never leave this PC.</p></div>
+      </div>
+      <div class="set-row" style="padding:12px 0"><div><div class="t">Open data folder</div><div class="d">%APPDATA%\\Postplant</div></div><button class="btn btn-sm">${ic("folder-open")}Open</button></div>
+      <div class="set-row"><div><div class="t" style="color:var(--loss)">Delete all local data</div><div class="d">Matches, snapshots, notes and settings. Asks for confirmation.</div></div><button class="btn btn-danger-soft btn-sm">${ic("trash-2")}Delete…</button></div>`));
+
+    frame("set-about", "Settings · About", "Version, licences, Riot notice, links.", settings("about", `
+      <div class="card" style="display:flex;gap:20px;align-items:center"><div style="width:72px;height:72px;border-radius:17px;background:#0a0b0e;display:grid;place-items:center"><svg viewBox="0 0 48 48" style="width:46px;height:46px;color:#d7ff3a"><use href="#logo"/></svg></div><div><div class="h1">Postplant</div><div class="muted">Version 0.3.2 · stable · built 2026-11-10</div></div><span class="spacer"></span><button class="btn">${ic("github")}Source code</button><button class="btn">${ic("bug")}Report a bug</button></div>
+      <div class="set-row"><div><div class="t">Licence</div><div class="d">MIT OR Apache-2.0. Fonts: Satoshi &amp; General Sans (ITF FFL), others SIL OFL. Icons: Lucide (ISC).</div></div><button class="btn btn-sm">Third-party notices</button></div>
+      <div class="set-row"><div><div class="t">Diagnostics</div><div class="d">Copies version, dataset and settings (never your key) for bug reports.</div></div><button class="btn btn-sm">${ic("copy")}Copy</button></div>
+      <p class="faint" style="font-size:12px;margin-top:20px;max-width:640px">Postplant is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>`));
+
+    /* ---------- States ---------- */
+    frame("states", "States · offline, rate limit, stale meta", "Banners stack at the top of the content area; data stays visible.", shell("home", `
+      <div class="stack" style="gap:10px;margin-bottom:16px">
+        <div class="banner offline">${ic("wifi-off")}<div><b>Offline.</b> HenrikDev can't be reached. Showing saved data from 12 min ago.</div><span class="spacer"></span><button class="btn btn-sm">Retry</button></div>
+        <div class="banner warn">${ic("timer")}<div><b>Rate limit reached.</b> Background sync paused for 38 s. Your clicks still go first.</div></div>
+        <div class="banner info">${ic("database")}<div>Meta data is 24 days old and the game has patched. Comp Advisor confidence lowered.</div><span class="spacer"></span><button class="btn btn-sm btn-ghost">Check for data</button></div>
+      </div>
+      <div class="grid-12">
+        <div class="card col-4"><div class="stack" style="gap:10px"><div class="skeleton" style="height:14px;width:40%"></div><div class="skeleton" style="height:56px"></div><div class="skeleton" style="height:12px;width:80%"></div><div class="skeleton" style="height:12px;width:60%"></div></div></div>
+        <div class="card col-4 empty"><i data-lucide="swords" class="art"></i><div class="h3">No matches yet</div><div style="font-size:13px">Finished matches show up about a minute after they end.</div></div>
+        <div class="card col-4 empty"><i data-lucide="key-round" class="art"></i><div class="h3">Add an API key</div><div style="font-size:13px">Postplant needs your free HenrikDev key to load data.</div><button class="btn btn-primary btn-sm">Add key</button></div>
+      </div>`, { offline: true, title: "Home" }));
+
+    /* ---------- Render ---------- */
+    document.getElementById("toc").innerHTML = frames.map((f, i) => `<a class="chip" href="#${f.id}">${String(i + 1).padStart(2, "0")} ${f.title.split(" · ").pop()}</a>`).join("");
+    document.getElementById("frames").innerHTML = frames.map((f, i) => `
+      <section class="frame" id="${f.id}"><div class="frame-head"><span class="n">${String(i + 1).padStart(2, "0")}</span><h3>${f.title}</h3><span class="muted" style="font-size:13px">${f.desc}</span></div>
+        <div class="frame-wrap">${f.html}</div>${f.specs.length ? `<div class="specs">${f.specs.map((s) => `<span class="spec">${s}</span>`).join("")}</div>` : ""}</section>`).join("");
+  })();
+  </script>
+  <script>
+    // Re-run grid fill + icons + theme state after frames are injected.
+    (() => {
+      const { agentTile, AGENTS } = window.PP;
+      document.querySelectorAll("#frames [data-agent-grid]").forEach((host) => {
+        const L = (k) => (host.dataset[k] || "").split(",").filter(Boolean);
+        const locked = L("locked"), picked = L("picked"), pressed = L("pressed");
+        host.innerHTML = Object.entries(AGENTS).map(([r, list]) => `<div class="agent-row"><span class="role-pill" style="--role:var(--role-${r.toLowerCase()})">${r}s</span><div class="agent-list">${list.map((a) => agentTile(a, { button: true, sm: true, locked: locked.includes(a), picked: picked.includes(a), pressed: pressed.includes(a) })).join("")}</div></div>`).join("");
+      });
+      const t = document.documentElement.dataset.theme;
+      document.querySelectorAll("[data-set-theme]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.setTheme === t)));
+      document.querySelectorAll("[data-font-label]").forEach((el) => { el.textContent = window.PP.FONTS.find((x) => x.id === document.documentElement.dataset.font).name; });
+      document.querySelectorAll("[data-cvd-switch]").forEach((s) => s.setAttribute("aria-checked", String(document.documentElement.dataset.cvd === "on")));
+      document.querySelectorAll("#frames .frame").forEach((f) => {
+        const w = f.querySelector(".window"), c = w && w.querySelector(".content, .onb-main");
+        if (c && c.scrollHeight - c.clientHeight > 4) { w.classList.add("tall"); const sp = f.querySelector(".specs") || f.appendChild(Object.assign(document.createElement("div"), { className: "specs" })); sp.insertAdjacentHTML("afterbegin", "<span class=\"spec\">Content scrolls; full height shown</span>"); }
+      });
+      window.PP.icons();
+    })();
+  </script>
+</body>
+</html>
