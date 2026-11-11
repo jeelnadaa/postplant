@@ -1,0 +1,55 @@
+# Meta pipeline (plan 15.4): weekly, sync game facts from valorant-api.com into data/, validate,
+# and open a pull request for a person to review. Nothing reaches users until that PR is merged
+# (merging touches data/, which makes the next release bundle it).
+name: Meta pipeline
+
+on:
+  schedule:
+    - cron: "17 6 * * 3" # Wednesdays 06:17 UTC, after Tuesday patches
+  workflow_dispatch:
+
+concurrency:
+  group: meta
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - run: npm run meta:test
+      - name: Sync assets
+        run: node meta-pipeline/sync-assets.mjs --summary summary.md
+      - run: npm run meta:validate
+      - name: Open a pull request when data changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- data/; then
+            echo "No data changes."
+            exit 0
+          fi
+          BRANCH="meta/assets-$(date -u +%Y%m%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add data/
+          git commit -m "chore(data): sync game assets from valorant-api.com"
+          git push -f origin "$BRANCH"
+          {
+            echo "Automatic sync from valorant-api.com. Please review before merging."
+            echo
+            cat summary.md
+            echo
+            echo "New agents or maps need their knowledge-base entries written by hand (with sources)."
+          } > body.md
+          gh pr create --base main --head "$BRANCH" --title "Data: game asset sync $(date -u +%Y-%m-%d)" --body-file body.md \
+            || gh pr edit "$BRANCH" --body-file body.md \
+            || echo "::warning::Couldn't open the PR. Allow Actions to create pull requests in the repo settings, or open it from the pushed branch."
+          cat summary.md >> "$GITHUB_STEP_SUMMARY"

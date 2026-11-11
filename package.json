@@ -13,6 +13,9 @@
     "tauri": "tauri",
     "version:next": "node scripts/next-version.mjs",
     "version:set": "node scripts/set-version.mjs",
+    "meta:sync": "node meta-pipeline/sync-assets.mjs",
+    "meta:validate": "node meta-pipeline/validate.mjs",
+    "meta:test": "node --test meta-pipeline/pipeline.test.mjs",
     "site:dev": "npx wrangler@4 dev",
     "site:deploy": "npx wrangler@4 deploy"
   },

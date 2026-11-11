@@ -1,0 +1,5 @@
+{"data":[
+ {"uuid":"m-1","displayName":"Known","mapUrl":"/Game/Maps/Known","displayIcon":"https://x/known.png","xMultiplier":0.0001,"yMultiplier":-0.0001,"xScalarToAdd":0.5,"yScalarToAdd":0.5,"tacticalDescription":"A/B Sites","callouts":[{"regionName":"Site","superRegionName":"A","location":{"x":100.4,"y":-200.2}}]},
+ {"uuid":"m-2","displayName":"Fresh","mapUrl":"/Game/Maps/Fresh","tacticalDescription":"A/B Sites","callouts":[{"regionName":"Main","superRegionName":"B","location":{"x":1,"y":2}}]},
+ {"uuid":"m-3","displayName":"Range","mapUrl":"/Game/Maps/Range","tacticalDescription":null,"callouts":null}
+]}

@@ -25,6 +25,8 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run build
+      - name: Meta pipeline fixtures and data validation
+        run: npm run meta:test && npm run meta:validate
 
   rust:
     runs-on: windows-latest
