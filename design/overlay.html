@@ -32,6 +32,38 @@
     .tilt { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: var(--r-md); background: var(--warn-soft); color: var(--text); font-size: 12px; margin-top: 10px; }
     .tilt .icon { color: var(--warn); flex: none; }
     .sticky-key { position: absolute; z-index: 4; }
+    .pvt, .qd { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-2); white-space: nowrap; }
+    .pvt .icon, .qd .icon { width: 11px; height: 11px; }
+    .sk { display: inline-block; height: 9px; width: 46px; border-radius: 4px; vertical-align: middle; }
+    .ov-rail { width: 300px; padding: 10px 10px 8px; }
+    .lr { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; padding: 5px 6px; border-radius: 8px; }
+    .lr + .lr { border-top: 1px solid var(--line); }
+    .lr.me { background: var(--accent-soft); }
+    .lr .l1 { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 12.5px; white-space: nowrap; overflow: hidden; }
+    .lr .l2 { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-2); white-space: nowrap; margin-top: 1px; }
+    .lr .l2 .rank { font-size: 11px; gap: 4px; }
+    .lr .tag { font-size: 10px; padding: 0 5px; height: 16px; }
+    .team-lbl { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); margin: 8px 6px 4px; }
+    .team-lbl .avg { margin-left: auto; text-transform: none; letter-spacing: 0; font-family: var(--font-ui); }
+    .ov-full { width: 820px; padding: 10px 12px; }
+    .ov-full .ov-table td { padding: 5px 6px; }
+    .vs-board { position: absolute; z-index: 2; left: 50%; top: 104px; transform: translateX(-50%); width: 55%; height: 500px; border-radius: 8px; background: rgba(12, 14, 20, 0.62); border: 1px solid rgba(255,255,255,.12); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+    .vs-board .cap { font-family: var(--font-mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.8); margin-bottom: 4px; }
+    .vs-board i { display: block; height: 30px; border-radius: 4px; background: rgba(120, 220, 230, .14); }
+    .vs-board i.e { background: rgba(255, 120, 90, .14); }
+    .vs-board .gap { height: 10px; }
+    .state-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .state-card { display: grid; gap: 10px; align-content: start; }
+    .state-card .ov { width: 100%; padding: 8px; }
+    .ov .lr { padding: 3px 6px; gap: 7px; grid-template-columns: 22px 1fr auto; }
+    .ov .lr .agent-sm, .ov-full .agent-sm { width: 22px; height: 22px; border-radius: 5px; }
+    .ov .lr .agent-sm .mono-glyph, .ov-full .agent-sm .mono-glyph { font-size: 11px; }
+    .lr .l1 { line-height: 16px; }
+    .lr .l2 { line-height: 14px; margin-top: 0; gap: 5px; }
+    .lr .l2 .rank-gem { width: 8px; height: 8px; }
+    .team-lbl { margin: 6px 6px 3px; }
+    .ov-full .ov-table td { padding: 3px 6px; }
+    .state-card p { margin: 0; font-size: 13px; color: var(--text-2); }
     .tray { width: 260px; padding: 6px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow-3); font-size: 13px; }
     .tray .menu-item { width: 100%; }
     .tray-bar { display: flex; justify-content: flex-end; align-items: center; gap: 14px; height: 40px; padding: 0 14px; border-radius: 0 0 12px 12px; background: #1c1c1c; color: #fff; font-size: 12px; }
@@ -71,6 +103,7 @@
           <div>• <b style="color:var(--text)">Motion:</b> fade + 8 px slide, 200 ms in, 120 ms out. Numbers never animate while you're in a round.</div>
           <div>• <b style="color:var(--text)">Scale:</b> S 0.85×, M 1×, L 1.2× (and per-DPI). <b style="color:var(--text)">Glass opacity</b> 75–100%, default 88% (readable over a white sky in every theme). It changes only the panel background; below 88% secondary text switches to <code>--text-2</code>.</div>
           <div>• <b style="color:var(--text)">Never during agent select:</b> nothing about other players. Comp Advisor only uses picks you enter yourself.</div>
+          <div>• <b style="color:var(--text)">Live match (opt-in, warning accepted):</b> after the match starts: a buy-phase panel in round 1, a rail while <span class="kbd">Tab</span> is held, and a full table on <span class="kbd">Ctrl</span> <span class="kbd">Shift</span> <span class="kbd">L</span>. Private profiles and hidden names say <b style="color:var(--text)">Private</b>; hidden names are never looked up.</div>
         </div></div>
     </section>
 
@@ -90,6 +123,43 @@
     const zone = (l, t, w, h, txt) => `<div class="zone" style="left:${l}px;top:${t}px;width:${w}px;height:${h}px">${txt}</div>`;
     const zones = zone(20, 20, 190, 190, "MINIMAP · keep clear") + zone(1060, 20, 300, 150, "KILL FEED · keep clear") + zone(470, 600, 460, 90, "ABILITIES / HEALTH · keep clear");
 
+    /* ---------- Live match data (mock) ---------- */
+    const PRIV = `<span class="pvt">${ic("lock")}Private</span>`;
+    const LOAD = '<span class="skeleton sk"></span>';
+    const QUEUED = `<span class="qd">${ic("clock")}Queued</span>`;
+    const ERR = '<span class="qd" title="Lookup failed, retries next round">— retry next round</span>';
+    const cellRank = (v, sm) => v === "private" ? PRIV : v === "loading" ? LOAD : v === "queued" ? QUEUED : v === "error" ? ERR : v === "unranked" ? '<span class="pvt">Unranked</span>' : v === "none" ? '<span class="faint">—</span>' : `<span class="rank t-${v[0]}"><i class="rank-gem"></i>${v[1]}${v[2] != null && !sm ? ` <span class="rr">${v[2]}</span>` : ""}</span>`;
+    const T = (cls, t) => `<span class="tag ${cls}">${t}</span>`;
+    const LIVE = {
+      mine: [
+        { a: "Sova", n: "Kairo", t: "owl", lv: 188, rank: ["diamond", "D3", 41], peak: ["ascendant", "Asc 2", "V26 A2"], last: ["diamond", "D2"], form: { w: 58, kd: "1.12", hs: 24, acs: 231 }, tags: T("good", "duo"), met: "14× · 9W" },
+        { a: "Omen", n: "Nova", t: "ap1", lv: 214, me: true, rank: ["diamond", "D2", 64], peak: ["ascendant", "Asc 1", "V26 A2"], last: ["diamond", "D1"], form: { w: 56, kd: "1.09", hs: 25, acs: 219 } },
+        { a: "Raze", n: "Riven", t: "tx", lv: 97, rank: ["platinum", "P3", 22], peak: ["diamond", "D1", "V25 A6"], last: ["platinum", "P3"], form: "loading", met: "9×" },
+        { a: "Viper", n: "Lumen", t: "42", lv: 302, rank: "private", peak: "private", last: "private", form: "private", met: "1× · lost" },
+        { a: "Vyse", hidden: true },
+      ],
+      enemy: [
+        { a: "Jett", n: "Zephyr", t: "eu9", lv: 23, rank: ["immortal", "Imm 1", 18], peak: ["immortal", "Imm 1", "this act"], last: "unranked", form: { w: 71, kd: "1.48", hs: 31, acs: 281 }, tags: T("warnish", "new account") },
+        { a: "Omen", n: "Bao", t: "cn1", lv: 241, rank: ["ascendant", "Asc 1", 12], peak: ["immortal", "Imm 2", "V25 A3"], last: ["ascendant", "Asc 1"], form: { w: 49, kd: "1.02", hs: 20, acs: 207 } },
+        { a: "Fade", n: "Okto", t: "88", lv: 156, rank: ["diamond", "D2", 77], peak: ["diamond", "D3", "V26 A4"], last: ["diamond", "D2"], form: "queued" },
+        { a: "Killjoy", n: "Mika", t: "2210", lv: 133, rank: ["platinum", "P2", 55], peak: ["diamond", "D1", "V25 A1"], last: ["platinum", "P2"], form: { w: 44, kd: "0.88", hs: 18, acs: 176 }, tags: T("bad", "toxic"), met: "1× · lost" },
+        { a: "Neon", n: "Ash", t: "007", lv: 61, rank: "unranked", peak: ["platinum", "P1", "V26 A3"], last: "none", form: "error" },
+      ],
+    };
+    const nameCell = (r, tag = true) => r.hidden ? '<span class="hidden-name">Hidden name</span>' : `<b>${r.n}</b>${tag ? `<span class="faint">#${r.t}</span>` : ""}${r.me ? ' <span class="badge accent">you</span>' : ""}`;
+    const railRow = (r) => {
+      const f = r.hidden ? "private" : r.form;
+      const l2 = r.hidden ? "<span>Level hidden · never looked up</span>"
+        : `<span>Lv ${r.lv}</span><span>Pk ${cellRank(r.peak, true)}</span>${typeof f === "string" ? cellRank(f) : `<span>${f.w}% win</span>`}`;
+      return `<div class="lr ${r.me ? "me" : ""}">${ag(r.a)}<div style="min-width:0"><div class="l1">${nameCell(r, false)} ${r.tags || ""}${r.met ? `<span class="faint" style="font-size:10.5px">· met ${r.met.split(" ")[0]}</span>` : ""}</div><div class="l2">${l2}</div></div><div>${r.hidden ? PRIV : cellRank(r.rank)}</div></div>`;
+    };
+    const fullRow = (r) => {
+      if (r.hidden) return `<tr><td>${ag(r.a)}</td><td>${nameCell(r)}</td><td class="num">${PRIV}</td><td>${PRIV}</td><td>${PRIV}</td><td>${PRIV}</td><td colspan="4">${PRIV} <span class="faint" style="font-size:11px">· never looked up</span></td><td class="faint">—</td></tr>`;
+      const f = r.form, fc = typeof f === "string" ? `<td colspan="4">${cellRank(f)}</td>` : `<td class="num">${f.w}%</td><td class="num">${f.kd}</td><td class="num">${f.hs}%</td><td class="num">${f.acs}</td>`;
+      return `<tr class="${r.me ? "me" : ""}"><td>${ag(r.a)}</td><td>${nameCell(r)} ${r.tags || ""}</td><td class="num">${r.lv}</td><td>${cellRank(r.rank)}</td><td>${cellRank(r.peak, true)}${Array.isArray(r.peak) ? ` <span class="faint" style="font-size:10.5px">${r.peak[2]}</span>` : ""}</td><td>${cellRank(r.last, true)}</td>${fc}<td class="faint" style="font-size:11.5px">${r.met || "—"}</td></tr>`;
+    };
+    const teamLbl = (side, label, avg) => `<div class="team-lbl"><span class="${side}">●</span>${label}<span class="avg">avg ${avg}</span></div>`;
+
     const P = {
       last: `<div class="ov">${head("Last match", 0)}
         <div class="row"><span class="big"><span class="win">Win</span> 13–9</span><span class="spacer"></span><span class="badge win">+21 RR</span></div>
@@ -108,13 +178,22 @@
         ${[["Omen", 92, "Second smoke · your best here (61%)", true], ["Vyse", 78, "No sentinel yet", false], ["Killjoy", 71, "No sentinel · comfort pick", false]].map(([a, s, why, top]) => `<div class="row" style="padding:6px;border-radius:8px;${top ? "background:var(--accent-soft)" : ""}">${ag(a)}<div style="min-width:0"><b>${a}</b><div class="faint" style="font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${why}</div></div><span class="spacer"></span><b class="mono ${top ? "accent" : ""}">${s}</b></div>`).join("")}
         <div class="faint" style="font-size:11px;margin-top:8px">Picks entered by you · only agents you own · <span class="kbd">Ctrl</span><span class="kbd">⇧</span><span class="kbd">A</span></div></div>`,
       live: `<div class="ov ov-mid">${head("Live · Lotus", -1, '<span class="badge warn" style="margin-left:6px">Live</span>')}
+        <div class="faint" style="font-size:11px;margin:-2px 0 4px">Round 1 · buy phase · hides in 18 s</div>
+        ${teamLbl("def", "Your team", "Diamond 2")}${LIVE.mine.map((r) => `<div class="lr ${r.me ? "me" : ""}">${ag(r.a)}<div class="l1">${nameCell(r, false)} ${r.tags || ""}</div><div>${r.hidden ? PRIV : cellRank(r.rank, true)}</div></div>`).join("")}
+        ${teamLbl("atk", "Enemy team", "Ascendant 1")}${LIVE.enemy.map((r) => `<div class="lr">${ag(r.a)}<div class="l1">${nameCell(r, false)} ${r.tags || ""}</div><div>${cellRank(r.rank, true)}</div></div>`).join("")}
+        <div class="faint" style="font-size:11px;margin-top:8px">Hold <span class="kbd">Tab</span> for peak, level and recent form</div></div>`,
+      rail: `<div class="ov ov-rail">${head("Live · hold Tab", -1, '<span class="faint" style="margin-left:6px;font-size:10.5px">Pk = peak · win % last 10</span>')}
+        ${teamLbl("def", "Your team", "D2")}${LIVE.mine.map(railRow).join("")}
+        ${teamLbl("atk", "Enemy team", "Asc 1")}${LIVE.enemy.map(railRow).join("")}
+        </div>`,
+      full: `<div class="ov ov-full">${head("Live match · Lotus · round 7", -1, '<span class="badge warn" style="margin-left:6px">Live</span><span class="faint" style="margin-left:8px;font-size:12px"><span class="kbd">Ctrl</span><span class="kbd">⇧</span><span class="kbd">L</span> to hide</span>')}
         <table class="ov-table">
-          <tr class="head"><td colspan="3"><span class="def">● Your team</span></td></tr>
-          ${[["Sova", "Kairo", "diamond", "D3", '<span class="tag good">duo</span>'], ["Omen", "You", "diamond", "D2", ""], ["Raze", "Riven", "platinum", "P3", ""], ["Vyse", "Hidden", "", "", ""], ["Viper", "Lumen", "diamond", "D1", ""]].map(([a, n, t, r, x]) => `<tr class="${n === "You" ? "me" : ""}"><td>${ag(a)}</td><td>${n === "Hidden" ? '<span class="hidden-name faint">Hidden name</span>' : `<b>${n}</b> ${x}`}</td><td class="num">${t ? rk(t, r) : '<span class="faint">—</span>'}</td></tr>`).join("")}
-          <tr class="head"><td colspan="3"><span class="atk">● Enemy team</span></td></tr>
-          ${[["Jett", "Zephyr", "immortal", "Imm1", '<span class="tag warnish">smurf?</span>'], ["Fade", "Okto", "diamond", "D2", ""], ["Omen", "Bao", "ascendant", "A1", ""], ["Killjoy", "Mika", "platinum", "P2", '<span class="tag bad">toxic</span>'], ["Neon", "Hidden", "", "", ""]].map(([a, n, t, r, x]) => `<tr><td>${ag(a)}</td><td>${n === "Hidden" ? '<span class="hidden-name faint">Hidden name</span>' : `<b>${n}</b> ${x}`}</td><td class="num">${t ? rk(t, r) : '<span class="faint">—</span>'}</td></tr>`).join("")}
+          <tr class="head"><td></td><td><span class="def">● Your team</span></td><td class="num">Lv</td><td>Rank</td><td>Peak</td><td>Last act</td><td class="num">Win</td><td class="num">K/D</td><td class="num">HS</td><td class="num">ACS</td><td>With you</td></tr>
+          ${LIVE.mine.map(fullRow).join("")}
+          <tr class="head"><td></td><td><span class="atk">● Enemy team</span></td><td></td><td></td><td></td><td></td><td colspan="4">Last 10 competitive</td><td></td></tr>
+          ${LIVE.enemy.map(fullRow).join("")}
         </table>
-        <div class="faint" style="font-size:11px;margin-top:8px">After match start only · 8 of 10 looked up · hidden names never looked up</div></div>`,
+        <div class="row" style="margin-top:4px;font-size:11px"><span class="faint">8 of 10 looked up · 1 hidden name, never looked up · 15 of 18 requests used</span><span class="spacer"></span><span class="faint">Live K/D/A and credits: Valorant's own scoreboard</span></div></div>`,
       board: `<div class="ov ov-wide">${head("Match over", -1, '<span class="faint" style="margin-left:8px;font-size:12px">Hides in 14 s · <span class="kbd">Esc</span></span>')}
         <div class="row" style="margin-bottom:6px"><span class="big"><span class="win">Victory</span> 13–9</span><span class="spacer"></span><span class="badge win">+21 RR</span>${rk("diamond", "Diamond 2 · 64")}</div>
         <table class="ov-table">
@@ -133,8 +212,13 @@
         ["Panel 272 px wide", "Top right · 24 px inset · below kill feed", "Toast 1.2 s, centre top"]],
       ["session", "Between matches · session with tilt warning", "Appears after the third loss in a row (setting). Warm, never preachy; dismisses with the same hotkey.",
         `${hud}${zones}<div style="position:absolute;right:24px;top:190px;z-index:3">${P.session}</div>`, ["Tilt copy is factual: uses your own numbers"]],
-      ["live", "In match · live panel (opt-in)", "Only after the match has started, only when Live match is on. Ranks only; never positions or anything in-round. Sits left of centre, clear of the minimap.",
-        `${hud}${zones}<div style="position:absolute;left:24px;top:216px;z-index:3">${P.live}</div>`, ["Width 340 px", "Hidden names: agent only", "Shown during buy phase; auto-hides after 25 s, recall with hotkey"]],
+      ["live", "Live · round 1 buy phase (opt-in)", "Only when Live match is on and the match has started; never in agent select. Name and current rank for all 10, auto-hides after 25 s. Sits left, below the minimap.",
+        `${hud}${zones}<div style="position:absolute;left:24px;top:216px;z-index:3">${P.live}</div>`, ["Width 340 px", "Teams sorted by rank", "Hidden name → Private, never looked up"]],
+      ["tab", "Live · hold Tab", "While Tab is held, a rail docks to the right of Valorant's own scoreboard. The game already shows live K/D/A, score and credits; Postplant adds rank, peak, level, recent form and your notes. Rows can't mirror the game's order (it re-sorts by score), so match players by agent icon.",
+        `${hud}${zone(20, 20, 190, 190, "MINIMAP")}${zone(1060, 20, 300, 150, "KILL FEED")}<div class="vs-board"><span class="cap">Valorant's own scoreboard (not Postplant) · live K/D/A · score · credits</span>${"ddddd".split("").map(() => "<i></i>").join("")}<span class="gap"></span>${"eeeee".split("").map(() => '<i class="e"></i>').join("")}</div>
+         <div style="position:absolute;right:16px;top:176px;z-index:3">${P.rail}</div>`, ["Width 300 px: fits beside the scoreboard at 16:9", "K/D, HS %, ACS in the full table", "Shown while Tab is held · fade 120 ms", "Passive key check, never blocks Tab", "Ranks load first, form second"]],
+      ["full", "Live · full table (Ctrl+Shift+L)", "Every field, for between rounds or after you die. Toggled by hotkey, also for people who turn off the Tab trigger.",
+        `${hud}${zones}<div style="position:absolute;left:50%;top:174px;transform:translateX(-50%);z-index:3">${P.full}</div>`, ["Width 820 px", "Private profile: name + level from the client, every lookup field Private", "Hidden name: agent only, all fields Private"]],
       ["post", "Post-match scoreboard", "Auto-shows when a new match is stored, hides after 20 s or on Esc. Centred; the game is in its end screen so nothing is covered.",
         `${hud}<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3">${P.board}</div>`, ["Width 640 px", "Your row highlighted", "Notes and tags inline"]],
       ["advisor", "Comp Advisor (compact)", "From menus or the main window. You tap teammates' picks; Postplant never reads agent select. Only agents you own are listed.",
@@ -152,11 +236,23 @@
         ["Snaps within 8 px", "Position stored per resolution", "Outside edit mode: click-through"]],
     ];
 
-    document.getElementById("toc").innerHTML = scenes.map((s, i) => `<a class="chip" href="#${s[0]}">${String(i + 1).padStart(2, "0")} ${s[1].split(" · ")[0]}</a>`).join("") + `<a class="chip" href="#panels">07 All panels</a><a class="chip" href="#tray">08 Tray</a>`;
+    const nn = (n) => String(n).padStart(2, "0");
+    document.getElementById("toc").innerHTML = scenes.map((s, i) => `<a class="chip" href="#${s[0]}">${nn(i + 1)} ${s[1].startsWith("Live") ? s[1].split(" (")[0].replace(" · ", ": ") : s[1].split(" · ")[0]}</a>`).join("") + `<a class="chip" href="#states">${nn(scenes.length + 1)} Live: player states</a><a class="chip" href="#panels">${nn(scenes.length + 2)} All panels</a><a class="chip" href="#tray">${nn(scenes.length + 3)} Tray</a>`;
     document.getElementById("scenes").innerHTML = scenes.map(([id, t, d, html, specs], i) => `
       <section class="scene" id="${id}"><div class="scene-head"><span class="n">${String(i + 1).padStart(2, "0")}</span><h3>${t}</h3><span class="muted" style="font-size:13px">${d}</span></div>
         <div class="game">${html}</div><div class="specs">${specs.map((s) => `<span class="spec">${s}</span>`).join("")}</div></section>`).join("") + `
-      <section class="scene" id="panels"><div class="scene-head"><span class="n">07</span><h3>All panels, side by side</h3><span class="muted" style="font-size:13px">The four cycling panels share one header: logo, title, position dots.</span></div>
+      <section class="scene" id="states"><div class="scene-head"><span class="n">${scenes.length + 1}</span><h3>Live · per-player states</h3><span class="muted" style="font-size:13px">Every field loads on its own. A missing field never blanks the row, and nothing is guessed.</span></div>
+        <div class="demo dotted state-grid">${[
+          ["Loaded", "All lookups returned.", LIVE.mine[0]],
+          ["Loading", "Skeleton per field. Rank loads first, recent form after.", LIVE.mine[2]],
+          ["Queued", "Waiting for API budget; requests are spread over at least 60 s.", LIVE.enemy[2]],
+          ["Private profile", "HenrikDev returns nothing. Name and level come from the client; every looked-up field says Private.", LIVE.mine[3]],
+          ["Hidden name (streamer mode)", "Agent only. Name reads Hidden name, everything else Private. No lookup is ever made.", LIVE.mine[4]],
+          ["Unranked · lookup failed", "No rank this act shows Unranked (peak still shows). A failed lookup says so and retries next round.", LIVE.enemy[4]],
+          ["New account", "Level under 30. A factual tag, never \"smurf\".", LIVE.enemy[0]],
+          ["Your notes", "Tags and \"met N×\" come from your local notes and match history.", LIVE.enemy[3]],
+        ].map(([t, d, r]) => `<div class="state-card"><b>${t}</b><div class="ov">${railRow(r)}</div><p>${d}</p></div>`).join("")}</div></section>
+      <section class="scene" id="panels"><div class="scene-head"><span class="n">${scenes.length + 2}</span><h3>All panels, side by side</h3><span class="muted" style="font-size:13px">The four cycling panels share one header: logo, title, position dots.</span></div>
         <div class="demo dotted" style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">${P.last}${P.session}${P.rank}${P.advisor}</div>
         <div class="demo dotted" style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-end;margin-top:16px">
           <div><span class="demo-label">Scale S · 0.85×</span><div style="zoom:.85">${P.rank}</div></div>
@@ -165,7 +261,7 @@
           <div><span class="demo-label">Glass 75% · text stays 100%</span><div style="--glass:color-mix(in srgb, var(--bg) 75%, transparent)">${P.rank}</div></div>
           <div><span class="demo-label">Anchors</span><div class="anchors">${Array.from({ length: 9 }, (_, i) => `<span class="${i === 2 ? "on" : ""}"></span>`).join("")}</div></div>
         </div></section>
-      <section class="scene" id="tray"><div class="scene-head"><span class="n">08</span><h3>Tray icon &amp; menu</h3><span class="muted" style="font-size:13px">Postplant lives in the tray when the window is closed. Left click opens the window; right click opens this menu.</span></div>
+      <section class="scene" id="tray"><div class="scene-head"><span class="n">${scenes.length + 3}</span><h3>Tray icon &amp; menu</h3><span class="muted" style="font-size:13px">Postplant lives in the tray when the window is closed. Left click opens the window; right click opens this menu.</span></div>
         <div class="demo dotted" style="display:flex;gap:40px;flex-wrap:wrap;align-items:flex-end">
           <div style="width:420px"><div class="tray" style="margin-left:auto;margin-bottom:8px">
             <div class="row" style="padding:8px 10px;gap:10px"><svg viewBox="0 0 48 48" style="width:18px;height:18px;color:var(--accent-text)"><use href="#logo"/></svg><b>Postplant</b><span class="spacer"></span><span class="faint" style="font-size:12px">Synced 1 min ago</span></div>

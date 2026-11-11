@@ -338,7 +338,7 @@ M0, M1, M2 and M3 below, plus the Comp Advisor running on the **knowledge base o
 - [ ] Re-read Riot's VALORANT policy and the current state of the local client endpoints.
 - [ ] Phase detection: activate only when the match phase is in-game; do nothing during pre-game (agent select).
 - [ ] Read players and agents for the current match; fetch ranks through the governor's live budget (section 13).
-- [ ] Live overlay panel with the "show only what's available" rules; skip hidden-name players entirely.
+- [ ] Live overlay panel with the "show only what's available" rules: buy-phase compact panel, hold-Tab full panel, Ctrl+Shift+L toggle; per-player states (loading, queued, private profile, hidden name, unranked, error); hidden-name players never looked up.
 - [ ] Opt-in screen with the risk notice; module disabled by default and removable at build time (`--no-default-features`).
 
 ---
@@ -416,14 +416,43 @@ Read the Riot Client's lockfile for the local port and session, then ask Riot's 
 ### Guardrails
 - **Off by default.** Turning it on shows a plain-language notice: unsupported by Riot, may break, may carry account risk, use at your own risk. The choice is stored with a date.
 - **Phase gate:** active only when the client reports the in-game phase. During agent select the module does nothing, not even fetch PUUIDs. This is checked in code and covered by tests with recorded client responses.
-- **Hidden names are respected:** if a player has hidden their name (streamer mode), the app shows the agent only and makes **no** lookup for that player.
+- **Hidden names are respected:** if a player has hidden their name (streamer mode), the app shows the agent and "Hidden name · Private", and makes **no** lookup for that player.
+- **Private profiles are labelled, not guessed:** fields HenrikDev can't return show "Private".
 - **Read only:** no requests that change anything, no agent-select calls, no automation.
 - **Quota:** ranks come from HenrikDev using PUUIDs, fetched through the governor's live budget (section 13), cached for the match. Calling Riot's rank endpoints with the user's session tokens is avoided, to keep token use to the minimum.
 - **Compile-time switch:** a Cargo feature (`live`) so packagers and cautious users can build without it.
 - **Kill switch:** if a Riot policy change or a breaking client update lands, a dataset flag (section 15.6) can disable the module remotely until a fixed release ships.
 
 ### What the live panel shows
-Agent, current rank, peak rank, and optionally recent win rate, for all 10 players. Every field renders independently. A private profile shows only what returns; a hidden name shows agent only; nothing is guessed. Notes and "played before" badges from section 12 appear next to known players.
+Everything below appears only when Live match is on (warning accepted) and only after the match has started. Each field loads and renders on its own, so one missing field never blanks a row. Nothing is guessed.
+
+| Field | Source | Cost |
+|---|---|---|
+| Agent, team, name#tag | Local Riot Client (current match) | Free |
+| Account level | Local Riot Client, unless the player hides it | Free |
+| Current rank + RR | HenrikDev MMR by PUUID | 1 request per player |
+| Peak rank (with the act it was reached in) and last act's final rank | Same MMR response | Included |
+| Recent form: win %, K/D, HS %, ACS and most-played agents over their last 10 competitive matches | HenrikDev stored matches by PUUID | 1 request per player; can be turned off |
+| Your notes and tags, "played with / against N×", last result together | Local database | Free |
+| "New account" tag | Account level under 30 | Free |
+
+**Per-player states (each designed in `design/overlay.html`):**
+- **Loaded:** all fields shown.
+- **Loading:** skeleton bars per field; ranks load before recent form.
+- **Queued:** waiting for quota (requests are spread over at least 60 s); shows a clock instead of a value.
+- **Private profile:** HenrikDev returns nothing for that player. Name, agent and level still show (from the client); rank, peak, last act and form show **Private** with a lock.
+- **Hidden name (streamer mode):** the agent shows, the name reads **Hidden name**, every other field reads **Private**, and **no lookup is made**.
+- **Unranked:** no competitive rank this act; peak still shows if it exists.
+- **Error / paused:** a dash with a retry hint; the panel never shows stale data from another player.
+
+**Where it shows:**
+- **Buy phase of round 1:** a compact panel (agent, name, current rank) auto-shows on the left for 25 s, clear of the minimap.
+- **Hold Tab:** while Tab is held in game, the full panel appears docked on the right of the screen, beside Valorant's own scoreboard. Valorant's scoreboard already has the live K/D/A, score and economy; Postplant adds what it lacks: current and peak rank, last act, level, recent form and your notes. Rows can't line up with the game's rows because the game re-sorts by score during the match and Postplant cannot see that order, so each team is sorted by rank and every row starts with the agent icon to match by eye.
+- **Hotkey:** `Ctrl+Shift+L` toggles the same full panel, for people who turn off the Tab trigger.
+
+**Tab detection:** a passive check of the Tab key state, only while Valorant is the focused window and Live match is on. It never intercepts, blocks or remaps the key, and nothing is sent to the game. It's a separate setting ("Show while Tab is held", on by default when Live match is on), so anyone who prefers not to have it can use the hotkey instead.
+
+**Not available, by design:** other players' live K/D/A, score, credits or loadouts (the local client doesn't expose them; Valorant's own scoreboard shows them), and party detection (would need reading friends' presence data; left out).
 
 ---
 
@@ -463,7 +492,7 @@ Goals, crosshair/lineup notes, CSV export, weekly reports, Discord webhook, tray
 3. **Cheap "anything new?" check**: latest match list at the smallest page size; fetch details only for new IDs.
 4. **Adaptive polling**: only while Valorant is running (process-exists check, nothing read from it) or the overlay is visible. Every 3 min, backing off 3 → 6 → 12 min while nothing changes; stop 10 min after the game closes.
 5. **Rank snapshots** only after a new match, plus once at start if the last one is over 30 min old.
-6. **Other players on demand only**, cached 10 minutes. The one exception is the opt-in live module (section 11): once per match it may fetch ranks for up to 9 players (about 18–27 units), spread over at least 60 seconds, skipping hidden-name players and anyone cached in the last 10 minutes. It counts against a separate per-match cap and never pushes total use above the 80% ceiling.
+6. **Other players on demand only**, cached 10 minutes. The one exception is the opt-in live module (section 11): once per match it may fetch rank (1 request) and, if enabled, recent form (1 request) for up to 9 players: at most 18 requests, about 18–36 units. They are spread over at least 60 seconds, ranks first, skipping hidden-name players and anyone cached in the last 10 minutes. It counts against a separate per-match cap and never pushes total use above the 80% ceiling.
 7. **Backfill is manual and bounded** (default 20), resumable, with its cost shown first.
 8. **Search is cached**; refresh forces a call.
 9. **The Comp Advisor and the meta pipeline make zero Henrik calls.**

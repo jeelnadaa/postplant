@@ -76,9 +76,10 @@ Tracks Postplant against the milestones in [plan.md](plan.md) (section 7). Updat
 ### M7: Live match (opt-in)
 - [ ] Toggle (off by default) with mandatory warning
 - [ ] In-game phase gate, hidden-name respect, live quota budget
-- [ ] Live overlay panel
+- [ ] Live overlay: round-1 buy-phase panel, hold-Tab rail, full table (Ctrl+Shift+L); rank, peak, last act, level, recent form, notes; Private for private profiles and hidden names
 
 ## Log
 
 - **2026-11-11**: Plan rewritten for open source; Comp Advisor and meta pipeline redesigned; live match moved to an opt-in toggle; distribution, CI, updater and in-app API key sections added. Landing and download pages built.
 - **2026-11-11**: Brand locked (Postplant, logo C). Full design system in `design/`: six themes retuned so every text colour passes 4.5:1 and light-theme cards separate from the page, components with all modals, 27 screens, overlay. Export/import added to the plan (16.1) and designs. Site switcher removed.
+- **2026-11-11**: Live match detailed (plan section 11) and designed (`design/overlay.html`): buy-phase panel, hold-Tab rail beside Valorant's scoreboard, full table, and every per-player state including Private.
