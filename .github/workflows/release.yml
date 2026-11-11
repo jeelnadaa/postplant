@@ -1,0 +1,100 @@
+name: Release
+
+# Every push to main that changes the app builds a Windows release with the next version,
+# worked out from Conventional Commits (scripts/next-version.mjs). Add "[skip release]" to a
+# commit message to leave it out. Docs, site and design changes never release.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "src-tauri/**"
+      - "data/**"
+      - "index.html"
+      - "overlay.html"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - "svelte.config.js"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults: { run: { shell: bash } }
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Work out the version
+        id: ver
+        run: node scripts/next-version.mjs --bump "${{ inputs.bump || 'auto' }}" --notes notes.md >> "$GITHUB_OUTPUT"
+
+      - name: Nothing to release
+        if: steps.ver.outputs.skip == 'true'
+        run: echo "No app changes since the last tag; skipping."
+
+      - uses: actions/setup-node@v4
+        if: steps.ver.outputs.skip != 'true'
+        with: { node-version: 22, cache: npm }
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.ver.outputs.skip != 'true'
+      - uses: Swatinem/rust-cache@v2
+        if: steps.ver.outputs.skip != 'true'
+        with: { workspaces: "src-tauri -> target" }
+
+      - name: Stamp ${{ steps.ver.outputs.version }}
+        if: steps.ver.outputs.skip != 'true'
+        run: node scripts/set-version.mjs "${{ steps.ver.outputs.version }}"
+
+      - name: Test
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          npm ci
+          npm run check
+          npm test
+          npm run build
+          (cd src-tauri && cargo test --release)
+
+      - name: Build installer
+        if: steps.ver.outputs.skip != 'true'
+        run: npm run tauri -- build --bundles nsis
+        env:
+          # Optional: set these repository secrets to sign update bundles (plan 20.3).
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: Package portable zip and checksums
+        if: steps.ver.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          V="${{ steps.ver.outputs.version }}"
+          mkdir -p out portable
+          cp src-tauri/target/release/bundle/nsis/*_x64-setup.exe out/
+          cp src-tauri/target/release/postplant.exe portable/Postplant.exe
+          echo "Delete this file to make Postplant store its data in %APPDATA% instead of next to the exe." > portable/portable.flag
+          (cd portable && 7z a -tzip "../out/Postplant_${V}_x64-portable.zip" Postplant.exe portable.flag > /dev/null)
+          (cd out && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+
+      - name: Publish GitHub release
+        if: steps.ver.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.ver.outputs.tag }}" out/* \
+            --target "$GITHUB_SHA" \
+            --title "Postplant ${{ steps.ver.outputs.version }}" \
+            --notes-file notes.md

@@ -1,0 +1,37 @@
+name: Site
+
+# Deploys site/ to Cloudflare Workers static assets with wrangler (wrangler.jsonc).
+# Needs repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID; without them the job
+# just says so and stops. If you connect the repo in the Cloudflare dashboard (Workers Builds)
+# instead, you can delete this workflow.
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", "wrangler.jsonc"]
+  workflow_dispatch:
+
+concurrency:
+  group: site
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for Cloudflare secrets
+        id: cf
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then echo "CLOUDFLARE_API_TOKEN not set; skipping deploy."; echo "ok=false" >> "$GITHUB_OUTPUT"; else echo "ok=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        if: steps.cf.outputs.ok == 'true'
+      - uses: cloudflare/wrangler-action@v3
+        if: steps.cf.outputs.ok == 'true'
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
