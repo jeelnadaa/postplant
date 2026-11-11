@@ -7,6 +7,7 @@
   import NoteModal from "../components/NoteModal.svelte";
   import PlayerName from "../components/PlayerName.svelte";
   import Rank from "../components/Rank.svelte";
+  import Replay from "../components/Replay.svelte";
 
   let { id }: { id: string } = $props();
   let d = $state<J>(null);
@@ -24,6 +25,14 @@
   }
   $effect(() => {
     load();
+  });
+  // Current and peak rank of everyone named in the match (cached 6 h; hidden names are never looked up).
+  let ranks = $state<J>({});
+  let ranksBusy = $state(false);
+  $effect(() => {
+    void id;
+    ranksBusy = true;
+    api.matchRanks(id).then((r) => (ranks = r)).catch(() => {}).finally(() => (ranksBusy = false));
   });
 
   const mine = $derived(d?.teams?.find((t: J) => t.mine));
@@ -70,14 +79,15 @@
     <button role="tab" class="tab" aria-selected={tab === "score"} onclick={() => (tab = "score")}>Scoreboard</button>
     <button role="tab" class="tab" aria-selected={tab === "rounds"} onclick={() => (tab = "rounds")}>Rounds<span class="count">{d.rounds.length}</span></button>
     <button role="tab" class="tab" aria-selected={tab === "deaths"} onclick={() => (tab = "deaths")}>Your deaths<span class="count">{d.deaths.length}</span></button>
+    <button role="tab" class="tab" aria-selected={tab === "replay"} onclick={() => (tab = "replay")}>2D replay</button>
   </div>
 
   {#if tab === "score"}
     <table class="table">
-      <thead><tr><th>Player</th><th>Rank</th><th class="num sorted">ACS ▾</th><th class="num">K</th><th class="num">D</th><th class="num">A</th><th class="num">HS%</th><th class="num">ADR</th><th class="num">FB</th><th></th></tr></thead>
+      <thead><tr><th>Player</th><th>Rank</th><th>Peak</th><th>Now</th><th class="num sorted">ACS ▾</th><th class="num">K</th><th class="num">D</th><th class="num">A</th><th class="num">HS%</th><th class="num">ADR</th><th class="num">FB</th><th></th></tr></thead>
       <tbody>
         {#each [true, false] as mineTeam (mineTeam)}
-          <tr class="team-head"><td colspan="10"><span class={mineTeam ? "def" : "atk"}>● {mineTeam ? "Your team" : "Enemy team"}</span>
+          <tr class="team-head"><td colspan="12"><span class={mineTeam ? "def" : "atk"}>● {mineTeam ? "Your team" : "Enemy team"}</span>
             <span class="badge {mineTeam === (result === 'Victory') ? 'win' : 'loss'}" style="margin-left:6px">{mineTeam ? mine?.won : theirs?.won}</span></td></tr>
           {#each team(mineTeam) as p (p.puuid)}
             <tr class={p.me ? "is-me" : ""}>
@@ -90,6 +100,12 @@
                   {#if p.met > 0}<span class="faint" style="font-size:11px">met {p.met}×</span>{/if}
                 </div></div></td>
               <td><Rank tier={p.tier} /></td>
+              {#if ranks[p.puuid]?.state === "ok" || ranks[p.puuid]?.state === "unranked"}
+                <td><Rank tier={ranks[p.puuid].peak_tier} short />{#if ranks[p.puuid].peak_season}<span class="faint" style="font-size:11px"> {ranks[p.puuid].peak_season}</span>{/if}</td>
+                <td><Rank tier={ranks[p.puuid].tier} rr={ranks[p.puuid].tier >= 3 ? ranks[p.puuid].rr : null} short /></td>
+              {:else if ranks[p.puuid]?.state === "private"}<td colspan="2" class="faint"><Icon name="lock" /> private</td>
+              {:else if !p.name}<td colspan="2" class="faint">hidden</td>
+              {:else}<td colspan="2" class="faint">{ranksBusy ? "…" : "—"}</td>{/if}
               <td class="num"><b>{p.acs}</b></td><td class="num">{p.k}</td><td class="num">{p.d}</td><td class="num">{p.a}</td>
               <td class="num">{p.hs}%</td><td class="num">{p.adr}</td><td class="num">{p.fb}</td>
               <td>{#if !p.me}<button class="btn btn-icon btn-ghost btn-sm" title="Note" aria-label="Note" onclick={() => { noteFor = p; noteOpen = true; }}><Icon name="note" /></button>{/if}</td>
@@ -98,7 +114,7 @@
         {/each}
       </tbody>
     </table>
-    <p class="notice mt-2">Rank = rank at match time, from the match data. Private profiles only hide peak rank and history, which show on their profile.</p>
+    <p class="notice mt-2">Rank = rank at match time. Peak and Now are looked up per player (cached 6 hours). Players who hid their name aren't looked up.</p>
   {:else if tab === "rounds"}
     <div class="round-strip mb-4">
       {#each d.rounds as r (r.n)}<span class={r.won ? "w" : "l"} title="Round {r.n + 1}: {r.result}">{r.n + 1}</span>{#if r.n === 11}<span class="half"></span>{/if}{/each}
@@ -122,6 +138,8 @@
         {/each}
       </tbody>
     </table>
+  {:else if tab === "replay"}
+    <Replay {id} myTeam={d.my_team} />
   {:else}
     <div class="stack" style="gap:10px">
       {#each d.deaths as x (x.time_in_match_ms)}

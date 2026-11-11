@@ -16,6 +16,15 @@
 
 <div class="page-head"><div><h1 class="h1">Rank</h1><div class="sub">From your own snapshots: one after each new match</div></div></div>
 {#if d}
+  {#if d.now?.tier}
+    <div class="rank-hero mb-4">
+      <div class="card hero-card"><div class="label">Current rank</div><Rank tier={d.now.tier} lg /><div class="faint" style="font-size:12px;margin-top:6px">{d.wins_to_next ? `~${d.wins_to_next} wins to the next rank` : " "}</div></div>
+      <div class="card hero-card"><div class="label">Peak rank</div>{#if d.now.peak_tier}<Rank tier={d.now.peak_tier} lg />{:else}<span class="faint">—</span>{/if}<div class="faint" style="font-size:12px;margin-top:6px">{d.now.peak_season ? `Reached in ${d.now.peak_season}` : " "}</div></div>
+      <div class="card hero-card"><div class="label">Rank rating</div><div class="hero-num">{d.now.rr}<span class="faint" style="font-size:20px"> / 100</span></div>
+        <div class="progress" style="--v:{d.now.rr}%;margin:8px 0 4px"><i></i></div>
+        <div style="font-size:12px" class={d.now.last_change > 0 ? "win" : d.now.last_change < 0 ? "loss" : "faint"}>Last match {signed(d.now.last_change)}{d.avg_gain ? ` · avg win +${d.avg_gain}` : ""}</div></div>
+    </div>
+  {/if}
   <div class="grid-12">
     <div class="card col-4">
       {#if d.now?.tier}

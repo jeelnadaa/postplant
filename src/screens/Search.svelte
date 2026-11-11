@@ -6,6 +6,7 @@
   import Icon from "../components/Icon.svelte";
   import NoteModal from "../components/NoteModal.svelte";
   import Rank from "../components/Rank.svelte";
+  import Career from "../components/Career.svelte";
 
   let { params }: { params: Record<string, string> } = $props();
   // The screen is re-created on every route change, so reading params once is intended.
@@ -40,10 +41,33 @@
   });
   const acc = $derived(res?.data?.account);
   const mmr = $derived(res?.data?.mmr);
+  // Detailed career: n full matches (1 request each, kept forever, so asking again is free).
+  let career = $state<J>(null);
+  let careerN = $state(10);
+  let careerBusy = $state(false);
+  let careerErr = $state("");
+  $effect(() => {
+    const a = res?.data?.account;
+    career = null;
+    careerErr = "";
+    if (a?.puuid) api.playerCareer(a.puuid, a.region, 0).then((c) => { if (c?.overall?.games) career = c; }).catch(() => {});
+  });
+  async function loadCareer() {
+    careerBusy = true;
+    careerErr = "";
+    try {
+      career = await api.playerCareer(acc.puuid, acc.region, careerN, "competitive");
+      if (career?.error) careerErr = `Stopped early: ${career.error}`;
+    } catch (e) {
+      careerErr = errText(e);
+    } finally {
+      careerBusy = false;
+    }
+  }
   const note = $derived(recent.find((r: J) => r.puuid === acc?.puuid)?.note ?? null);
 </script>
 
-<div class="page-head"><div><h1 class="h1">Player lookup</h1><div class="sub">Any Riot ID · about 3 requests · cached for 10 minutes</div></div></div>
+<div class="page-head"><div><h1 class="h1">Player lookup</h1><div class="sub">Any Riot ID · about 3 requests · cached for 10 minutes · detailed stats cost 1 request per new match</div></div></div>
 <form class="row mb-4" style="gap:8px" onsubmit={(e) => { e.preventDefault(); if (q) nav("search", parseRiotId(q) ?? {}); }}>
   <div class="input-icon" style="flex:1;max-width:460px"><Icon name="search" /><input class="input" placeholder="Name#TAG" bind:value={q} spellcheck="false" /></div>
   <button class="btn btn-primary" disabled={busy}>{busy ? "Looking up…" : "Look up"}</button>
@@ -60,7 +84,11 @@
       </div>
       <div class="mt-4">
         {#if mmr?.ok?.current}<Rank tier={mmr.ok.current.tier?.id} rr={mmr.ok.current.rr} lg />
-          {#if mmr.ok.peak?.tier?.id}<div class="faint mt-2" style="font-size:12px">Peak: <Rank tier={mmr.ok.peak.tier.id} short /></div>{/if}
+          <div class="kv mt-2" style="font-size:12px">
+            <span>Peak</span><b>{#if mmr.ok.peak?.tier?.id}<Rank tier={mmr.ok.peak.tier.id} short />{mmr.ok.peak.season?.short ? ` · ${mmr.ok.peak.season.short}` : ""}{:else}—{/if}</b>
+            {#if mmr.ok.current.last_change !== undefined}<span>Last change</span><b>{mmr.ok.current.last_change > 0 ? "+" : ""}{mmr.ok.current.last_change}</b>{/if}
+            {#if mmr.ok.seasonal?.length}<span>This act</span><b>{mmr.ok.seasonal[mmr.ok.seasonal.length - 1].wins}W / {mmr.ok.seasonal[mmr.ok.seasonal.length - 1].games} games</b>{/if}
+          </div>
         {:else if mmr?.private}<div class="row faint" style="gap:6px"><Icon name="lock" />Rank is private</div>
         {:else if mmr?.error}<div class="faint">Rank unavailable: {mmr.error}</div>{/if}
       </div>
@@ -85,6 +113,18 @@
       {:else if res.data.recent?.private}<p class="row faint" style="gap:6px"><Icon name="lock" />Match history is private.</p>
       {:else}<p class="faint">Match history unavailable{res.data.recent?.error ? `: ${res.data.recent.error}` : ""}.</p>{/if}
     </div>
+  </div>
+  <div class="card mt-4">
+    <div class="card-head"><span class="h3">Career</span><span class="spacer"></span>
+      <select class="input" style="width:auto" bind:value={careerN}>{#each [5, 10, 15, 20, 25] as n (n)}<option value={n}>Last {n} competitive</option>{/each}</select>
+      <button class="btn btn-sm btn-primary" disabled={careerBusy} onclick={loadCareer} title="About 1 request per match not already on this PC"><Icon name="download" />{careerBusy ? "Loading…" : "Load detailed stats"}</button></div>
+    {#if careerErr}<div class="banner warn mb-4"><Icon name="warn" />{careerErr}</div>{/if}
+    {#if career}
+      <p class="faint" style="font-size:12px;margin-top:0">From {career.held} full matches held on this PC{career.fetched ? ` (${career.fetched} just fetched)` : ""}.</p>
+      <Career d={career} />
+    {:else if res.data.summary}
+      <Career d={res.data.summary} quick />
+    {:else}<p class="faint">Load detailed stats for per-agent kills, defuses, clutches, KAST, trades and more.</p>{/if}
   </div>
   <NoteModal bind:open={noteOpen} puuid={acc.puuid} who="{acc.name}#{acc.tag}" {note} onsaved={() => { loadRecent(); toast("ok", "Note saved"); }} />
 {:else if !busy && recent.length}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { api, errText } from "./lib/api";
+  import { getCurrentWebview } from "@tauri-apps/api/webview";
+  import { api, errText, on } from "./lib/api";
   import { timeAgo } from "./lib/format";
   import { app, init, nav, refreshState, toast } from "./lib/store.svelte";
   import Icon from "./components/Icon.svelte";
@@ -15,13 +16,14 @@
   import Habits from "./screens/Habits.svelte";
   import RankScreen from "./screens/RankScreen.svelte";
   import Advisor from "./screens/Advisor.svelte";
+  import Heatmaps from "./screens/Heatmaps.svelte";
   import Search from "./screens/Search.svelte";
   import People from "./screens/People.svelte";
   import Review from "./screens/Review.svelte";
   import Settings from "./screens/Settings.svelte";
 
   const NAV: [string, [string, string, string][]][] = [
-    ["Play", [["home", "house", "Home"], ["matches", "swords", "Matches"], ["analytics", "chart", "Analytics"], ["rank", "trending-up", "Rank"], ["advisor", "compass", "Comp Advisor"], ["review", "bookmark", "Review"]]],
+    ["Play", [["home", "house", "Home"], ["matches", "swords", "Matches"], ["analytics", "chart", "Analytics"], ["rank", "trending-up", "Rank"], ["advisor", "compass", "Comp Advisor"], ["heatmaps", "target", "Heatmaps"], ["review", "bookmark", "Review"]]],
     ["Players", [["search", "search", "Search"], ["people", "users", "People & notes"]]],
   ];
   const active = $derived(app.route.name === "match" ? "matches" : app.route.name === "habits" ? "analytics" : app.route.name);
@@ -30,8 +32,21 @@
 
   onMount(() => {
     init();
+    // Toasts raised by the Rust side (e.g. the live table hotkey with no match running).
+    const un = on("toast", (t: { kind: "ok" | "err" | "warn" | "info"; title: string; text?: string }) => toast(t.kind, t.title, t.text));
+    // Drop a .postplant or .json file anywhere to import it.
+    const drop = getCurrentWebview().onDragDropEvent((e) => {
+      if (e.payload.type === "drop") {
+        const f = e.payload.paths.find((x) => /\.(postplant|json)$/i.test(x));
+        if (f) nav("settings", { tab: "data", import: f });
+      }
+    });
     const t = setInterval(() => (tick = Date.now()), 30000);
-    return () => clearInterval(t);
+    return () => {
+      clearInterval(t);
+      un.then((f) => f());
+      drop.then((f) => f());
+    };
   });
 
   async function syncNow() {
@@ -97,14 +112,15 @@
               {#if app.route.name === "home"}<Home />
               {:else if app.route.name === "matches"}<Matches />
               {:else if app.route.name === "match"}<Match id={app.route.params.id} />
-              {:else if app.route.name === "analytics"}<Analytics />
+              {:else if app.route.name === "analytics"}<Analytics params={app.route.params} />
               {:else if app.route.name === "habits"}<Habits />
               {:else if app.route.name === "rank"}<RankScreen />
-              {:else if app.route.name === "advisor"}<Advisor />
+              {:else if app.route.name === "advisor"}<Advisor params={app.route.params} />
+              {:else if app.route.name === "heatmaps"}<Heatmaps />
               {:else if app.route.name === "search"}<Search params={app.route.params} />
               {:else if app.route.name === "people"}<People />
               {:else if app.route.name === "review"}<Review />
-              {:else if app.route.name === "settings"}<Settings tab={app.route.params.tab} />
+              {:else if app.route.name === "settings"}<Settings tab={app.route.params.tab} importPath={app.route.params.import} />
               {:else}<Home />{/if}
             {/key}
           </div>

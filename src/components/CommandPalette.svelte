@@ -9,7 +9,8 @@
     ["rank", "trending-up", "Rank"], ["advisor", "compass", "Comp Advisor"], ["search", "search", "Search players"],
     ["people", "users", "People & notes"], ["review", "bookmark", "Review list"], ["settings", "settings", "Settings"],
     ["settings?tab=data", "database", "Export or import data"], ["settings?tab=api", "key", "API key & usage"],
-    ["settings?tab=overlay", "layers", "Overlay & hotkeys"],
+    ["settings?tab=overlay", "layers", "Overlay & hotkeys"], ["settings?tab=live", "wifi", "Live match"],
+    ["heatmaps", "target", "Heatmaps"], ["analytics?view=lifetime", "chart", "Lifetime stats"], ["advisor?tab=stack", "users", "Stack planner"],
   ];
   let q = $state("");
   let sel = $state(0);

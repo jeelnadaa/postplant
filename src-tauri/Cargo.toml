@@ -35,9 +35,15 @@ hex = "0.4"
 chrono = "0.4"
 sysinfo = { version = "0.32", default-features = false, features = ["system"] }
 anyhow = "1"
+base64 = "0.22"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging"] }
 
 [features]
-default = []
+# The opt-in live match module (plan section 11). Build with --no-default-features to leave it out.
+default = ["live"]
+live = []
 
 [profile.release]
 codegen-units = 1

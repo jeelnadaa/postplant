@@ -108,10 +108,9 @@ pub fn set_visible(app: &AppHandle, show: bool) {
 }
 
 pub fn toggle(app: &AppHandle) {
-    let v = app
-        .state::<AppState>()
-        .overlay_visible
-        .load(Ordering::SeqCst);
+    let st = app.state::<AppState>();
+    st.overlay_auto.store(false, Ordering::SeqCst);
+    let v = st.overlay_visible.load(Ordering::SeqCst);
     set_visible(app, !v);
 }
 
@@ -134,6 +133,160 @@ pub fn set_edit(app: &AppHandle, edit: bool) {
 pub fn reset(app: &AppHandle) {
     save_prefs_patch(app, json!({ "overlay": { "x": null, "y": null } }));
     restore_position(app);
+}
+
+/// Resize and place the overlay window for a layout (plan sections 4, 11, 14.1):
+/// normal (panels, saved position), advisor (interactive, right side, agent select),
+/// compact (round-1 live panel, left, clear of the minimap), rail (hold Tab, docked right),
+/// full (Ctrl+Shift+L table, centred).
+pub fn layout(app: &AppHandle, kind: &str) {
+    let st = app.state::<AppState>();
+    let Some(win) = app.get_webview_window(LABEL) else {
+        return;
+    };
+    *st.overlay_layout.lock().unwrap() = kind.to_string();
+    let mon = win
+        .current_monitor()
+        .ok()
+        .flatten()
+        .or_else(|| win.primary_monitor().ok().flatten());
+    let (w, h, interactive) = match kind {
+        "advisor" => (360.0, 600.0, true),
+        "compact" => (300.0, 360.0, false),
+        "rail" => (440.0, 660.0, false),
+        "full" => (1000.0, 640.0, false),
+        _ => (W, H, st.overlay_edit.load(Ordering::SeqCst)),
+    };
+    let _ = win.set_size(tauri::LogicalSize::new(w, h));
+    let _ = win.set_ignore_cursor_events(!interactive);
+    if kind == "normal" {
+        restore_position(app);
+    } else if let Some(m) = mon {
+        let (p, sz, sc) = (m.position(), m.size(), m.scale_factor());
+        let (pw, ph) = ((w * sc) as i32, (h * sc) as i32);
+        let (x, y) = match kind {
+            "advisor" => (
+                p.x + sz.width as i32 - pw - (24.0 * sc) as i32,
+                p.y + (sz.height as f64 * 0.14) as i32,
+            ),
+            "compact" => (
+                p.x + (24.0 * sc) as i32,
+                p.y + (sz.height as f64 * 0.38) as i32,
+            ),
+            "rail" => (
+                p.x + sz.width as i32 - pw - (16.0 * sc) as i32,
+                p.y + (sz.height as i32 - ph) / 2,
+            ),
+            _ => (
+                p.x + (sz.width as i32 - pw) / 2,
+                p.y + (sz.height as i32 - ph) / 2,
+            ),
+        };
+        let _ = win.set_position(PhysicalPosition::new(x, y));
+    }
+    let _ = app.emit_to(LABEL, "overlay-layout", json!({ "kind": kind }));
+}
+
+/// Show the overlay for something automatic (post-match board, agent select, live panel). It hides
+/// again afterwards if it was hidden before.
+pub fn show_auto(app: &AppHandle) {
+    let st = app.state::<AppState>();
+    if !st.overlay_visible.load(Ordering::SeqCst) {
+        st.overlay_auto.store(true, Ordering::SeqCst);
+        set_visible(app, true);
+    }
+}
+
+pub fn auto_done(app: &AppHandle) {
+    let st = app.state::<AppState>();
+    layout(app, "normal");
+    if st.overlay_auto.swap(false, Ordering::SeqCst) {
+        set_visible(app, false);
+    }
+}
+
+pub fn open_advisor(app: &AppHandle, map: Option<&str>, auto: bool) {
+    if auto {
+        show_auto(app);
+    } else {
+        set_visible(app, true);
+    }
+    layout(app, "advisor");
+    let _ = app.emit_to(LABEL, "advisor-open", json!({ "map": map, "auto": auto }));
+}
+
+pub fn close_advisor(app: &AppHandle, _auto: bool) {
+    let _ = app.emit_to(LABEL, "advisor-close", ());
+    if app
+        .state::<AppState>()
+        .overlay_layout
+        .lock()
+        .unwrap()
+        .as_str()
+        == "advisor"
+    {
+        auto_done(app);
+    }
+}
+
+pub fn toggle_advisor(app: &AppHandle) {
+    let open = app
+        .state::<AppState>()
+        .overlay_layout
+        .lock()
+        .unwrap()
+        .as_str()
+        == "advisor";
+    if open {
+        close_advisor(app, false);
+    } else {
+        let map = app.state::<crate::live::Live>().map.lock().unwrap().clone();
+        open_advisor(app, if map.is_empty() { None } else { Some(&map) }, false);
+    }
+}
+
+/// Live round-1 panel: shown for 25 s when the match starts (the overlay page runs the timer).
+pub fn show_live_compact(app: &AppHandle) {
+    show_auto(app);
+    layout(app, "compact");
+    let _ = app.emit_to(
+        LABEL,
+        "live-show",
+        json!({ "mode": "compact", "seconds": 25 }),
+    );
+}
+
+pub fn live_tab(app: &AppHandle, down: bool) {
+    let live = app.state::<crate::live::Live>();
+    if live.table_open.load(Ordering::SeqCst) {
+        return;
+    }
+    if down {
+        show_auto(app);
+        layout(app, "rail");
+        let _ = app.emit_to(LABEL, "live-show", json!({ "mode": "rail" }));
+    } else {
+        let _ = app.emit_to(LABEL, "live-show", json!({ "mode": "none" }));
+        auto_done(app);
+    }
+}
+
+pub fn toggle_live_table(app: &AppHandle) {
+    let live = app.state::<crate::live::Live>();
+    if live.roster.lock().unwrap().is_null() {
+        let _ = app.emit("toast", json!({ "kind": "info", "title": "No live match", "text": "The live table shows once a match is in progress with Live match turned on." }));
+        return;
+    }
+    let open = !live.table_open.load(Ordering::SeqCst);
+    live.table_open.store(open, Ordering::SeqCst);
+    if open {
+        show_auto(app);
+        layout(app, "full");
+        let _ = app.emit_to(LABEL, "live-show", json!({ "mode": "full" }));
+    } else {
+        let _ = app.emit_to(LABEL, "live-show", json!({ "mode": "none" }));
+        auto_done(app);
+    }
 }
 
 pub fn show_main(app: &AppHandle, route: Option<&str>) {
@@ -161,7 +314,21 @@ pub fn run_action(app: &AppHandle, action: &str) {
         }
         "refresh" => app.state::<AppState>().wake.notify_one(),
         "open_app" => show_main(app, None),
-        "advisor" => show_main(app, Some("advisor")),
+        "advisor" => toggle_advisor(app),
+        "live_table" => toggle_live_table(app),
+        "post_done" => auto_done(app),
+        "hotkeys_pause" => {
+            app.state::<AppState>()
+                .hotkeys_paused
+                .store(true, Ordering::SeqCst);
+            apply_hotkeys(app);
+        }
+        "hotkeys_resume" => {
+            app.state::<AppState>()
+                .hotkeys_paused
+                .store(false, Ordering::SeqCst);
+            apply_hotkeys(app);
+        }
         _ => {}
     }
 }
@@ -175,6 +342,10 @@ pub fn apply_hotkeys(app: &AppHandle) -> Vec<String> {
     let _ = gs.unregister_all();
     let mut failed = vec![];
     let mut map = vec![];
+    if st.hotkeys_paused.load(Ordering::SeqCst) {
+        *st.hotkeys.lock().unwrap() = vec![];
+        return failed;
+    }
     let game = st.game_running.load(Ordering::SeqCst);
     let game_only = prefs["hotkeys_game_only"].as_bool().unwrap_or(true);
     if let Some(h) = prefs["hotkeys"].as_object() {
@@ -203,6 +374,21 @@ pub fn apply_hotkeys(app: &AppHandle) -> Vec<String> {
         json!({ "failed": failed, "active": !game_only || game }),
     );
     failed
+}
+
+/// Can this combination be registered right now? Used by the hotkey capture dialog (hotkeys are
+/// paused while it is open, so a failure means another app owns the combination).
+pub fn test_combo(app: &AppHandle, combo: &str) -> Result<(), String> {
+    let sc = Shortcut::from_str(combo)
+        .map_err(|_| format!("{combo} isn't a key combination Windows accepts."))?;
+    let gs = app.global_shortcut();
+    if gs.is_registered(sc) {
+        return Ok(());
+    }
+    gs.register(sc)
+        .map_err(|_| format!("{combo} is already used by another app."))?;
+    let _ = gs.unregister(sc);
+    Ok(())
 }
 
 pub fn on_shortcut(app: &AppHandle, sc: &Shortcut, state: ShortcutState) {

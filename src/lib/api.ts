@@ -49,6 +49,16 @@ export const api = {
   deleteAll: (removeKey: boolean) => call("delete_all_data", { removeKey }),
   usage: () => call("usage"),
   overlayData: () => call("overlay_data"),
+  liveStatus: () => call("live_status"),
+  myCareer: (queue = "") => call("my_career", { queue }),
+  playerCareer: (puuid: string, region: string, n = 0, queue = "") => call("player_career", { puuid, region, n, queue }),
+  playerRank: (puuid: string, region?: string) => call("player_rank", { puuid, region: region ?? null }),
+  matchRanks: (id: string) => call("match_ranks", { id }),
+  testHotkey: (combo: string) => call("test_hotkey", { combo }),
+  stackPeople: () => call("stack_people"),
+  stack: (map: string, players: J[]) => call("advisor_stack", { map, players }),
+  heatmap: (map: string, event: string, side: string) => call("heatmap", { map, event, side }),
+  replay: (id: string) => call("match_replay", { id }),
 };
 
 export function on<T = J>(event: string, fn: (payload: T) => void): Promise<UnlistenFn> {

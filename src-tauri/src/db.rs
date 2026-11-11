@@ -3,7 +3,7 @@ use anyhow::Result;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::Path;
 
-pub const SCHEMA_VERSION: i64 = 1;
+pub const SCHEMA_VERSION: i64 = 2;
 
 const MIGRATION_1: &str = r#"
 CREATE TABLE IF NOT EXISTS schema_info(version INTEGER NOT NULL, app_version TEXT, created_at TEXT);
@@ -48,6 +48,15 @@ CREATE TABLE IF NOT EXISTS import_log(id INTEGER PRIMARY KEY, file_name TEXT, fo
   source_puuid TEXT, imported_at INTEGER, counts_json TEXT, conflicts_json TEXT);
 "#;
 
+/// v2: full matches fetched for other players' career stats (a cache, never exported) and the
+/// live-match roster saved with each match (plan section 11, "saved with the match").
+const MIGRATION_2: &str = r#"
+CREATE TABLE IF NOT EXISTS ext_matches(match_id TEXT PRIMARY KEY, started_at INTEGER, raw_json_zstd BLOB NOT NULL, fetched_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS ext_match_players(match_id TEXT NOT NULL, puuid TEXT NOT NULL, PRIMARY KEY(match_id, puuid));
+CREATE INDEX IF NOT EXISTS emp_puuid ON ext_match_players(puuid);
+CREATE TABLE IF NOT EXISTS live_rosters(match_id TEXT PRIMARY KEY, saved_at INTEGER NOT NULL, roster_json TEXT NOT NULL);
+"#;
+
 /// Tables copied by export/import, in dependency order.
 pub const DATA_TABLES: &[&str] = &[
     "players",
@@ -61,6 +70,7 @@ pub const DATA_TABLES: &[&str] = &[
     "player_notes",
     "review_items",
     "agent_pool",
+    "live_rosters",
 ];
 
 pub fn open(path: &Path) -> Result<Connection> {
@@ -93,6 +103,13 @@ pub fn migrate(conn: &Connection) -> Result<()> {
         conn.execute_batch(MIGRATION_1)?;
         conn.execute(
             "INSERT INTO schema_info(version, app_version, created_at) VALUES (1, ?1, ?2)",
+            params![env!("CARGO_PKG_VERSION"), chrono::Utc::now().to_rfc3339()],
+        )?;
+    }
+    if schema_version(conn) < 2 {
+        conn.execute_batch(MIGRATION_2)?;
+        conn.execute(
+            "INSERT INTO schema_info(version, app_version, created_at) VALUES (2, ?1, ?2)",
             params![env!("CARGO_PKG_VERSION"), chrono::Utc::now().to_rfc3339()],
         )?;
     }

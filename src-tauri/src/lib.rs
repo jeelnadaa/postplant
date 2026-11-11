@@ -1,10 +1,14 @@
 //! Postplant: open-source Valorant companion. See plan.md for the design.
+#![recursion_limit = "256"]
 pub mod advisor;
 pub mod api;
+pub mod career;
 pub mod commands;
 pub mod db;
+pub mod live;
 pub mod overlay;
 pub mod parse;
+pub mod players;
 pub mod queries;
 pub mod recordings;
 pub mod state;
@@ -114,6 +118,7 @@ pub fn run() {
             }
             let conn = db::open(&db_path)?;
             app.manage(AppState::new(conn, dir));
+            app.manage(live::Live::default());
             let kb = advisor::Kb::load();
             {
                 let st = app.state::<AppState>();
@@ -126,6 +131,8 @@ pub fn run() {
             overlay::create(&handle)?;
             setup_tray(&handle)?;
             overlay::apply_hotkeys(&handle);
+            #[cfg(feature = "live")]
+            live::start(handle.clone());
             sync::start_background(handle);
             Ok(())
         })
@@ -184,6 +191,16 @@ pub fn run() {
             commands::delete_all_data,
             commands::usage,
             commands::overlay_data,
+            commands::live_status,
+            commands::my_career,
+            commands::player_career,
+            commands::player_rank,
+            commands::match_ranks,
+            commands::test_hotkey,
+            commands::stack_people,
+            commands::advisor_stack,
+            commands::heatmap,
+            commands::match_replay,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Postplant");

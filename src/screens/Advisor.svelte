@@ -4,8 +4,11 @@
   import Agent from "../components/Agent.svelte";
   import Icon from "../components/Icon.svelte";
   import Modal from "../components/Modal.svelte";
+  import StackPlanner from "../components/StackPlanner.svelte";
 
-  let tab = $state("pick");
+  let { params = {} }: { params?: Record<string, string> } = $props();
+  // svelte-ignore state_referenced_locally
+  let tab = $state(params.tab ?? "pick");
   let map = $state("");
   let team = $state<string[]>([]);
   let res = $state<J>(null);
@@ -44,10 +47,11 @@
 </script>
 
 <div class="page-head">
-  <div><h1 class="h1">Comp Advisor</h1><div class="sub">Before agent select: plan a pick from role and utility coverage. Nothing here reads the game.</div></div>
+  <div><h1 class="h1">Comp Advisor</h1><div class="sub">Plan a pick from role and utility coverage. With Live match on, it also opens in the overlay during agent select. Hotkey: {app.s?.prefs?.hotkeys?.advisor || "off"}</div></div>
 </div>
 <div class="tabs mb-4">
   <button role="tab" class="tab" aria-selected={tab === "pick"} onclick={() => (tab = "pick")}>Plan a pick</button>
+  <button role="tab" class="tab" aria-selected={tab === "stack"} onclick={() => (tab = "stack")}>Stack planner</button>
   <button role="tab" class="tab" aria-selected={tab === "learn"} onclick={() => (tab = "learn")}>Learn for this map</button>
   <button role="tab" class="tab" aria-selected={tab === "pool"} onclick={() => (tab = "pool")}>My agents<span class="count">{owned.size}</span></button>
 </div>
@@ -98,6 +102,8 @@
       <p class="notice col-12">{res.footer}</p>
     {/if}
   </div>
+{:else if tab === "stack"}
+  <StackPlanner {map} />
 {:else if tab === "learn"}
   {#if learn}
     <p class="muted mb-4">Agents outside your regulars ({learn.regular.length ? learn.regular.join(", ") : "none yet"}) that fit {learn.map}.</p>

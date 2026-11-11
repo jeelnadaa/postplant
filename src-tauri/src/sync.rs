@@ -33,6 +33,15 @@ pub async fn sync_me(app: &AppHandle, prio: Prio, size: u32) -> Result<Value, St
                 json!({ "syncing": false, "at": t, "new": v["new"] }),
             );
             if v["new"].as_i64().unwrap_or(0) > 0 {
+                st.fast_poll_until.store(0, Ordering::SeqCst);
+                // Post-match scoreboard (plan section 4, panel 4): make sure the overlay is on screen.
+                let p = st.prefs();
+                if p["overlay"]["enabled"].as_bool().unwrap_or(true)
+                    && p["overlay"]["auto_post"].as_bool().unwrap_or(true)
+                {
+                    crate::overlay::show_auto(app);
+                    crate::overlay::layout(app, "normal");
+                }
                 let _ = app.emit("new-match", v.clone());
             }
         }
@@ -187,12 +196,18 @@ pub fn start_background(app: AppHandle) {
                 st.game_running.store(running, Ordering::SeqCst);
                 let _ = app.emit("game", json!({ "running": running }));
                 crate::overlay::apply_hotkeys(&app);
+                let overlay_on = st.prefs()["overlay"]["enabled"].as_bool().unwrap_or(true);
                 if running {
                     closed_at = None;
-                    interval = Duration::from_secs(180);
+                    interval = Duration::from_secs(120);
                     next_poll = Instant::now() + Duration::from_secs(30);
+                    if overlay_on {
+                        crate::overlay::set_visible(&app, true);
+                    }
                 } else {
                     closed_at = Some(Instant::now());
+                    crate::overlay::layout(&app, "normal");
+                    crate::overlay::set_visible(&app, false);
                 }
             }
             let recently_closed = closed_at
@@ -201,16 +216,24 @@ pub fn start_background(app: AppHandle) {
             let active = running || st.overlay_visible.load(Ordering::SeqCst) || recently_closed;
             let stale = now_ms() - st.last_sync.load(Ordering::SeqCst) > 5 * 60_000;
             let has_me = st.me().is_some() && st.api.has_key();
-            if has_me && Instant::now() >= next_poll && ((startup && stale) || active) {
+            // Right after a match ends (seen by the live module), look every 45 s for a few minutes.
+            let fast = now_ms() < st.fast_poll_until.load(Ordering::SeqCst);
+            if fast && next_poll > Instant::now() + Duration::from_secs(45) {
+                next_poll = Instant::now() + Duration::from_secs(45);
+            }
+            if has_me && Instant::now() >= next_poll && ((startup && stale) || active || fast) {
                 let r = sync_me(&app, Prio::Background, 5).await;
                 let got_new = r
                     .as_ref()
                     .map(|v| v["new"].as_i64().unwrap_or(0) > 0)
                     .unwrap_or(false);
+                // Back off while nothing changes: 2 → 4 min while the game runs (a match ends at most
+                // ~4 min before the scoreboard shows), up to 12 min otherwise.
+                let cap = if running { 240 } else { 720 };
                 interval = if got_new {
-                    Duration::from_secs(180)
+                    Duration::from_secs(120)
                 } else {
-                    (interval * 2).min(Duration::from_secs(720))
+                    (interval * 2).min(Duration::from_secs(cap))
                 };
                 next_poll = Instant::now() + interval;
                 if got_new {

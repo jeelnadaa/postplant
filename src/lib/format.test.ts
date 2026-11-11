@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hms, kd, mmss, parseRiotId, signed, tierClass, tierName, timeAgo } from "./format";
+import { hms, kd, mmss, parseRiotId, signed, tierClass, tierName, timeAgo, toMinimap } from "./format";
 
 describe("ranks", () => {
   it("maps tier ids to names and classes", () => {
@@ -30,5 +30,13 @@ describe("numbers and time", () => {
     expect(mmss(71_000)).toBe("1:11");
     expect(hms(3725)).toBe("1:02:05");
     expect(timeAgo(1000, 1000 + 5 * 60_000)).toBe("5 min ago");
+  });
+});
+
+describe("minimap", () => {
+  it("swaps axes like valorant-api.com", () => {
+    const mm = { x_multiplier: 0.0001, y_multiplier: -0.0001, x_scalar: 0.5, y_scalar: 0.4 };
+    expect(toMinimap(mm, 1000, 2000)).toEqual([0.7, 0.30000000000000004]);
+    expect(toMinimap(null, 1, 2)).toBeNull();
   });
 });

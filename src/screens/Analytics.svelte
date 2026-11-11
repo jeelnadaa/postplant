@@ -2,7 +2,9 @@
   import { api, type J } from "../lib/api";
   import { app, nav } from "../lib/store.svelte";
   import Agent from "../components/Agent.svelte";
+  import Career from "../components/Career.svelte";
 
+  let { params = {} }: { params?: Record<string, string> } = $props();
   let days = $state(30);
   let d = $state<J>(null);
   $effect(() => {
@@ -10,6 +12,14 @@
     api.analytics(days, "competitive").then((r) => (d = r));
   });
   const o = $derived(d?.overall);
+  // svelte-ignore state_referenced_locally
+  let view = $state(params.view === "lifetime" ? "lifetime" : "overview");
+  let cq = $state("competitive");
+  let career = $state<J>(null);
+  $effect(() => {
+    void app.version;
+    if (view === "lifetime") api.myCareer(cq).then((r) => (career = r)).catch(() => (career = null));
+  });
 </script>
 
 <div class="page-head">
@@ -17,8 +27,11 @@
   <span class="spacer"></span>
   <div class="segmented">{#each [[7, "7 d"], [30, "30 d"], [90, "90 d"], [0, "All"]] as [v, l] (v)}<button aria-pressed={days === v} onclick={() => (days = v as number)}>{l}</button>{/each}</div>
 </div>
-<div class="tabs mb-4"><button role="tab" class="tab" aria-selected="true">Overview</button><button role="tab" class="tab" aria-selected="false" onclick={() => nav("habits")}>When you play best</button></div>
-{#if d && o.games === 0}
+<div class="tabs mb-4"><button role="tab" class="tab" aria-selected={view === "overview"} onclick={() => (view = "overview")}>Overview</button><button role="tab" class="tab" aria-selected={view === "lifetime"} onclick={() => (view = "lifetime")}>Lifetime</button><button role="tab" class="tab" aria-selected="false" onclick={() => nav("habits")}>When you play best</button></div>
+{#if view === "lifetime"}
+  <div class="segmented mb-4">{#each [["competitive", "Competitive"], ["unrated", "Unrated"], ["swiftplay", "Swiftplay"], ["", "All modes"]] as [v, l] (v)}<button aria-pressed={cq === v} onclick={() => (cq = v)}>{l}</button>{/each}</div>
+  {#if career}<Career d={career} />{:else}<div class="card" style="height:200px"><div class="skeleton" style="height:100%"></div></div>{/if}
+{:else if d && o.games === 0}
   <div class="card empty-inline">No competitive matches in this period.</div>
 {:else if d}
   <div class="grid-12">

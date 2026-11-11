@@ -22,6 +22,16 @@ pub struct AppState {
     pub last_error: Mutex<Option<String>>,
     pub wake: tokio::sync::Notify,
     pub hotkeys: Mutex<Vec<(u32, String)>>,
+    /// While the hotkey capture dialog is open, global hotkeys are released.
+    pub hotkeys_paused: AtomicBool,
+    /// Poll for a just-finished match every 45 s until this time (ms).
+    pub fast_poll_until: AtomicI64,
+    /// The overlay was shown automatically (post-match board / agent select) and should hide again.
+    pub overlay_auto: AtomicBool,
+    /// Current overlay layout: normal | advisor | compact | rail | full.
+    pub overlay_layout: Mutex<String>,
+    /// Your career stats, cached by (match count, newest match, queue).
+    pub career_cache: Mutex<Option<(String, Value)>>,
 }
 
 impl AppState {
@@ -47,6 +57,11 @@ impl AppState {
             last_error: Mutex::new(None),
             wake: tokio::sync::Notify::new(),
             hotkeys: Mutex::new(Vec::new()),
+            hotkeys_paused: AtomicBool::new(false),
+            fast_poll_until: AtomicI64::new(0),
+            overlay_auto: AtomicBool::new(false),
+            overlay_layout: Mutex::new("normal".into()),
+            career_cache: Mutex::new(None),
         }
     }
 
@@ -82,13 +97,15 @@ pub fn default_prefs() -> Value {
         "hotkeys_game_only": true,
         "hotkeys": {
             "toggle_overlay": "Ctrl+Shift+H", "edit_overlay": "Ctrl+Shift+M", "reset_overlay": "Ctrl+Shift+Home",
-            "cycle_panel": "Ctrl+Shift+PageDown", "refresh": "Ctrl+Shift+F5", "open_app": "Ctrl+Shift+O", "advisor": "Ctrl+Shift+A"
+            "cycle_panel": "Ctrl+Shift+PageDown", "refresh": "Ctrl+Shift+F5", "open_app": "Ctrl+Shift+O", "advisor": "Ctrl+Shift+A",
+            "live_table": "Ctrl+Shift+L"
         },
         "recordings_dir": null,
         "auto_backup": true, "backups_keep": 4,
         "update_check": true,
         "close_to_tray": true,
-        "live_enabled": false
+        "live_enabled": false, "live_ack": null, "live_tab": true, "live_form": true, "advisor_in_select": true,
+        "stack": []
     })
 }
 

@@ -80,3 +80,9 @@ export const agentIcon = (id: string | undefined | null) => (id ? `https://media
 export const REGIONS = [
   ["ap", "Asia Pacific"], ["eu", "Europe"], ["na", "North America"], ["kr", "Korea"], ["latam", "Latin America"], ["br", "Brazil"],
 ] as const;
+
+/** Game coordinates → 0..1 on the minimap image (valorant-api.com transform; note x/y swap). */
+export function toMinimap(mm: { x_multiplier: number; y_multiplier: number; x_scalar: number; y_scalar: number } | null | undefined, x: number, y: number): [number, number] | null {
+  if (!mm || x === null || y === null || x === undefined || y === undefined) return null;
+  return [y * mm.x_multiplier + mm.x_scalar, x * mm.y_multiplier + mm.y_scalar];
+}

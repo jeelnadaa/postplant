@@ -7,10 +7,11 @@
   import Modal from "../components/Modal.svelte";
   import Select from "../components/Select.svelte";
   import Switch from "../components/Switch.svelte";
+  import HotkeyModal from "../components/HotkeyModal.svelte";
 
-  let { tab = "appearance" }: { tab?: string } = $props();
+  let { tab = "appearance", importPath = "" }: { tab?: string; importPath?: string } = $props();
   const TABS: [string, string, string][] = [
-    ["appearance", "Appearance", "sun"], ["api", "API key & usage", "key"], ["overlay", "Overlay & hotkeys", "layers"],
+    ["appearance", "Appearance", "sun"], ["api", "API key & usage", "key"], ["overlay", "Overlay & hotkeys", "layers"], ["live", "Live match", "wifi"],
     ["recordings", "Recordings", "video"], ["data", "Data & privacy", "database"], ["updates", "Updates & startup", "download"], ["about", "About", "info"],
   ];
   const p = $derived(app.s.prefs);
@@ -41,10 +42,37 @@
   // Hotkeys
   const HK: [string, string][] = [
     ["toggle_overlay", "Show / hide overlay"], ["edit_overlay", "Move overlay"], ["reset_overlay", "Reset overlay position"],
-    ["cycle_panel", "Next overlay panel"], ["refresh", "Check for new matches"], ["open_app", "Open Postplant"], ["advisor", "Open Comp Advisor"],
+    ["cycle_panel", "Next overlay panel"], ["refresh", "Check for new matches"], ["open_app", "Open Postplant"], ["advisor", "Comp Advisor in overlay"], ["live_table", "Live match table"],
   ];
-  function setHotkey(k: string, v: string) {
-    savePrefs({ hotkeys: { ...p.hotkeys, [k]: v.trim() } });
+  let hkKey = $state("");
+  let hkOpen = $state(false);
+  const hkLabel = $derived(HK.find(([k]) => k === hkKey)?.[1] ?? "");
+  const hkTaken = $derived(Object.fromEntries(HK.filter(([k]) => k !== hkKey).map(([k, l]) => [l, p.hotkeys[k] ?? ""])));
+  function saveHotkey(combo: string) {
+    const next = { ...p.hotkeys, [hkKey]: combo };
+    // A combination moves: whatever had it before is turned off.
+    if (combo) for (const [k] of HK) if (k !== hkKey && (next[k] ?? "").toLowerCase() === combo.toLowerCase()) next[k] = "";
+    savePrefs({ hotkeys: next });
+  }
+
+  // Live match
+  let liveWarn = $state(false);
+  let liveAgree = $state(false);
+  let liveSt = $state<J>(null);
+  $effect(() => {
+    if (tab === "live") api.liveStatus().then((v) => (liveSt = v)).catch(() => {});
+  });
+  function setLive(v: boolean) {
+    if (v && !p.live_ack) {
+      liveAgree = false;
+      liveWarn = true;
+      return;
+    }
+    savePrefs({ live_enabled: v });
+  }
+  function acceptLive() {
+    savePrefs({ live_enabled: true, live_ack: { at: new Date().toISOString(), version: app.s.version } });
+    liveWarn = false;
   }
 
   // Recordings
@@ -85,11 +113,12 @@
     }
   }
   let anonymise = $state(true);
+  let jsonDays = $state(0);
   async function exportJson() {
     const path = await saveDialog({ defaultPath: `postplant-${stamp()}.json`, filters: [{ name: "JSON", extensions: ["json"] }] });
     if (!path) return;
     try {
-      await api.exportJson(path, anonymise);
+      await api.exportJson(path, anonymise, jsonDays || undefined);
       toast("ok", "JSON exported", path);
     } catch (e) {
       toast("err", "Export failed", errText(e));
@@ -105,6 +134,13 @@
   async function chooseImport() {
     const path = await openDialog({ filters: [{ name: "Postplant backup or JSON", extensions: ["postplant", "json"] }] });
     if (typeof path !== "string") return;
+    inspectPath(path);
+  }
+  // A file dropped on the window arrives here through the route.
+  $effect(() => {
+    if (importPath) inspectPath(importPath);
+  });
+  async function inspectPath(path: string) {
     impPath = path;
     if (path.endsWith(".json")) {
       imp = { json: true };
@@ -113,7 +149,7 @@
     }
     try {
       imp = await api.inspectImport(path);
-      mode = "merge";
+      mode = imp?.same_owner === false ? "replace" : "merge";
       confirmWord = "";
       impOpen = true;
     } catch (e) {
@@ -238,9 +274,26 @@
           <Switch checked={p.hotkeys_game_only} onchange={(v) => savePrefs({ hotkeys_game_only: v })} /></div>
         {#each HK as [k, label] (k)}
           <div class="setting"><div>{label}</div>
-            <input class="input mono" style="width:200px" value={p.hotkeys[k] ?? ""} placeholder="Ctrl+Shift+…" onchange={(e) => setHotkey(k, (e.currentTarget as HTMLInputElement).value)} /></div>
+            <button class="btn btn-sm hk-btn" onclick={() => { hkKey = k; hkOpen = true; }}><Icon name="keyboard" /><span class="mono">{p.hotkeys[k] || "Off"}</span></button></div>
         {/each}
-        <p class="notice">Leave a box empty to turn that hotkey off. Format: Ctrl+Shift+Key.</p>
+        <p class="notice">Click a hotkey and press the new combination. Postplant checks Windows will give it to us before saving.</p>
+      </div>
+    {:else if tab === "live"}
+      <div class="card stack" style="gap:16px">
+        <div class="setting"><div><b>Live match</b><div class="faint">Reads the Riot Client running on this PC to know when you're in agent select or in a match. Off by default.</div></div>
+          <Switch checked={!!p.live_enabled} onchange={setLive} /></div>
+        {#if p.live_enabled}
+          <div class="banner info"><Icon name="wifi" />Status: <b style="margin-left:4px">{liveSt?.phase ?? "…"}</b>{#if liveSt?.map}&nbsp;· {liveSt.map}{/if}{#if liveSt?.error}&nbsp;· <span class="faint">{liveSt.error}</span>{/if}</div>
+          <div class="setting"><div><b>Open the Comp Advisor in agent select</b><div class="faint">Your own planning panel, with the map filled in. Teammates' picks are still typed by you.</div></div>
+            <Switch checked={p.advisor_in_select} onchange={(v) => savePrefs({ advisor_in_select: v })} /></div>
+          <div class="setting"><div><b>Hold Tab for ranks</b><div class="faint">Shows rank, peak and form next to the scoreboard while Tab is held</div></div>
+            <Switch checked={p.live_tab} onchange={(v) => savePrefs({ live_tab: v })} /></div>
+          <div class="setting"><div><b>Recent form</b><div class="faint">One extra request per player for win %, K/D and experience on their agent</div></div>
+            <Switch checked={p.live_form} onchange={(v) => savePrefs({ live_form: v })} /></div>
+          <div class="setting"><div><b>Full table</b><div class="faint">Hotkey {p.hotkeys.live_table || "off"}</div></div>
+            <button class="btn btn-sm" onclick={() => { hkKey = "live_table"; hkOpen = true; }}><Icon name="keyboard" />Change</button></div>
+        {/if}
+        <p class="notice">Nothing about other players is read during agent select. Players who hide their name stay hidden, and Postplant never tries to find out who they are. Riot sign-in tokens stay in memory and only go to Riot. Use windowed fullscreen so the overlay can show.</p>
       </div>
     {:else if tab === "recordings"}
       <div class="card stack" style="gap:14px">
@@ -255,7 +308,7 @@
         <div class="setting"><div><b>Full backup (.postplant)</b><div class="faint">Everything, including notes and settings. Never your API key.</div></div>
           <button class="btn btn-sm" onclick={exportBackup}><Icon name="download" />Export backup</button></div>
         <div class="setting"><div><b>Stats as JSON</b><div class="faint">For spreadsheets and your own scripts</div></div>
-          <div class="row" style="gap:10px"><Switch bind:checked={anonymise} label="Hide other players' names" /><button class="btn btn-sm" onclick={exportJson}><Icon name="download" />Export JSON</button></div></div>
+          <div class="row" style="gap:10px"><Switch bind:checked={anonymise} label="Hide other players' names" /><Select value={String(jsonDays)} options={[["0", "All time"], ["30", "Last 30 days"], ["90", "Last 90 days"], ["365", "Last year"]]} onchange={(v) => (jsonDays = +v)} /><button class="btn btn-sm" onclick={exportJson}><Icon name="download" />Export JSON</button></div></div>
       </div>
       <div class="card stack" style="gap:12px">
         <div class="card-head" style="margin:0"><span class="h3">Import</span></div>
@@ -266,7 +319,7 @@
         <div class="card-head"><span class="h3">Automatic backups</span><span class="spacer"></span><button class="btn btn-sm" onclick={backupNow}>Back up now</button></div>
         <div class="setting mb-2"><div><b>Weekly backup</b><div class="faint">Keeps the last {p.backups_keep}</div></div><Switch checked={p.auto_backup} onchange={(v) => savePrefs({ auto_backup: v })} /></div>
         <table class="table"><tbody>
-          {#each backups as b (b.id)}<tr><td>{fmtDate(b.created_at)}</td><td class="faint">{b.kind}</td><td class="faint">{timeAgo(b.created_at)}</td>
+          {#each backups as b (b.id)}<tr><td>{fmtDate(b.created_at)}</td><td class="faint">{b.kind}</td><td class="faint">{timeAgo(b.created_at)}</td><td class="faint mono">{b.size ? (b.size / 1048576).toFixed(1) + " MB" : ""}</td>
             <td style="text-align:right"><button class="btn btn-sm btn-ghost" onclick={() => { restoreId = b.id; restoreOpen = true; }}><Icon name="undo" />Restore</button></td></tr>
           {:else}<tr><td class="empty-inline">No backups yet.</td></tr>{/each}
         </tbody></table>
@@ -312,7 +365,7 @@
       <span>New notes</span><b>{imp.new_notes}</b><span>Notes that differ</span><b>{imp.note_conflicts}</b>
     </div>
     {#if !imp.same_owner}<div class="banner warn mb-4"><Icon name="warn" />This backup belongs to a different Riot account.</div>{/if}
-    <div class="segmented mb-4"><button aria-pressed={mode === "merge"} onclick={() => (mode = "merge")}>Merge</button><button aria-pressed={mode === "replace"} onclick={() => (mode = "replace")}>Replace everything</button></div>
+    <div class="segmented mb-4"><button aria-pressed={mode === "merge"} disabled={!imp.same_owner} title={imp.same_owner ? "" : "Merging another account's matches would mix two histories"} onclick={() => (mode = "merge")}>Merge</button><button aria-pressed={mode === "replace"} onclick={() => (mode = "replace")}>Replace everything</button></div>
     {#if mode === "merge" && imp.note_conflicts > 0}
       <div class="setting mb-2"><div>When a note differs, keep</div><Select value={notes} options={[["newer", "The newer one"], ["mine", "Mine"], ["both", "Both, joined"]]} onchange={(v) => (notes = v)} /></div>
     {/if}
@@ -336,4 +389,22 @@
   <p class="faint mt-4" style="font-size:13px">Type <b>delete</b> to confirm.</p><input class="input" bind:value={delWord} />
   {#snippet foot()}<button class="btn btn-ghost" onclick={() => (delOpen = false)}>Cancel</button>
     <button class="btn btn-danger" disabled={delWord !== "delete"} onclick={() => api.deleteAll(delKey).catch((e) => toast("err", "Couldn't delete", errText(e)))}>Delete everything</button>{/snippet}
+</Modal>
+
+<HotkeyModal bind:open={hkOpen} label={hkLabel} current={p.hotkeys[hkKey] ?? ""} taken={hkTaken} onsave={saveHotkey} />
+
+<Modal bind:open={liveWarn} title="Turn on Live match?" icon="wifi" tone="warn">
+  <p>Live match reads the Riot Client's local API on this PC, the same way well-known trackers do. It is not an official Riot integration.</p>
+  <ul class="reasons">
+    <li>In agent select it only opens your Comp Advisor. Nothing about other players is read.</li>
+    <li>In a match it shows ranks, peaks and recent form, and only for players who show their name.</li>
+    <li>It never reads game memory, never changes the game, and your Riot tokens never leave this PC except to Riot.</li>
+    <li>Riot could change or block this at any time. Turn it off whenever you like.</li>
+  </ul>
+  <div class="mt-4"><Switch bind:checked={liveAgree} label="I understand and want to turn it on" /></div>
+  {#snippet foot()}
+    <span class="spacer"></span>
+    <button class="btn" onclick={() => (liveWarn = false)}>Not now</button>
+    <button class="btn btn-primary" disabled={!liveAgree} onclick={acceptLive}>Turn on</button>
+  {/snippet}
 </Modal>

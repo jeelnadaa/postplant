@@ -2944,6 +2944,7 @@ name = "postplant"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "chrono",
  "hex",
  "keyring",
@@ -2961,6 +2962,7 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
  "tokio",
+ "windows-sys 0.59.0",
  "zip",
  "zstd",
 ]

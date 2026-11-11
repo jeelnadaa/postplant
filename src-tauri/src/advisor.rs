@@ -24,6 +24,10 @@ pub struct MapInfo {
     pub role_mix: HashMap<String, f64>,
     #[serde(default)]
     pub notes: String,
+    #[serde(default)]
+    pub map_url: String,
+    #[serde(default)]
+    pub minimap: Option<Value>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -87,7 +91,7 @@ impl Kb {
     pub fn json(&self) -> Value {
         json!({
             "agents": self.agents.iter().map(|a| json!({ "id": a.agent_id, "name": a.name, "role": a.role, "limited": a.limited_data })).collect::<Vec<_>>(),
-            "maps": self.maps.iter().map(|m| json!({ "id": m.map_id, "name": m.name, "in_pool": self.pool.contains(&m.name), "notes": m.notes })).collect::<Vec<_>>(),
+            "maps": self.maps.iter().map(|m| json!({ "id": m.map_id, "name": m.name, "in_pool": self.pool.contains(&m.name), "notes": m.notes, "minimap": m.minimap })).collect::<Vec<_>>(),
             "pool": self.pool,
         })
     }
@@ -356,6 +360,158 @@ pub fn learn(
     )
 }
 
+/// One person in a stack: their agent pool and record per agent.
+pub struct StackPlayer {
+    pub name: String,
+    pub pool: Vec<String>,
+    pub comfort: HashMap<String, Comfort>,
+}
+
+/// How well five agents cover a map: utility filled against the map's needs, role mix, smokes.
+pub fn comp_value(map: &MapInfo, team: &[&Agent]) -> f64 {
+    let tv = team_vec(team);
+    let need: f64 = map.utility_needs.values().sum::<f64>().max(1.0);
+    let filled: f64 = map
+        .utility_needs
+        .iter()
+        .map(|(t, n)| tv.get(t).copied().unwrap_or(0.0).min(*n))
+        .sum();
+    let roles = ["Duelist", "Initiator", "Controller", "Sentinel"];
+    let role_gap: f64 = roles
+        .iter()
+        .map(|r| (role_count(team, r) - map.role_mix.get(*r).copied().unwrap_or(1.0)).abs())
+        .sum();
+    let mut v = 10.0 * filled / need - 1.2 * role_gap;
+    if tv.get("smokes").copied().unwrap_or(0.0) < 2.0 {
+        v -= 3.0;
+    }
+    if role_count(team, "Duelist") > 2.0 {
+        v -= 2.0;
+    }
+    v
+}
+
+fn comfort_value(w: &Weights, c: Option<&Comfort>) -> (f64, Option<(i64, i64, bool)>) {
+    let Some(c) = c else { return (0.0, None) };
+    let (g, wn, on_map) = if c.map_games >= w.min_games_for_comfort {
+        (c.map_games, c.map_wins, true)
+    } else {
+        (c.games, c.wins, false)
+    };
+    if g == 0 {
+        return (0.0, None);
+    }
+    let shrunk = (wn as f64 + 5.0) / (g as f64 + 10.0);
+    (
+        (shrunk - 0.5) * 4.0 + (g as f64 + 1.0).ln() / 3.0,
+        Some((g, wn, on_map)),
+    )
+}
+
+/// Stack planner (plan 14.3): assign one agent to each person, from their own pool, maximising
+/// comp coverage + everyone's comfort. Exhaustive over each person's 9 best candidates.
+pub fn stack(kb: &Kb, map_name: &str, players: &[StackPlayer]) -> Result<Value, String> {
+    let map = kb.map(map_name).ok_or("Unknown map")?;
+    if players.is_empty() || players.len() > 5 {
+        return Err("Add 1 to 5 players.".into());
+    }
+    let w = &kb.weights;
+    let cands: Vec<Vec<(&Agent, f64)>> = players
+        .iter()
+        .map(|p| {
+            let pool: Vec<&Agent> = if p.pool.is_empty() {
+                kb.agents.iter().collect()
+            } else {
+                p.pool.iter().filter_map(|n| kb.agent(n)).collect()
+            };
+            let mut v: Vec<(&Agent, f64)> = pool
+                .into_iter()
+                .map(|a| {
+                    let solo = score(kb, map, &[], a, None).score;
+                    let (c, _) = comfort_value(w, p.comfort.get(&a.name));
+                    (a, c * 1.5 + solo * 0.3)
+                })
+                .collect();
+            v.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+            v.truncate(9);
+            v
+        })
+        .collect();
+    if cands.iter().any(|c| c.is_empty()) {
+        return Err("Someone has no agents in their pool.".into());
+    }
+    let mut best: Vec<(f64, Vec<usize>)> = vec![];
+    let n = players.len();
+    let mut idx = vec![0usize; n];
+    loop {
+        // Distinct agents only.
+        let picked: Vec<&Agent> = (0..n).map(|p| cands[p][idx[p]].0).collect();
+        let distinct = picked
+            .iter()
+            .enumerate()
+            .all(|(i, a)| picked.iter().skip(i + 1).all(|b| b.name != a.name));
+        if distinct {
+            let comfort: f64 = (0..n)
+                .map(|p| comfort_value(w, players[p].comfort.get(&picked[p].name)).0)
+                .sum();
+            let total = comp_value(map, &picked) * (n as f64 / 5.0) + comfort * w.comfort.max(0.5);
+            best.push((total, idx.clone()));
+            best.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+            best.truncate(3);
+        }
+        // Next combination.
+        let mut k = 0;
+        loop {
+            if k == n {
+                return Ok(stack_json(map, players, &cands, &best, w));
+            }
+            idx[k] += 1;
+            if idx[k] < cands[k].len() {
+                break;
+            }
+            idx[k] = 0;
+            k += 1;
+        }
+    }
+}
+
+fn stack_json(
+    map: &MapInfo,
+    players: &[StackPlayer],
+    cands: &[Vec<(&Agent, f64)>],
+    best: &[(f64, Vec<usize>)],
+    w: &Weights,
+) -> Value {
+    let top = best.first().map(|b| b.0).unwrap_or(1.0).max(0.01);
+    let options: Vec<Value> = best
+        .iter()
+        .map(|(sc, idx)| {
+            let picked: Vec<&Agent> = idx.iter().enumerate().map(|(p, i)| cands[p][*i].0).collect();
+            let tv = team_vec(&picked);
+            let mut reasons = vec![];
+            let roles: Vec<String> = ["Duelist", "Initiator", "Controller", "Sentinel"].iter().map(|r| format!("{} {}", role_count(&picked, r), r.to_lowercase())).collect();
+            reasons.push(format!("Roles: {}", roles.join(", ")));
+            let gaps: Vec<&str> = TAG_LABEL.iter().filter(|(t, _)| map.utility_needs.get(*t).copied().unwrap_or(0.0) >= 3.0 && tv.get(*t).copied().unwrap_or(0.0) < map.utility_needs[*t] * 0.6).map(|(_, l)| *l).collect();
+            if gaps.is_empty() {
+                reasons.push(format!("Covers what {} asks for", map.name));
+            } else {
+                reasons.push(format!("Light on {}", gaps.join(", ")));
+            }
+            let assign: Vec<Value> = picked
+                .iter()
+                .enumerate()
+                .map(|(p, a)| {
+                    let (_, rec) = comfort_value(w, players[p].comfort.get(&a.name));
+                    json!({ "player": players[p].name, "agent": a.name, "id": a.agent_id, "role": a.role,
+                        "record": rec.map(|(g, wn, on_map)| json!({ "games": g, "wins": wn, "on_map": on_map })) })
+                })
+                .collect();
+            json!({ "score": ((sc / top) * 100.0).round().clamp(0.0, 100.0), "assign": assign, "reasons": reasons })
+        })
+        .collect();
+    json!({ "map": map.name, "options": options, "footer": "Based on role and utility coverage plus each person's own results. Play what you play well." })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -461,5 +617,42 @@ mod tests {
         let c = r["comps"][0]["agents"].as_array().unwrap();
         assert_eq!(c.len(), 5);
         assert!(c.iter().any(|a| a == "Fade"));
+    }
+
+    #[test]
+    fn stack_assigns_distinct_agents_from_each_pool() {
+        let kb = Kb::load();
+        let p = |n: &str, pool: &[&str]| StackPlayer {
+            name: n.into(),
+            pool: pool.iter().map(|x| x.to_string()).collect(),
+            comfort: HashMap::new(),
+        };
+        let players = vec![
+            p("A", &["Omen", "Brimstone", "Jett"]),
+            p("B", &["Sova", "Fade", "Jett"]),
+            p("C", &["Jett", "Raze"]),
+            p("D", &["Killjoy", "Cypher"]),
+            p("E", &["Sage", "Viper", "Omen"]),
+        ];
+        let r = stack(&kb, "Bind", &players).unwrap();
+        let first = &r["options"][0]["assign"];
+        let names: Vec<&str> = first
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|x| x["agent"].as_str().unwrap())
+            .collect();
+        assert_eq!(names.len(), 5);
+        let set: HashSet<&str> = names.iter().copied().collect();
+        assert_eq!(set.len(), 5, "agents must be distinct: {names:?}");
+        for (i, pl) in players.iter().enumerate() {
+            assert!(
+                pl.pool.iter().any(|x| x == names[i]),
+                "{} got {} outside their pool",
+                pl.name,
+                names[i]
+            );
+        }
+        assert_eq!(r["options"][0]["score"], 100.0);
     }
 }

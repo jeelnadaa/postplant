@@ -216,8 +216,18 @@ pub async fn search_player(
         }
         Err(e) => json!({ "error": e.to_string() }),
     };
-    let recent = match st.api.get(&paths::stored_matches(&region, &puuid, 10, Some("competitive")), Prio::Foreground).await {
-        Ok(v) => json!(arr(&v, "/data").iter().map(|m| {
+    let mut summary = Value::Null;
+    let recent = match st
+        .api
+        .get(
+            &paths::stored_matches(&region, &puuid, 25, Some("competitive")),
+            Prio::Foreground,
+        )
+        .await
+    {
+        Ok(v) => {
+            summary = crate::career::from_stored(arr(&v, "/data"));
+            json!(arr(&v, "/data").iter().map(|m| {
             let team = s(m, "/stats/team").to_lowercase();
             let (mine, theirs) = if team == "red" { (i(m, "/teams/red"), i(m, "/teams/blue")) } else { (i(m, "/teams/blue"), i(m, "/teams/red")) };
             let shots = i(m, "/stats/shots/head") + i(m, "/stats/shots/body") + i(m, "/stats/shots/leg");
@@ -227,11 +237,14 @@ pub async fn search_player(
                 "k": i(m, "/stats/kills"), "d": i(m, "/stats/deaths"), "a": i(m, "/stats/assists"), "acs": i(m, "/stats/score") / rounds,
                 "hs": if shots > 0 { 100 * i(m, "/stats/shots/head") / shots } else { 0 }, "score": [mine, theirs],
                 "result": if mine > theirs { "W" } else if mine < theirs { "L" } else { "D" } })
-        }).collect::<Vec<_>>()),
-        Err(crate::api::ApiError::Status(code, _)) if code == 404 || code == 403 => json!({ "private": true }),
+        }).collect::<Vec<_>>())
+        }
+        Err(crate::api::ApiError::Status(code, _)) if code == 404 || code == 403 => {
+            json!({ "private": true })
+        }
         Err(e) => json!({ "error": e.to_string() }),
     };
-    let data = json!({ "account": a, "mmr": mmr, "recent": recent });
+    let data = json!({ "account": a, "mmr": mmr, "recent": recent, "summary": summary });
     let c = st.db.lock().unwrap();
     let _ = db::cache_put(&c, &key, &data);
     let mut recent_list: Vec<Value> = db::get_json(&c, "recent_searches")
@@ -642,4 +655,295 @@ pub fn overlay_data(st: State<'_, AppState>) -> Res {
     let last_id = h["last"]["id"].as_str().map(|s| s.to_string());
     let board = last_id.and_then(|id| queries::match_detail(&c, &me, &id).ok());
     Ok(json!({ "home": h, "board": board, "prefs": prefs, "me": me }))
+}
+
+// ---- Live match, careers, peaks, stack planner, heatmaps, replay ----
+
+#[tauri::command]
+pub fn live_status(live: State<'_, crate::live::Live>) -> Res {
+    Ok(live.status())
+}
+
+/// Your lifetime stats from stored matches (no requests). Cached until a new match arrives.
+#[tauri::command]
+pub fn my_career(st: State<'_, AppState>, queue: Option<String>) -> Res {
+    let me = need_me(&st)?;
+    let q = queue.unwrap_or_default();
+    let c = st.db.lock().unwrap();
+    let (n, newest): (i64, i64) = c
+        .query_row(
+            "SELECT COUNT(*), COALESCE(MAX(started_at),0) FROM matches",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap_or((0, 0));
+    let key = format!("{n}:{newest}:{q}");
+    if let Some((k, v)) = st.career_cache.lock().unwrap().as_ref() {
+        if *k == key {
+            return Ok(v.clone());
+        }
+    }
+    let v = crate::players::career_local(&c, &me.puuid, &q);
+    *st.career_cache.lock().unwrap() = Some((key, v.clone()));
+    Ok(v)
+}
+
+/// Any player's career. `n` > 0 fetches up to n recent matches in full (1 request each, kept
+/// forever); n = 0 returns what we already hold.
+#[tauri::command]
+pub async fn player_career(
+    st: State<'_, AppState>,
+    puuid: String,
+    region: String,
+    n: Option<u32>,
+    queue: Option<String>,
+) -> Res {
+    let q = queue.unwrap_or_default();
+    if st.me().map(|m| m.puuid == puuid).unwrap_or(false) || n.unwrap_or(0) == 0 {
+        return Ok(crate::players::career_local(
+            &st.db.lock().unwrap(),
+            &puuid,
+            &q,
+        ));
+    }
+    crate::players::load_career(&st, &region, &puuid, n.unwrap_or(10), &q).await
+}
+
+/// Current rank, peak rank and last act for anyone. Cached 6 hours.
+#[tauri::command]
+pub async fn player_rank(st: State<'_, AppState>, puuid: String, region: Option<String>) -> Res {
+    let region = region
+        .filter(|r| !r.is_empty())
+        .or_else(|| st.me().map(|m| m.region))
+        .unwrap_or_else(|| "eu".into());
+    Ok(crate::players::mmr(&st, &region, &puuid, 6 * 3_600_000, Prio::Foreground).await)
+}
+
+/// Ranks and peaks of everyone named in a stored match, cached so reopening is free. Hidden-name
+/// players are skipped: Postplant never looks them up.
+#[tauri::command]
+pub async fn match_ranks(st: State<'_, AppState>, id: String) -> Res {
+    let me = need_me(&st)?;
+    let pus: Vec<(String, bool)> = {
+        let c = st.db.lock().unwrap();
+        let raw = crate::parse::load_raw(&c, &id).map_err(err)?;
+        arr(unwrap_data(&raw), "/players")
+            .iter()
+            .map(|p| (s(p, "/puuid").to_string(), s(p, "/name").is_empty()))
+            .collect()
+    };
+    let mut out = serde_json::Map::new();
+    for (pu, hidden) in pus {
+        if hidden || pu.is_empty() {
+            continue;
+        }
+        let v = crate::players::mmr(&st, &me.region, &pu, 6 * 3_600_000, Prio::Foreground).await;
+        out.insert(pu, v);
+    }
+    Ok(Value::Object(out))
+}
+
+#[tauri::command]
+pub fn test_hotkey(app: AppHandle, combo: String) -> Res {
+    overlay::test_combo(&app, &combo).map(|_| json!(true))
+}
+
+/// People you have queued with, for the stack planner: name, games together and their agents.
+#[tauri::command]
+pub fn stack_people(st: State<'_, AppState>) -> Res {
+    let me = need_me(&st)?;
+    let c = st.db.lock().unwrap();
+    let mut q = c
+        .prepare(
+            "SELECT p.puuid, MAX(p.name), MAX(p.tag), COUNT(*) FROM match_players p
+             JOIN match_players me ON me.match_id=p.match_id AND me.puuid=?1
+             WHERE p.puuid<>?1 AND p.party_id IS NOT NULL AND p.party_id<>'' AND p.party_id=me.party_id
+             GROUP BY p.puuid ORDER BY COUNT(*) DESC LIMIT 20",
+        )
+        .map_err(err)?;
+    let rows: Vec<(String, String, String, i64)> = q
+        .query_map([&me.puuid], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))
+        })
+        .map_err(err)?
+        .flatten()
+        .collect();
+    let agents = |pu: &str| -> Vec<Value> {
+        c.prepare("SELECT agent_name, COUNT(*) FROM match_players WHERE puuid=?1 GROUP BY agent_name ORDER BY COUNT(*) DESC LIMIT 6")
+            .and_then(|mut q| {
+                q.query_map([pu], |r| Ok(json!({ "name": r.get::<_, String>(0)?, "games": r.get::<_, i64>(1)? })))
+                    .map(|x| x.flatten().collect())
+            })
+            .unwrap_or_default()
+    };
+    Ok(json!(rows
+        .iter()
+        .map(|(pu, n, t, g)| json!({ "puuid": pu, "name": n, "tag": t, "games": g, "agents": agents(pu) }))
+        .collect::<Vec<_>>()))
+}
+
+fn comfort_for(c: &rusqlite::Connection, puuid: &str, map: &str) -> HashMap<String, Comfort> {
+    let mut m: HashMap<String, Comfort> = HashMap::new();
+    let Ok(mut q) = c.prepare(
+        "SELECT mp.agent_name, m.map_name, CASE WHEN lower(m.winning_team)=lower(mp.team) THEN 1 ELSE 0 END
+         FROM match_players mp JOIN matches m ON m.match_id=mp.match_id WHERE mp.puuid=?1",
+    ) else {
+        return m;
+    };
+    if let Ok(rows) = q.query_map([puuid], |r| {
+        Ok((
+            r.get::<_, String>(0)?,
+            r.get::<_, String>(1)?,
+            r.get::<_, i64>(2)?,
+        ))
+    }) {
+        for (agent, mp, won) in rows.flatten() {
+            let e = m.entry(agent).or_default();
+            e.games += 1;
+            e.wins += won;
+            if mp.eq_ignore_ascii_case(map) {
+                e.map_games += 1;
+                e.map_wins += won;
+            }
+        }
+    }
+    m
+}
+
+/// Stack planner. `players`: [{ name, puuid?, me?, pool: [agent names] }].
+#[tauri::command]
+pub fn advisor_stack(
+    st: State<'_, AppState>,
+    kb: State<'_, Kb>,
+    map: String,
+    players: Vec<Value>,
+) -> Res {
+    let me = st.me();
+    let mut list = vec![];
+    for p in &players {
+        let mut pool: Vec<String> = p["pool"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default();
+        let comfort = if p["me"].as_bool().unwrap_or(false) {
+            let me = me.as_ref().ok_or("Set your Riot ID first.")?;
+            if pool.is_empty() {
+                let o = owned(&st, me);
+                pool = kb
+                    .agents
+                    .iter()
+                    .filter(|a| o.contains(&a.agent_id))
+                    .map(|a| a.name.clone())
+                    .collect();
+            }
+            comfort_map(&st, me, Some(&map))
+        } else {
+            match p["puuid"].as_str() {
+                Some(pu) if !pu.is_empty() => comfort_for(&st.db.lock().unwrap(), pu, &map),
+                _ => HashMap::new(),
+            }
+        };
+        list.push(advisor::StackPlayer {
+            name: p["name"].as_str().unwrap_or("Player").to_string(),
+            pool,
+            comfort,
+        });
+    }
+    advisor::stack(&kb, &map, &list)
+}
+
+/// Where you get kills or die on a map, from your stored matches. Coordinates are game units; the
+/// UI maps them onto the minimap with the transform in maps.json.
+#[tauri::command]
+pub fn heatmap(
+    st: State<'_, AppState>,
+    map: String,
+    event: Option<String>,
+    side: Option<String>,
+) -> Res {
+    use crate::parse::f;
+    let me = need_me(&st)?;
+    let ev = event.unwrap_or_else(|| "deaths".into());
+    let side = side.unwrap_or_default();
+    let c = st.db.lock().unwrap();
+    let rows = queries::my_rows(
+        &c,
+        &me.puuid,
+        &Filter {
+            map: map.clone(),
+            ..Default::default()
+        },
+    );
+    let mut pts = vec![];
+    for r in rows.iter().take(300) {
+        let Ok(raw) = crate::parse::load_raw(&c, &r.id) else {
+            continue;
+        };
+        let m = unwrap_data(&raw);
+        for k in arr(m, "/kills") {
+            if !side.is_empty() && crate::parse::side(&r.team, i(k, "/round")) != side {
+                continue;
+            }
+            let loc = if ev == "kills" {
+                if s(k, "/killer/puuid") != me.puuid {
+                    continue;
+                }
+                arr(k, "/player_locations")
+                    .iter()
+                    .find(|l| s(l, "/player/puuid") == me.puuid)
+                    .and_then(|l| Some((f(l, "/location/x")?, f(l, "/location/y")?)))
+            } else {
+                if s(k, "/victim/puuid") != me.puuid {
+                    continue;
+                }
+                f(k, "/location/x").zip(f(k, "/location/y"))
+            };
+            if let Some((x, y)) = loc {
+                pts.push(json!([x, y, r.result == 'W']));
+            }
+        }
+    }
+    Ok(
+        json!({ "map": map, "event": ev, "side": side, "matches": rows.len().min(300), "points": pts }),
+    )
+}
+
+/// Round-by-round positions for the 2D replay: every kill with where everyone stood at that moment.
+#[tauri::command]
+pub fn match_replay(st: State<'_, AppState>, id: String) -> Res {
+    use crate::parse::f;
+    let c = st.db.lock().unwrap();
+    let raw = crate::parse::load_raw(&c, &id).map_err(err)?;
+    let m = unwrap_data(&raw);
+    let xy = |v: &Value, p: &str| json!([f(v, &format!("{p}/x")), f(v, &format!("{p}/y"))]);
+    let players: Vec<Value> = arr(m, "/players")
+        .iter()
+        .map(|p| json!({ "puuid": s(p, "/puuid"), "team": s(p, "/team_id"), "agent": s(p, "/agent/name"), "agent_id": s(p, "/agent/id"), "name": s(p, "/name") }))
+        .collect();
+    let rounds: Vec<Value> = arr(m, "/rounds")
+        .iter()
+        .enumerate()
+        .map(|(n, r)| {
+            let kills: Vec<Value> = arr(m, "/kills")
+                .iter()
+                .filter(|k| i(k, "/round") == n as i64)
+                .map(|k| {
+                    json!({ "t": i(k, "/time_in_round_in_ms"), "killer": s(k, "/killer/puuid"), "victim": s(k, "/victim/puuid"),
+                        "weapon": s(k, "/weapon/name"), "at": xy(k, "/location"),
+                        "pos": arr(k, "/player_locations").iter().map(|l| json!([s(l, "/player/puuid"), f(l, "/location/x"), f(l, "/location/y")])).collect::<Vec<_>>() })
+                })
+                .collect();
+            let ev = |key: &str| {
+                r.pointer(key)
+                    .filter(|p| !p.is_null())
+                    .map(|p| json!({ "t": i(p, "/round_time_in_ms"), "site": s(p, "/site"), "at": xy(p, "/location") }))
+            };
+            json!({ "n": n, "winner": s(r, "/winning_team"), "result": s(r, "/result"), "kills": kills, "plant": ev("/plant"), "defuse": ev("/defuse") })
+        })
+        .collect();
+    Ok(json!({ "id": id, "map": s(m, "/metadata/map/name"), "players": players, "rounds": rounds }))
 }
