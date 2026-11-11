@@ -27,7 +27,7 @@ jobs:
           TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           if [ -z "$TOKEN" ]; then echo "CLOUDFLARE_API_TOKEN not set; skipping deploy."; echo "ok=false" >> "$GITHUB_OUTPUT"; else echo "ok=true" >> "$GITHUB_OUTPUT"; fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: steps.cf.outputs.ok == 'true'
       - uses: cloudflare/wrangler-action@v3
         if: steps.cf.outputs.ok == 'true'
