@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-tpl="{name} · Win the rounds after the round">Postplant · Win the rounds after the round</title>
+  <meta name="description" content="A free, open-source Valorant companion for Windows: player search, a movable overlay, deep personal analytics and per-map agent and team-comp suggestions.">
+  <meta name="theme-color" content="#0a0b0e">
+  <meta property="og:title" content="Postplant">
+  <meta property="og:description" content="Free, open-source Valorant companion for Windows.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <!-- Logo concepts (temporary: pick one with the "Brand preview" button) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="logo-a" viewBox="0 0 48 48">
+      <path d="M24 3.5 44.5 24 24 44.5 3.5 24Z" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linejoin="round"/>
+      <path d="M24 13.5v15" stroke="currentColor" stroke-width="4.2" stroke-linecap="round"/>
+      <circle cx="24" cy="35" r="2.7" fill="currentColor"/>
+    </symbol>
+    <symbol id="logo-b" viewBox="0 0 48 48">
+      <path d="M12 43V6h15a12.5 12.5 0 0 1 0 25H19" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M27 12.5 32.5 18.5 27 24.5 21.5 18.5Z" fill="currentColor"/>
+    </symbol>
+    <symbol id="logo-c" viewBox="0 0 48 48">
+      <path d="M24 4.5a19.5 19.5 0 1 1-13.8 5.7" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>
+      <path d="M24 14.5 33.5 24 24 33.5 14.5 24Z" fill="currentColor"/>
+      <circle cx="10.2" cy="10.2" r="2.4" fill="currentColor"/>
+    </symbol>
+    <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-gh" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.93.36.31.68.92.68 1.85v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path fill="currentColor" d="m12 2 2.6 6.9 7.4.3-5.8 4.6 2 7.2L12 16.9 5.8 21l2-7.2L2 9.2l7.4-.3Z"/></symbol>
+  </svg>
+
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="nav">
+    <div class="wrap">
+      <a class="brand" href="./" aria-label="Home"><svg><use data-logo href="#logo-a"/></svg><span data-brand-name>Postplant</span></a>
+      <nav class="nav-links" aria-label="Main">
+        <a class="hide-sm" href="#overlay">Overlay</a>
+        <a class="hide-sm" href="#advisor-sec">Comp Advisor</a>
+        <a class="hide-sm" href="#analytics">Analytics</a>
+        <a class="hide-sm" href="#faq">FAQ</a>
+        <a class="hide-sm" data-repo href="#">GitHub</a>
+        <a class="btn small" href="download.html" data-magnetic="0.25"><svg><use href="#i-dl"/></svg>Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" aria-label="Intro">
+      <canvas id="hero-canvas" aria-hidden="true"></canvas>
+      <div class="wrap">
+        <div class="hero-kicker" data-reveal style="--d:.1s">
+          <span class="pill mono"><span class="dot"></span>In development · open source</span>
+          <span class="pill mono">Post-plant <span class="timer" data-timer>00:45.00</span></span>
+        </div>
+        <h1 data-split>Win the <span class="outline">rounds</span><br>after the <span class="accent">round.</span></h1>
+        <div class="hero-bottom">
+          <div>
+            <p data-reveal style="--d:.5s"><strong data-brand-name>Postplant</strong> is a free, open-source Valorant companion for Windows. Look up any player, keep a lightweight overlay on screen, find out where your games are won and lost, and get per-map agent and comp suggestions that show their sources.</p>
+          </div>
+          <div class="hero-cta" data-reveal style="--d:.65s">
+            <a class="btn" href="download.html" data-magnetic><svg><use href="#i-dl"/></svg>Download for Windows</a>
+            <a class="btn ghost" data-repo href="#" data-magnetic><svg><use href="#i-gh"/></svg>View source</a>
+          </div>
+        </div>
+        <div class="hero-meta mono" data-reveal style="--d:.8s">
+          <span>Windows 10 / 11</span><span>Free forever</span><span>No telemetry</span><span>Under 15 MB</span>
+        </div>
+      </div>
+      <div class="scroll-hint mono" aria-hidden="true">Scroll <i></i></div>
+    </section>
+
+    <!-- MARQUEE -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>Player search <svg><use data-logo href="#logo-a"/></svg> <em>Overlay</em> <svg><use data-logo href="#logo-a"/></svg> Comp advisor <svg><use data-logo href="#logo-a"/></svg> <em>Heatmaps</em> <svg><use data-logo href="#logo-a"/></svg> Quota-safe <svg><use data-logo href="#logo-a"/></svg> <em>Open source</em> <svg><use href="#logo-a"/></svg></span>
+        <span>Player search <svg><use data-logo href="#logo-a"/></svg> <em>Overlay</em> <svg><use data-logo href="#logo-a"/></svg> Comp advisor <svg><use data-logo href="#logo-a"/></svg> <em>Heatmaps</em> <svg><use data-logo href="#logo-a"/></svg> Quota-safe <svg><use data-logo href="#logo-a"/></svg> <em>Open source</em> <svg><use href="#logo-a"/></svg></span>
+      </div>
+    </div>
+
+    <!-- OVERLAY -->
+    <section class="section" id="overlay">
+      <div class="wrap two-col">
+        <div>
+          <div class="eyebrow mono" data-reveal>01 · Overlay</div>
+          <h2 class="h2" data-split>Stays out of your way. <span class="outline">Until you need it.</span></h2>
+          <p class="lead" data-reveal style="--d:.2s">A small transparent panel that sits over the game in borderless mode. Clicks pass straight through. Move it, resize it, or hide it without alt-tabbing. When a match ends, the full scoreboard shows up on its own.</p>
+          <div class="keys" data-reveal style="--d:.3s">
+            <span class="key"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>H</kbd> Show / hide</span>
+            <span class="key"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>M</kbd> Move</span>
+            <span class="key"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Tab</kbd> Next panel</span>
+            <span class="key"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>A</kbd> Comp Advisor</span>
+          </div>
+        </div>
+        <div class="stage" data-reveal="scale" style="--d:.15s" aria-label="Overlay preview">
+          <span class="crosshair" aria-hidden="true"></span>
+          <div class="ov" role="img" aria-label="Example overlay showing last match, session and rank panels">
+            <div class="ov-head mono"><span data-ov-label>Last match</span><span class="ov-tabs"><i></i><i></i><i></i></span></div>
+            <div class="ov-panel" data-label="Last match">
+              <div class="ov-big"><span class="lime">Victory</span> 13–9</div>
+              <div class="mono mute" style="margin-top:4px">Lotus · Omen · +21 RR</div>
+              <div class="ov-grid">
+                <div><b data-count="248">0</b><small>ACS</small></div>
+                <div><b>21/14/6</b><small>K/D/A</small></div>
+                <div><b data-count="27" data-suffix="%">0</b><small>HS</small></div>
+              </div>
+            </div>
+            <div class="ov-panel" data-label="Session">
+              <div class="ov-big">4W <span class="mute">–</span> <span class="ember">3L</span></div>
+              <div class="mono mute" style="margin-top:4px">Today · net +18 RR</div>
+              <div class="ov-grid">
+                <div><b data-count="221">0</b><small>Avg ACS</small></div>
+                <div><b data-count="1.12">0</b><small>K/D</small></div>
+                <div><b data-count="24" data-suffix="%">0</b><small>HS</small></div>
+              </div>
+              <div class="tilt">2 losses in a row · take a breather?</div>
+            </div>
+            <div class="ov-panel" data-label="Rank">
+              <div class="ov-big">Diamond 2</div>
+              <div class="mono mute" style="margin-top:4px">64 RR · peak Ascendant 1</div>
+              <svg class="spark" viewBox="0 0 200 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 L20 26 L40 28 L60 20 L80 22 L100 14 L120 18 L140 10 L160 12 L180 6 L200 8"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMP ADVISOR -->
+    <section class="section" id="advisor-sec" style="padding-top:0">
+      <div class="wrap">
+        <div class="eyebrow mono" data-reveal>02 · Comp Advisor</div>
+        <h2 class="h2" data-split>Pick for the map. <span class="outline">Not for the hype.</span></h2>
+        <p class="lead" data-reveal style="--d:.2s">Choose the map, tap what your teammates locked, and see the best picks left for you, plus full team comps. Every suggestion says why, how much data is behind it, and how old that data is. In a 5-stack, it can share out agents across everyone's pools.</p>
+
+        <div class="advisor" id="advisor">
+          <div class="card" data-reveal style="--d:.1s">
+            <div class="mono mute" style="margin-bottom:10px">Map · current competitive pool</div>
+            <div class="chips" data-maps></div>
+            <div class="slots" data-slots></div>
+            <div class="roles" data-agents></div>
+          </div>
+          <div class="card" data-reveal style="--d:.2s">
+            <div class="mono mute" style="margin-bottom:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap"><span>Suggested for you</span><span data-conf></span></div>
+            <ol class="sugg" data-sugg></ol>
+            <div class="comp">
+              <div class="mono mute">Suggested full comp</div>
+              <div class="comp-row" data-comp></div>
+            </div>
+            <p class="disclaimer">Demo with illustrative data only. The app uses a reviewed dataset with sample sizes, dates and sources, and never picks or locks an agent for you.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HEATMAP / ANALYTICS -->
+    <section class="section" id="analytics" style="padding-top:0">
+      <div class="wrap two-col">
+        <div class="heat-wrap" data-reveal="scale">
+          <canvas id="heat" aria-label="Example heatmap of kills and deaths on an abstract map"></canvas>
+          <div class="heat-ui chips">
+            <button type="button" class="chip" data-side="atk" aria-pressed="true">Attack</button>
+            <button type="button" class="chip" data-side="def" aria-pressed="false">Defense</button>
+          </div>
+          <div class="heat-legend mono"><span><i style="background:var(--lime)"></i>Kills</span><span><i style="background:var(--ember)"></i>Deaths</span></div>
+        </div>
+        <div>
+          <div class="eyebrow mono" data-reveal>03 · Your games, mapped</div>
+          <h2 class="h2" data-split>See where rounds <span class="outline">really</span> end.</h2>
+          <p class="lead" data-reveal style="--d:.2s">Kill and death heatmaps per map and side, where your opening duels happen, how you use your abilities, and what you get for every credit you spend. All worked out on your PC from matches you've already played, so it costs no API requests.</p>
+          <div class="stats" data-reveal style="--d:.3s">
+            <div class="stat"><b data-count="38" data-suffix="%">0</b><span>Opening-duel win rate</span></div>
+            <div class="stat"><b data-count="142">0</b><span>Damage per 1,000 credits</span></div>
+            <div class="stat"><b data-count="17" data-suffix="%">0</b><span>Clutch rate (1vX)</span></div>
+            <div class="stat"><b data-count="2.6">0</b><span>Ability casts per round</span></div>
+          </div>
+          <p class="disclaimer">Example numbers.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- HORIZONTAL FEATURES -->
+    <section class="hscroll" aria-label="More features">
+      <div class="hscroll-sticky">
+        <div class="wrap hscroll-head">
+          <div>
+            <div class="eyebrow mono">04 · Everything else</div>
+            <h2 class="h2">Built for the <span class="outline">grind.</span></h2>
+          </div>
+          <div class="hscroll-progress" aria-hidden="true"><i></i></div>
+        </div>
+        <div class="htrack">
+          <article class="hcard"><span class="num">/01</span>
+            <svg class="art" viewBox="0 0 200 120" aria-hidden="true"><rect x="10" y="40" width="180" height="40" rx="20" fill="none" stroke="#5f5d59"/><circle cx="36" cy="60" r="9" fill="none" stroke="#d7ff3a" stroke-width="2"/><path d="M43 67l7 7" stroke="#d7ff3a" stroke-width="2" stroke-linecap="round"/><rect x="62" y="56" width="90" height="8" rx="4" fill="#2a2d35"/></svg>
+            <div><h3>Player search</h3><p>Any Riot ID: rank, peak, recent matches, best agents and maps. Cached, so opening it again costs nothing.</p></div></article>
+          <article class="hcard" style="--glow:var(--ember-dim)"><span class="num">/02</span>
+            <svg class="art" viewBox="0 0 200 120" aria-hidden="true"><g fill="#d7ff3a"><rect x="14" y="60" width="18" height="40" rx="3"/><rect x="40" y="44" width="18" height="56" rx="3"/></g><g fill="#ff5b3a"><rect x="66" y="70" width="18" height="30" rx="3"/><rect x="92" y="78" width="18" height="22" rx="3"/><rect x="118" y="86" width="18" height="14" rx="3"/></g><path d="M150 40h36" stroke="#ff5b3a" stroke-width="2" stroke-dasharray="4 4"/></svg>
+            <div><h3>Session &amp; tilt</h3><p>Today's wins, losses and net RR, and a gentle nudge after a losing streak.</p></div></article>
+          <article class="hcard" style="--glow:var(--cyan-dim)"><span class="num">/03</span>
+            <svg class="art" viewBox="0 0 200 120" aria-hidden="true"><path d="M10 60h180" stroke="#2a2d35" stroke-width="2"/><g fill="#d7ff3a"><circle cx="30" cy="60" r="5"/><circle cx="70" cy="60" r="5"/><circle cx="130" cy="60" r="5"/></g><g fill="#ff5b3a"><circle cx="50" cy="60" r="5"/><circle cx="100" cy="60" r="5"/><circle cx="170" cy="60" r="5"/></g><path d="M110 40l8 12m0-12-8 12" stroke="#5ce1e6" stroke-width="2"/></svg>
+            <div><h3>Round timeline</h3><p>Kills, plants, defuses and trades for every round of every match you've stored.</p></div></article>
+          <article class="hcard"><span class="num">/04</span>
+            <svg class="art" viewBox="0 0 200 120" aria-hidden="true"><circle cx="70" cy="56" r="22" fill="none" stroke="#5f5d59" stroke-width="2"/><circle cx="120" cy="56" r="22" fill="none" stroke="#d7ff3a" stroke-width="2"/><rect x="60" y="92" width="80" height="12" rx="6" fill="#2a2d35"/></svg>
+            <div><h3>Duos &amp; repeat players</h3><p>Your win rate with each friend, best agent pairs, and a "you've played them before" badge with your own notes.</p></div></article>
+          <article class="hcard" style="--glow:var(--ember-dim)"><span class="num">/05</span>
+            <svg class="art" viewBox="0 0 200 120" aria-hidden="true"><path d="M10 90 C50 90 60 40 100 50 S160 30 190 20" fill="none" stroke="#d7ff3a" stroke-width="2.5"/><path d="M100 10v100" stroke="#ff5b3a" stroke-dasharray="3 5"/><text x="106" y="20" fill="#ff5b3a" font-family="JetBrains Mono" font-size="10">PATCH</text></svg>
+            <div><h3>Patch impact</h3><p>How your results on an agent changed after a patch touched them.</p></div></article>
+          <article class="hcard" style="--glow:var(--cyan-dim)"><span class="num">/06</span>
+            <svg class="art" viewBox="0 0 200 120" aria-hidden="true"><path d="M10 100 L40 80 L70 86 L100 60 L130 64 L160 36 L190 30" fill="none" stroke="#5ce1e6" stroke-width="2.5"/><circle cx="190" cy="30" r="5" fill="#d7ff3a"/></svg>
+            <div><h3>Rank view</h3><p>RR over time, peak vs now, act-by-act comparison and an estimate of games to the next rank.</p></div></article>
+          <article class="hcard"><span class="num">/07</span>
+            <svg class="art" viewBox="0 0 200 120" aria-hidden="true"><text x="12" y="70" fill="#ede8df" font-family="Big Shoulders Display" font-weight="800" font-size="44">Aa</text><text x="96" y="70" fill="#d7ff3a" font-family="Instrument Sans" font-size="40">अ</text><circle cx="160" cy="56" r="14" fill="none" stroke="#5ce1e6" stroke-width="2"/></svg>
+            <div><h3>English &amp; Hindi</h3><p>Every screen translatable, with colour-blind-safe palettes and scalable overlay text.</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUOTA + PRIVACY -->
+    <section class="section">
+      <div class="wrap two-col">
+        <div>
+          <div class="eyebrow mono" data-reveal>05 · Quota-safe &amp; private</div>
+          <h2 class="h2" data-split>Light on your PC. <span class="outline">Light on the API.</span></h2>
+          <ul class="ticks" data-reveal style="--d:.2s">
+            <li>A built-in request budget never lets background work use more than half your per-minute limit.</li>
+            <li>Finished matches are fetched once and kept on your PC forever.</li>
+            <li>No requests at all while the game is closed and the overlay is hidden.</li>
+            <li>No telemetry. Your history, notes and API key never leave your PC.</li>
+          </ul>
+        </div>
+        <div data-reveal="scale" style="--d:.1s">
+          <div class="gauge">
+            <svg viewBox="0 0 200 200" aria-hidden="true">
+              <circle class="track" cx="100" cy="100" r="90"/>
+              <circle class="fill" cx="100" cy="100" r="90"/>
+              <circle class="cap" cx="100" cy="100" r="90"/>
+            </svg>
+            <div class="gauge-center">
+              <b><span data-count="4">0</span><span class="mute">/30</span></b>
+              <span class="mono mute" style="margin-top:8px">Peak requests per minute</span>
+              <span class="mono mute" style="font-size:.65rem; margin-top:4px">Estimate · red mark = 80% hard ceiling</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LIVE (EXPERIMENTAL) -->
+    <section class="section" style="padding-top:0">
+      <div class="wrap">
+        <div class="live" data-reveal>
+          <div class="two-col" style="align-items:start">
+            <div>
+              <div class="eyebrow mono" style="color:var(--ember)">06 · Experimental</div>
+              <h2 class="h2" style="font-size:clamp(2.2rem,5vw,4.4rem)">Live match. <span class="outline">Your call.</span></h2>
+              <p class="lead">Once a match has started, see each opponent's current and peak rank. Never during agent select. Off by default, and you decide whether to turn it on.</p>
+              <div class="toggle-row">
+                <button type="button" class="toggle" role="switch" aria-checked="false" aria-label="Live match (demo toggle)"><i></i></button>
+                <span><strong>Live match</strong> <span class="mono mute" data-live-state>Off</span></span>
+              </div>
+              <div class="warn" role="note">
+                <strong>Before you turn this on.</strong> Live match uses the Riot Client running on your PC. Riot does not support this, it may stop working after any game update, and Riot may treat tools that show other players' information as a rules violation. This could put your account at risk. <span data-brand-name>Postplant</span> never reads game memory and never runs during agent select.
+              </div>
+            </div>
+            <div class="scoreboard" aria-label="Example live scoreboard">
+              <div class="sb-row" style="--i:0"><span>Omen</span><span class="rk">Diamond 2</span><span class="rk mute">peak Ascendant 1</span></div>
+              <div class="sb-row" style="--i:1"><span>Neon</span><span class="rk">Diamond 3</span><span class="rk mute">peak Diamond 3</span></div>
+              <div class="sb-row" style="--i:2"><span>Fade</span><span class="rk">Platinum 3</span><span class="rk mute"></span></div>
+              <div class="sb-row" style="--i:3"><span>Vyse <span class="mute">· hidden name</span></span><span class="rk mute">agent only</span><span class="rk"></span></div>
+              <div class="sb-row" style="--i:4"><span>Viper</span><span class="rk">Ascendant 1</span><span class="rk mute">peak Immortal 1</span></div>
+              <p class="disclaimer">Only what's available is shown. A private profile might show current rank only; a hidden name shows the agent and nothing else.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OPEN SOURCE -->
+    <section class="section" style="padding-top:0">
+      <div class="wrap two-col">
+        <div>
+          <div class="eyebrow mono" data-reveal>07 · Open source</div>
+          <h2 class="h2" data-split>Read every line. <span class="outline">Change any of it.</span></h2>
+          <p class="lead" data-reveal style="--d:.2s">Built with Rust, Tauri and Svelte. Signed releases, auto-updates, and a meta dataset that's reviewed by people and traceable to its sources. Agent and map data can be improved by anyone, no Rust needed.</p>
+          <div class="hero-cta" style="justify-content:flex-start; margin-top:26px; --d:.3s" data-reveal>
+            <a class="btn ghost" data-repo href="#" data-magnetic><svg><use href="#i-star"/></svg>Star on GitHub</a>
+          </div>
+        </div>
+        <div class="code" data-reveal="scale">
+          <div class="code-bar"><i></i><i></i><i></i></div>
+          <pre data-type='[{"text":"git clone https://github.com/OWNER/postplant"},{"text":"cd postplant && npm install"},{"text":"npm run tauri dev"},{"out":true,"html":"<span class=\"c\">  ✓ api key loaded from Credential Manager</span>"},{"out":true,"html":"<span class=\"c\">  ✓ 214 matches in local database</span>"},{"out":true,"html":"<span class=\"p\">  ◆ ready in 1.4s</span>"}]'></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section" id="faq" style="padding-top:0">
+      <div class="wrap">
+        <div class="eyebrow mono" data-reveal>08 · FAQ</div>
+        <h2 class="h2" data-split style="margin-bottom:40px">Questions.</h2>
+        <div class="faq" data-reveal>
+          <details>
+            <summary>Do I need an API key? <span class="plus"></span></summary>
+            <div class="ans">Yes, a free one from the community HenrikDev API (not Riot). Join their Discord from <a class="lime" href="https://docs.henrikdev.xyz" rel="noopener">docs.henrikdev.xyz</a>, create a Basic key with their bot, and paste it into the app. The app has a step-by-step guide and a Test key button.</div>
+          </details>
+          <details>
+            <summary>Can this get me banned? <span class="plus"></span></summary>
+            <div class="ans">The core app only uses a public web API with your own key, after matches finish, the same way stats websites work. It never reads game memory, injects into the game or automates input. The optional live-match feature is different: it uses the Riot Client on your PC, which Riot does not support, so it's off by default and carries a clear warning.</div>
+          </details>
+          <details>
+            <summary>Will it slow down my game? <span class="plus"></span></summary>
+            <div class="ans">It's designed not to: under 1% CPU while idle, no animations while nothing changes, and no network requests while the game is closed. Real measurements will be published with the first release.</div>
+          </details>
+          <details>
+            <summary>Does it pick agents for me? <span class="plus"></span></summary>
+            <div class="ans">No. The Comp Advisor is something you read. You enter picks by hand, and it never touches agent select.</div>
+          </details>
+          <details>
+            <summary>Mac or Linux? <span class="plus"></span></summary>
+            <div class="ans">The game runs on Windows, so the overlay is Windows-only. The main app may also build on macOS and Linux for looking up stats.</div>
+          </details>
+          <details>
+            <summary>Is it really free? <span class="plus"></span></summary>
+            <div class="ans">Yes. Open source, no ads, no account, no telemetry.</div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="final">
+      <div class="final-glow" aria-hidden="true"></div>
+      <div class="wrap" style="position:relative">
+        <h2 class="h2" data-split>Plant it. <span class="outline">Own it.</span></h2>
+        <a class="btn" href="download.html" data-magnetic><svg><use href="#i-dl"/></svg>Get <span data-brand-name>Postplant</span> for Windows</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot">
+        <div>
+          <a class="brand" href="./"><svg><use data-logo href="#logo-a"/></svg><span data-brand-name>Postplant</span></a>
+          <p style="max-width:360px; margin-top:14px">A free, open-source Valorant companion for Windows.</p>
+        </div>
+        <div><h4>Product</h4><ul><li><a href="download.html">Download</a></li><li><a href="#advisor-sec">Comp Advisor</a></li><li><a href="#overlay">Overlay</a></li><li><a href="#faq">FAQ</a></li></ul></div>
+        <div><h4>Project</h4><ul><li><a data-repo href="#">Source code</a></li><li><a data-repo="/releases" href="#">Releases</a></li><li><a data-repo="/issues" href="#">Report an issue</a></li></ul></div>
+      </div>
+      <p class="legal">© <span data-year></span> <span data-brand-name>Postplant</span> contributors. <span data-brand-name>Postplant</span> is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
+    </div>
+  </footer>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/site.js"></script>
+  <script src="assets/hero.js"></script>
+  <script src="assets/landing.js"></script>
+</body>
+</html>

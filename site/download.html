@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-tpl="Download {name} for Windows">Download Postplant for Windows</title>
+  <meta name="description" content="Download the installer, offline installer or portable build. Free and open source, with automatic updates.">
+  <meta name="theme-color" content="#0a0b0e">
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <!-- Logo concepts (temporary: pick one with the "Brand preview" button) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="logo-a" viewBox="0 0 48 48">
+      <path d="M24 3.5 44.5 24 24 44.5 3.5 24Z" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linejoin="round"/>
+      <path d="M24 13.5v15" stroke="currentColor" stroke-width="4.2" stroke-linecap="round"/>
+      <circle cx="24" cy="35" r="2.7" fill="currentColor"/>
+    </symbol>
+    <symbol id="logo-b" viewBox="0 0 48 48">
+      <path d="M12 43V6h15a12.5 12.5 0 0 1 0 25H19" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M27 12.5 32.5 18.5 27 24.5 21.5 18.5Z" fill="currentColor"/>
+    </symbol>
+    <symbol id="logo-c" viewBox="0 0 48 48">
+      <path d="M24 4.5a19.5 19.5 0 1 1-13.8 5.7" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>
+      <path d="M24 14.5 33.5 24 24 33.5 14.5 24Z" fill="currentColor"/>
+      <circle cx="10.2" cy="10.2" r="2.4" fill="currentColor"/>
+    </symbol>
+    <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-win" viewBox="0 0 24 24"><path fill="currentColor" d="M3 5.1 10.4 4v7.2H3Zm8.4-1.2L21 2.5v8.7h-9.6ZM3 12.2h7.4v7.2L3 18.3Zm8.4 0H21v8.7l-9.6-1.4Z"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5Zm0 0L12 12l8.5-4.5M12 12v9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+    <symbol id="i-zip" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6Zm4 0v2m0 2v2m0 2v2m0 2v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></symbol>
+  </svg>
+
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="nav">
+    <div class="wrap">
+      <a class="brand" href="./" aria-label="Home"><svg><use data-logo href="#logo-a"/></svg><span data-brand-name>Postplant</span></a>
+      <nav class="nav-links" aria-label="Main">
+        <a class="hide-sm" href="./">Home</a>
+        <a class="hide-sm" href="#install">Install</a>
+        <a class="hide-sm" href="#verify">Verify</a>
+        <a class="hide-sm" data-repo href="#">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="dl-hero">
+      <div class="grid-bg" aria-hidden="true"></div>
+      <div class="orb" aria-hidden="true"></div>
+      <div class="wrap">
+        <div class="eyebrow mono" data-reveal>Download · Windows 10 / 11 · x64</div>
+        <h1 data-split>Get it on your <span class="outline">gaming PC.</span></h1>
+        <div class="dl-meta" data-reveal style="--d:.4s">
+          <span class="pill mono">Version <strong data-version style="color:var(--bone)">…</strong></span>
+          <span class="pill mono">Released <span data-date>…</span></span>
+          <span class="pill mono"><span class="dot"></span>Auto-updates built in</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-top:30px; --d:.5s" data-reveal>
+          <div class="channel" role="group" aria-label="Release channel">
+            <span class="pillbg" aria-hidden="true"></span>
+            <button type="button" data-channel="stable" aria-pressed="true">Stable</button>
+            <button type="button" data-channel="nightly" aria-pressed="false">Nightly</button>
+          </div>
+          <span class="mono mute" data-status></span>
+        </div>
+        <div class="notice" data-os-note></div>
+
+        <div class="dl-grid">
+          <article class="dl-card primary" data-kind="installer" data-tilt data-reveal style="--d:.1s">
+            <span class="shine"></span>
+            <span class="badge hi tag">Recommended</span>
+            <div class="dl-ico"><svg><use href="#i-win"/></svg></div>
+            <h3>Installer</h3>
+            <p>Installs for your user account, no admin needed. Adds a Start menu entry, an optional desktop shortcut, and a proper uninstaller in Settings → Apps. Installs the WebView2 runtime only if it's missing.</p>
+            <div class="spacer"></div>
+            <div class="file mono"><span data-file>…</span><span data-size>—</span></div>
+            <a class="btn" href="#" data-magnetic="0.2"><svg><use href="#i-dl"/></svg>Download installer</a>
+          </article>
+
+          <article class="dl-card" data-kind="offline" data-tilt data-reveal style="--d:.2s">
+            <span class="shine"></span>
+            <div class="dl-ico"><svg><use href="#i-box"/></svg></div>
+            <h3>Offline installer</h3>
+            <p>Everything bundled, including the WebView2 runtime. For PCs without internet during setup, or where WebView2 was removed.</p>
+            <div class="spacer"></div>
+            <div class="file mono"><span data-file>…</span><span data-size>—</span></div>
+            <a class="btn ghost" href="#" data-magnetic="0.2"><svg><use href="#i-dl"/></svg>Download offline</a>
+          </article>
+
+          <article class="dl-card" data-kind="portable" data-tilt data-reveal style="--d:.3s">
+            <span class="shine"></span>
+            <div class="dl-ico"><svg><use href="#i-zip"/></svg></div>
+            <h3>Portable</h3>
+            <p>Unzip anywhere and run, even from a USB drive. Keeps its data in a <code>data</code> folder next to the app. Still updates itself. To remove it, delete the folder.</p>
+            <div class="spacer"></div>
+            <div class="file mono"><span data-file>…</span><span data-size>—</span></div>
+            <a class="btn ghost" href="#" data-magnetic="0.2"><svg><use href="#i-dl"/></svg>Download zip</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="install" style="padding-top:60px">
+      <div class="wrap two-col" style="align-items:start">
+        <div>
+          <div class="eyebrow mono" data-reveal>Install</div>
+          <h2 class="h2" data-split>Up and running in <span class="outline">two minutes.</span></h2>
+          <div class="steps">
+            <span class="line-fill" aria-hidden="true"></span>
+            <div class="step"><div><h4>Run the installer</h4><p>Windows may show a SmartScreen prompt for new apps. Click <strong>More info → Run anyway</strong> if the publisher is <span data-brand-name>Postplant</span>. Check the file first with the checksum below if you like.</p></div></div>
+            <div class="step"><div><h4>Get a free API key</h4><p>Open <a class="lime" href="https://docs.henrikdev.xyz" rel="noopener">docs.henrikdev.xyz</a>, join the HenrikDev Discord, and create a Basic key with their bot. It's free and instant. The app walks you through it.</p></div></div>
+            <div class="step"><div><h4>Paste it in and press Test key</h4><p>The key is stored in Windows Credential Manager and only sent to HenrikDev.</p></div></div>
+            <div class="step"><div><h4>Enter your Riot ID and region</h4><p>Your recent matches load once, then stay on your PC.</p></div></div>
+            <div class="step"><div><h4>Set Valorant to Windowed Fullscreen</h4><p>Overlays can't draw over exclusive fullscreen. Then press <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>H</kbd> in game.</p></div></div>
+          </div>
+        </div>
+        <div>
+          <div class="card" data-reveal style="--d:.15s">
+            <div class="mono mute" style="margin-bottom:10px">What's new</div>
+            <div class="changelog" data-notes><p>Loading…</p></div>
+          </div>
+          <div class="card" id="verify" data-reveal style="--d:.25s; margin-top:16px">
+            <div class="mono mute" style="margin-bottom:10px">Verify your download</div>
+            <p class="mute" style="margin:0 0 12px; font-size:.95rem">Compare the hash with the line in <a class="lime" data-sums href="#">SHA256SUMS.txt</a>. Run this in PowerShell from your Downloads folder:</p>
+            <div class="code verify">
+              <pre id="hashcmd">Get-FileHash .\Postplant_*_x64-setup.exe -Algorithm SHA256</pre>
+            </div>
+            <button type="button" class="copy" data-copy="#hashcmd" style="margin-top:10px">Copy</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="wrap">
+        <div class="eyebrow mono" data-reveal>Requirements</div>
+        <div class="req" data-reveal>
+          <div><b>Windows 10 / 11</b><span>64-bit. Overlay needs Windowed Fullscreen.</span></div>
+          <div><b>WebView2</b><span>Built into Windows 11; the installer adds it if missing.</span></div>
+          <div><b>~150 MB RAM</b><span>Target for app and overlay together.</span></div>
+          <div><b>HenrikDev key</b><span>Free Basic key, 30 requests per minute.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="wrap two-col" style="align-items:start">
+        <div>
+          <div class="eyebrow mono" data-reveal>Updates &amp; uninstall</div>
+          <h2 class="h2" data-split style="font-size:clamp(2.2rem,5vw,4.2rem)">Stays fresh. <span class="outline">Leaves clean.</span></h2>
+        </div>
+        <ul class="ticks" data-reveal style="--d:.15s">
+          <li>The app checks for signed updates and never interrupts a match: updates wait until the game is closed.</li>
+          <li>Pick Stable or Nightly in Settings, or turn automatic checks off.</li>
+          <li>Uninstall from Settings → Apps. Your match history and settings are kept unless you tick "also delete my data".</li>
+          <li>Portable: delete the folder. Use "Remove saved API key" in Settings first if you want the key gone too.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot">
+        <div>
+          <a class="brand" href="./"><svg><use data-logo href="#logo-a"/></svg><span data-brand-name>Postplant</span></a>
+          <p style="max-width:360px; margin-top:14px">A free, open-source Valorant companion for Windows.</p>
+        </div>
+        <div><h4>Product</h4><ul><li><a href="./">Home</a></li><li><a href="#install">Install guide</a></li><li><a href="#verify">Verify download</a></li></ul></div>
+        <div><h4>Project</h4><ul><li><a data-repo href="#">Source code</a></li><li><a data-repo="/releases" href="#">All releases</a></li><li><a data-repo="/issues" href="#">Report an issue</a></li></ul></div>
+      </div>
+      <p class="legal">© <span data-year></span> <span data-brand-name>Postplant</span> contributors. <span data-brand-name>Postplant</span> is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
+    </div>
+  </footer>
+
+  <script src="assets/config.js"></script>
+  <script src="assets/site.js"></script>
+  <script src="assets/download.js"></script>
+</body>
+</html>
