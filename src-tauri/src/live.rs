@@ -303,7 +303,7 @@ fn set_phase(app: &AppHandle, live: &Live, ph: Phase) {
 
 /// Map path from presence ("/Game/Maps/Duality/Duality") → map name via the knowledge base.
 fn map_name(app: &AppHandle, path: &str) -> String {
-    let kb = app.state::<crate::advisor::Kb>();
+    let kb = app.state::<crate::dataset::KbStore>().get();
     kb.maps
         .iter()
         .find(|m| !m.map_url.is_empty() && m.map_url.eq_ignore_ascii_case(path))
@@ -514,7 +514,7 @@ async fn on_ingame(
     )
     .await
     .unwrap_or(Value::Null);
-    let kb = app.state::<crate::advisor::Kb>();
+    let kb = app.state::<crate::dataset::KbStore>().get();
     let me = st.me();
     let (notes, met) = {
         let c = st.db.lock().unwrap();

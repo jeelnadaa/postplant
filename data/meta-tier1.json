@@ -1,0 +1,13 @@
+{
+ "tier": 1,
+ "label": "Pro play",
+ "source": "Liquipedia",
+ "source_url": "https://liquipedia.net/valorant/",
+ "license": "CC-BY-SA 3.0",
+ "attribution": "Pro match data from Liquipedia (liquipedia.net), licensed CC-BY-SA 3.0.",
+ "fetched_at": null,
+ "window": null,
+ "matches": 0,
+ "games": 0,
+ "maps": {}
+}

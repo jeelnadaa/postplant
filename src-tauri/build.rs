@@ -12,5 +12,17 @@ fn main() {
         println!("cargo:rustc-link-arg=/MANIFEST:EMBED");
         println!("cargo:rustc-link-arg=/MANIFESTINPUT:{}", manifest.display());
     }
+    // Version of the bundled advisor data: commit time of the newest commit touching data/, the same
+    // number meta-pipeline/build-dataset.mjs gives the downloadable dataset. 0 if git isn't available.
+    println!("cargo:rerun-if-changed=../data");
+    let v = std::process::Command::new("git")
+        .args(["log", "-1", "--format=%ct", "--", "data"])
+        .current_dir("..")
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .and_then(|s| s.trim().parse::<i64>().ok())
+        .unwrap_or(0);
+    println!("cargo:rustc-env=POSTPLANT_DATA_VERSION={v}");
     tauri_build::try_build(attrs).expect("tauri build");
 }

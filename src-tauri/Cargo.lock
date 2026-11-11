@@ -3037,6 +3037,7 @@ dependencies = [
  "chrono",
  "hex",
  "keyring",
+ "minisign-verify",
  "reqwest 0.12.28",
  "rusqlite",
  "serde",

@@ -1,0 +1,27 @@
+{
+ "result": [
+  {
+   "match2id": "M1", "date": "2026-11-01 18:00:00", "liquipediatier": "1",
+   "match2games": [
+    { "map": "Lotus", "winner": "1", "participants": {
+      "1_1": { "agent": "omen" }, "1_2": { "agent": "kay/o" }, "1_3": { "agent": "Fade" }, "1_4": { "agent": "raze" }, "1_5": { "agent": "Viper" },
+      "2_1": { "agent": "Omen" }, "2_2": { "agent": "Neon" }, "2_3": { "agent": "Fade" }, "2_4": { "agent": "Viper" }, "2_5": { "agent": "Vyse" } } },
+    { "map": "Haven", "winner": "2", "participants": {
+      "1_1": { "agent": "Omen" }, "1_2": { "agent": "Jett" }, "1_3": { "agent": "Sova" }, "1_4": { "agent": "Breach" }, "1_5": { "agent": "Killjoy" },
+      "2_1": { "agent": "Omen" }, "2_2": { "agent": "Jett" }, "2_3": { "agent": "Sova" }, "2_4": { "agent": "Breach" }, "2_5": { "agent": "Killjoy" } } },
+    { "map": "Lotus", "winner": "", "participants": {} }
+   ]
+  },
+  {
+   "match2id": "M2", "date": "2026-11-02 18:00:00", "liquipediatier": "2",
+   "match2games": [
+    { "map": "Lotus", "winner": 2, "opponents": [
+      { "players": [{ "agent": "Omen" }, { "agent": "KAYO" }, { "agent": "Fade" }, { "agent": "Raze" }, { "agent": "Viper" }] },
+      { "players": [{ "agent": "Omen" }, { "agent": "KAY/O" }, { "agent": "Fade" }, { "agent": "Raze" }, { "agent": "Viper" }] } ] },
+    { "map": "Lotus", "winner": 1, "opponents": [
+      { "players": [{ "agent": "Omen" }, { "agent": "Mystery" }, { "agent": "Fade" }, { "agent": "Raze" }, { "agent": "Viper" }] },
+      { "players": [{ "agent": "Omen" }, { "agent": "Neon" }, { "agent": "Fade" }, { "agent": "Viper" }, { "agent": "Vyse" }] } ] }
+   ]
+  }
+ ]
+}

@@ -1,6 +1,7 @@
 //! Tauri commands: the only API the webview has. The HenrikDev key never crosses this boundary.
-use crate::advisor::{self, Comfort, Kb};
+use crate::advisor::{self, Comfort};
 use crate::api::{paths, Prio};
+use crate::dataset::KbStore;
 use crate::db::{self, now_ms};
 use crate::parse::{arr, i, s, unwrap_data};
 use crate::queries::{self, Filter};
@@ -99,7 +100,8 @@ pub async fn lookup_account(st: State<'_, AppState>, name: String, tag: String) 
 }
 
 #[tauri::command]
-pub fn set_me(st: State<'_, AppState>, kb: State<'_, Kb>, me: Me) -> Res {
+pub fn set_me(st: State<'_, AppState>, kb: State<'_, KbStore>, me: Me) -> Res {
+    let kb = kb.get();
     let c = st.db.lock().unwrap();
     db::set_setting(&c, "me", &serde_json::to_string(&me).map_err(err)?).map_err(err)?;
     sync::ensure_starters(&c, &me.puuid, &kb);
@@ -382,7 +384,8 @@ fn owned(st: &AppState, me: &Me) -> HashSet<String> {
 }
 
 #[tauri::command]
-pub fn agents_kb(st: State<'_, AppState>, kb: State<'_, Kb>) -> Res {
+pub fn agents_kb(st: State<'_, AppState>, kb: State<'_, KbStore>) -> Res {
+    let kb = kb.get();
     let mut v = kb.json();
     if let Some(me) = st.me() {
         let o = owned(&st, &me);
@@ -415,10 +418,11 @@ pub fn set_owned(st: State<'_, AppState>, agent_id: String, owned: bool) -> Res 
 #[tauri::command]
 pub fn advisor_suggest(
     st: State<'_, AppState>,
-    kb: State<'_, Kb>,
+    kb: State<'_, KbStore>,
     map: String,
     team: Vec<String>,
 ) -> Res {
+    let kb = kb.get();
     let me = need_me(&st)?;
     let inp = advisor::Input {
         map: &map,
@@ -430,7 +434,8 @@ pub fn advisor_suggest(
 }
 
 #[tauri::command]
-pub fn advisor_learn(st: State<'_, AppState>, kb: State<'_, Kb>, map: String) -> Res {
+pub fn advisor_learn(st: State<'_, AppState>, kb: State<'_, KbStore>, map: String) -> Res {
+    let kb = kb.get();
     let me = need_me(&st)?;
     advisor::learn(
         &kb,
@@ -615,7 +620,8 @@ pub fn usage(st: State<'_, AppState>) -> Res {
 }
 
 #[tauri::command]
-pub fn overlay_data(st: State<'_, AppState>, kb: State<'_, Kb>) -> Res {
+pub fn overlay_data(st: State<'_, AppState>, kb: State<'_, KbStore>) -> Res {
+    let kb = kb.get();
     let Some(me) = st.me() else {
         return Ok(Value::Null);
     };
@@ -788,10 +794,11 @@ fn comfort_for(c: &rusqlite::Connection, puuid: &str, map: &str) -> HashMap<Stri
 #[tauri::command]
 pub fn advisor_stack(
     st: State<'_, AppState>,
-    kb: State<'_, Kb>,
+    kb: State<'_, KbStore>,
     map: String,
     players: Vec<Value>,
 ) -> Res {
+    let kb = kb.get();
     let me = st.me();
     let mut list = vec![];
     for p in &players {
@@ -835,7 +842,7 @@ pub fn advisor_stack(
 #[allow(clippy::too_many_arguments)]
 pub fn heatmap(
     st: State<'_, AppState>,
-    kb: State<'_, Kb>,
+    kb: State<'_, KbStore>,
     map: String,
     event: Option<String>,
     side: Option<String>,
@@ -844,6 +851,7 @@ pub fn heatmap(
     outcome: Option<String>,
     rtype: Option<String>,
 ) -> Res {
+    let kb = kb.get();
     let me = need_me(&st)?;
     let o = crate::insights::HeatOpts {
         map,
@@ -869,7 +877,8 @@ pub fn trade_stats(st: State<'_, AppState>) -> Res {
 }
 
 #[tauri::command]
-pub fn pattern_notes(st: State<'_, AppState>, kb: State<'_, Kb>) -> Res {
+pub fn pattern_notes(st: State<'_, AppState>, kb: State<'_, KbStore>) -> Res {
+    let kb = kb.get();
     let me = need_me(&st)?;
     Ok(crate::insights::patterns(&st.db.lock().unwrap(), &kb, &me))
 }
@@ -882,7 +891,8 @@ pub fn duo_synergy(st: State<'_, AppState>) -> Res {
 
 /// Post-match facts and ability usage vs your average on that agent.
 #[tauri::command]
-pub fn match_extras(st: State<'_, AppState>, kb: State<'_, Kb>, id: String) -> Res {
+pub fn match_extras(st: State<'_, AppState>, kb: State<'_, KbStore>, id: String) -> Res {
+    let kb = kb.get();
     let me = need_me(&st)?;
     Ok(crate::insights::match_extras(
         &st.db.lock().unwrap(),
@@ -932,4 +942,14 @@ pub fn match_replay(st: State<'_, AppState>, id: String) -> Res {
 #[tauri::command]
 pub async fn field_check(st: State<'_, AppState>) -> Res {
     crate::fieldcheck::run(&st).await
+}
+
+#[tauri::command]
+pub fn dataset_status(app: AppHandle) -> Res {
+    Ok(crate::dataset::status(&app))
+}
+
+#[tauri::command]
+pub async fn check_dataset(app: AppHandle) -> Res {
+    crate::dataset::check(&app).await
 }

@@ -7,7 +7,7 @@ import { join } from "node:path";
 const ROLES = ["Duelist", "Initiator", "Controller", "Sentinel"];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function validate({ agents, maps, pool, weights }) {
+export function validate({ agents, maps, pool, weights, tier1 }) {
   const errs = [];
   const tags = new Set(agents.tags ?? []);
   if (!tags.size) errs.push("agents.json: no tags");
@@ -50,13 +50,41 @@ export function validate({ agents, maps, pool, weights }) {
   }
   if ((pool.maps ?? []).length !== 7) errs.push(`map-pool.json: ${pool.maps?.length ?? 0} maps, a competitive pool has 7`);
   for (const [k, v] of Object.entries(weights)) if (typeof v !== "number" || v < 0 || v > 50) errs.push(`advisor-weights.json: ${k}=${v} implausible`);
+  if (tier1) errs.push(...validateTier1(tier1, agents, maps));
+  return errs;
+}
+
+/** data/meta-tier1.json (pro play): every name resolves, rates are in range, picks add up. */
+export function validateTier1(t, agents, maps) {
+  const errs = [];
+  const w = "meta-tier1.json";
+  if (t.tier !== 1) errs.push(`${w}: tier is ${t.tier}, expected 1`);
+  if (!t.source || !t.license || !t.attribution) errs.push(`${w}: source, license and attribution are required`);
+  const agentNames = new Set((agents.agents ?? []).map((a) => a.name));
+  const mapNames = new Set((maps.maps ?? []).map((m) => m.name));
+  for (const [map, s] of Object.entries(t.maps ?? {})) {
+    if (!mapNames.has(map)) errs.push(`${w}: map "${map}" not in maps.json`);
+    if (!Number.isInteger(s.n) || s.n < 1) errs.push(`${w} ${map}: n=${s.n} is not a positive integer`);
+    let picks = 0;
+    for (const a of s.agents ?? []) {
+      if (!agentNames.has(a.name)) errs.push(`${w} ${map}: agent "${a.name}" not in agents.json`);
+      for (const k of ["pick", "win"]) if (typeof a[k] !== "number" || a[k] < 0 || a[k] > 100) errs.push(`${w} ${map} ${a.name}: ${k}=${a[k]} outside 0–100`);
+      picks += a.picks ?? 0;
+    }
+    if (picks !== 10 * s.n) errs.push(`${w} ${map}: ${picks} picks for ${s.n} games, expected ${10 * s.n}`);
+    for (const c of s.comps ?? []) {
+      if (!Array.isArray(c.agents) || c.agents.length !== 5 || new Set(c.agents).size !== 5) errs.push(`${w} ${map}: comp ${JSON.stringify(c.agents)} is not 5 different agents`);
+      for (const a of c.agents ?? []) if (!agentNames.has(a)) errs.push(`${w} ${map}: comp agent "${a}" unknown`);
+      if (!(c.n >= 1 && c.n <= 2 * s.n && c.wins >= 0 && c.wins <= c.n)) errs.push(`${w} ${map}: comp counts n=${c.n} wins=${c.wins} implausible`);
+    }
+  }
   return errs;
 }
 
 if (process.argv[1]?.replace(/\\/g, "/").endsWith("meta-pipeline/validate.mjs")) {
   const dir = process.argv[2] ?? join(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"), "data");
   const r = (f) => JSON.parse(readFileSync(join(dir, f), "utf8"));
-  const errs = validate({ agents: r("agents.json"), maps: r("maps.json"), pool: r("map-pool.json"), weights: r("advisor-weights.json") });
+  const errs = validate({ agents: r("agents.json"), maps: r("maps.json"), pool: r("map-pool.json"), weights: r("advisor-weights.json"), tier1: r("meta-tier1.json") });
   if (errs.length) {
     console.error(errs.map((e) => `✗ ${e}`).join("\n"));
     process.exit(1);

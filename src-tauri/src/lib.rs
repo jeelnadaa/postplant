@@ -4,6 +4,7 @@ pub mod advisor;
 pub mod api;
 pub mod career;
 pub mod commands;
+pub mod dataset;
 pub mod db;
 pub mod fieldcheck;
 pub mod insights;
@@ -121,9 +122,9 @@ pub fn run() {
                 }
             }
             let conn = db::open(&db_path)?;
-            app.manage(AppState::new(conn, dir));
+            app.manage(AppState::new(conn, dir.clone()));
             app.manage(live::Live::default());
-            let kb = advisor::Kb::load();
+            let kb = dataset::initial(&handle, &dir);
             {
                 let st = app.state::<AppState>();
                 if let Some(me) = st.me() {
@@ -131,13 +132,14 @@ pub fn run() {
                     sync::ensure_starters(&c, &me.puuid, &kb);
                 }
             }
-            app.manage(kb);
+            app.manage(dataset::KbStore::new(kb));
             overlay::create(&handle)?;
             setup_tray(&handle)?;
             overlay::apply_hotkeys(&handle);
             #[cfg(feature = "live")]
             live::start(handle.clone());
             updater::start(handle.clone());
+            dataset::start(handle.clone());
             sync::start_background(handle);
             Ok(())
         })
@@ -212,6 +214,8 @@ pub fn run() {
             commands::match_extras,
             commands::field_check,
             commands::install_update,
+            commands::dataset_status,
+            commands::check_dataset,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Postplant");

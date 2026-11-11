@@ -5,5 +5,6 @@
  "synergy": 0.3,
  "third_duelist_penalty": 1.5,
  "no_smokes_bonus": 0.7,
- "min_games_for_comfort": 8
+ "min_games_for_comfort": 8,
+ "pro_meta": 0.8
 }

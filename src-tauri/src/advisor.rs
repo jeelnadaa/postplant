@@ -1,4 +1,5 @@
-//! Comp Advisor (plan section 14), knowledge-base mode ("Tier 3": role and utility coverage).
+//! Comp Advisor (plan section 14). Tier 3 (role and utility coverage from the knowledge base) always;
+//! Tier 1 (pro pick rates per map, `data/meta-tier1.json`) when the map has enough pro games.
 //! Pure functions, no I/O, no API calls.
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -42,6 +43,55 @@ pub struct Weights {
     pub third_duelist_penalty: f64,
     pub no_smokes_bonus: f64,
     pub min_games_for_comfort: i64,
+    /// Weight of pro pick rate on the map (Tier 1). 0 turns pro data off.
+    #[serde(default = "default_pro")]
+    pub pro_meta: f64,
+}
+fn default_pro() -> f64 {
+    0.8
+}
+
+/// Pro games on a map below this are too few to steer suggestions (they're still listed).
+pub const MIN_PRO_GAMES: i64 = 8;
+
+#[derive(Deserialize, Clone, Debug, Default)]
+pub struct ProAgent {
+    pub name: String,
+    pub picks: i64,
+    pub pick: f64,
+    pub win: f64,
+}
+#[derive(Deserialize, Clone, Debug, Default)]
+pub struct ProComp {
+    pub agents: Vec<String>,
+    pub n: i64,
+    pub wins: i64,
+}
+#[derive(Deserialize, Clone, Debug, Default)]
+pub struct ProMap {
+    pub n: i64,
+    #[serde(default)]
+    pub agents: Vec<ProAgent>,
+    #[serde(default)]
+    pub comps: Vec<ProComp>,
+}
+/// `data/meta-tier1.json`: pro play per map, from Liquipedia (CC-BY-SA 3.0).
+#[derive(Deserialize, Clone, Debug, Default)]
+pub struct Tier1 {
+    #[serde(default)]
+    pub source: String,
+    #[serde(default)]
+    pub license: String,
+    #[serde(default)]
+    pub attribution: String,
+    #[serde(default)]
+    pub fetched_at: Option<String>,
+    #[serde(default)]
+    pub window: Option<Value>,
+    #[serde(default)]
+    pub games: i64,
+    #[serde(default)]
+    pub maps: HashMap<String, ProMap>,
 }
 
 pub struct Kb {
@@ -49,6 +99,11 @@ pub struct Kb {
     pub maps: Vec<MapInfo>,
     pub pool: Vec<String>,
     pub weights: Weights,
+    pub tier1: Tier1,
+    /// Dataset version: commit time of data/ (see meta-pipeline/build-dataset.mjs).
+    pub version: i64,
+    /// "bundled" or "downloaded".
+    pub source: &'static str,
 }
 
 #[derive(Deserialize)]
@@ -64,23 +119,66 @@ struct PoolFile {
     names: Vec<String>,
 }
 
+/// Version of the data/ built into this binary (set by build.rs from git; 0 if unknown).
+pub fn bundled_version() -> i64 {
+    option_env!("POSTPLANT_DATA_VERSION")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0)
+}
+
 impl Kb {
+    /// The knowledge base built into the app.
     pub fn load() -> Kb {
-        let a: AgentsFile =
-            serde_json::from_str(include_str!("../../data/agents.json")).expect("agents.json");
-        let m: MapsFile =
-            serde_json::from_str(include_str!("../../data/maps.json")).expect("maps.json");
-        let p: PoolFile =
-            serde_json::from_str(include_str!("../../data/map-pool.json")).expect("map-pool.json");
-        let w: Weights = serde_json::from_str(include_str!("../../data/advisor-weights.json"))
-            .expect("advisor-weights.json");
-        Kb {
+        let files = json!({
+            "agents": serde_json::from_str::<Value>(include_str!("../../data/agents.json")).expect("agents.json"),
+            "maps": serde_json::from_str::<Value>(include_str!("../../data/maps.json")).expect("maps.json"),
+            "map_pool": serde_json::from_str::<Value>(include_str!("../../data/map-pool.json")).expect("map-pool.json"),
+            "weights": serde_json::from_str::<Value>(include_str!("../../data/advisor-weights.json")).expect("advisor-weights.json"),
+            "tier1": serde_json::from_str::<Value>(include_str!("../../data/meta-tier1.json")).expect("meta-tier1.json"),
+        });
+        Kb::from_files(&files, bundled_version(), "bundled").expect("bundled data")
+    }
+
+    /// Build from a dataset's `files` object, checking it is complete enough to advise with.
+    pub fn from_files(files: &Value, version: i64, source: &'static str) -> Result<Kb, String> {
+        fn take<T: serde::de::DeserializeOwned>(v: &Value, k: &str) -> Result<T, String> {
+            serde_json::from_value(v[k].clone()).map_err(|e| format!("{k}: {e}"))
+        }
+        let a: AgentsFile = take(files, "agents")?;
+        let m: MapsFile = take(files, "maps")?;
+        let p: PoolFile = take(files, "map_pool")?;
+        let w: Weights = take(files, "weights")?;
+        let tier1: Tier1 = if files["tier1"].is_null() {
+            Tier1::default()
+        } else {
+            take(files, "tier1")?
+        };
+        if a.agents.len() < 10 || m.maps.len() < 7 {
+            return Err("dataset has too few agents or maps".into());
+        }
+        if let Some(missing) = p
+            .names
+            .iter()
+            .find(|n| !m.maps.iter().any(|x| &x.name == *n))
+        {
+            return Err(format!("map pool names {missing}, which isn't in maps"));
+        }
+        Ok(Kb {
             agents: a.agents,
             maps: m.maps,
             pool: p.names,
             weights: w,
-        }
+            tier1,
+            version,
+            source,
+        })
     }
+
+    /// Pro data for a map, only when there are enough games to lean on.
+    pub fn pro(&self, map: &str) -> Option<&ProMap> {
+        self.tier1.maps.get(map).filter(|p| p.n >= MIN_PRO_GAMES)
+    }
+
     pub fn agent(&self, name: &str) -> Option<&Agent> {
         self.agents
             .iter()
@@ -221,6 +319,23 @@ pub fn score(
         s += w.no_smokes_bonus;
         reasons.push("The team has no smokes yet".into());
     }
+    if let Some(pa) = kb.pro(&map.name).and_then(|p| {
+        p.agents
+            .iter()
+            .find(|a| a.name == cand.name)
+            .map(|a| (a, p.n))
+    }) {
+        let (pa, n) = pa;
+        // Shrink towards no effect for small samples.
+        let trust = n as f64 / (n as f64 + 10.0);
+        s += w.pro_meta * (pa.pick / 100.0) * 2.0 * trust;
+        if pa.pick >= 25.0 {
+            reasons.push(format!(
+                "Pro teams play {} in {:.0}% of games on {} (n={n})",
+                cand.name, pa.pick, map.name
+            ));
+        }
+    }
     if let Some(c) = comfort {
         let (g, wn, scope) = if c.map_games >= w.min_games_for_comfort {
             (c.map_games, c.map_wins, format!(" on {}", map.name))
@@ -262,6 +377,12 @@ pub fn suggest(kb: &Kb, inp: &Input) -> Result<Value, String> {
         })
         .collect();
     cands.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+    let pro = kb.pro(&map.name);
+    let tier = if pro.is_some() {
+        "Pro play + role coverage"
+    } else {
+        "Role coverage"
+    };
     let top: Vec<Value> = cands
         .iter()
         .take(3)
@@ -271,7 +392,7 @@ pub fn suggest(kb: &Kb, inp: &Input) -> Result<Value, String> {
                 reasons.push("Fits the team's role coverage".into());
             }
             json!({ "name": a.name, "id": a.agent_id, "role": a.role, "score": (s * 10.0).round() / 10.0, "reasons": reasons.iter().take(3).collect::<Vec<_>>(),
-                "tier": "Role coverage", "confidence": if team.len() >= 2 { "Medium" } else { "Low" }, "limited": a.limited_data })
+                "tier": tier, "confidence": if team.len() >= 2 || pro.is_some_and(|p| p.n >= 20) { "Medium" } else { "Low" }, "limited": a.limited_data })
         })
         .collect();
     // Comps: my pick from the top candidates, then fill the open slots greedily from all agents.
@@ -314,12 +435,29 @@ pub fn suggest(kb: &Kb, inp: &Input) -> Result<Value, String> {
         .map(|(s, names)| {
             let agents: Vec<&Agent> = names.iter().filter_map(|n| kb.agent(n)).collect();
             let roles: Vec<String> = ["Duelist", "Initiator", "Controller", "Sentinel"].iter().map(|r| format!("{} {}", role_count(&agents, r), r.to_lowercase())).collect();
-            json!({ "agents": names, "you": names.get(team.len()), "score": (s * 10.0).round() / 10.0, "roles": roles.join(" · "), "tier": "Role coverage" })
+            json!({ "agents": names, "you": names.get(team.len()), "score": (s * 10.0).round() / 10.0, "roles": roles.join(" · "), "tier": tier })
         })
         .collect();
+    // Comps pro teams actually ran on this map that still fit the picks typed in so far.
+    let pro_json = kb.tier1.maps.get(&map.name).map(|p| {
+        let fits: Vec<Value> = p
+            .comps
+            .iter()
+            .filter(|c| team.iter().all(|a| c.agents.contains(&a.name)))
+            .take(3)
+            .map(|c| json!({ "agents": c.agents, "n": c.n, "wins": c.wins }))
+            .collect();
+        json!({ "n": p.n, "enough": p.n >= MIN_PRO_GAMES, "comps": fits,
+            "top": p.agents.iter().take(6).map(|a| json!({ "name": a.name, "pick": a.pick, "win": a.win })).collect::<Vec<_>>(),
+            "window": kb.tier1.window, "attribution": kb.tier1.attribution })
+    });
+    let footer = if pro.is_some() {
+        "Suggestions from role and utility coverage plus pro pick rates on this map. Pro teams coordinate; solo queue is different. Play what you play well."
+    } else {
+        "Suggestions from role and utility coverage, not win-rate data. Play what you play well."
+    };
     Ok(
-        json!({ "map": map.name, "notes": map.notes, "agents": top, "comps": comps,
-        "footer": "Suggestions from role and utility coverage, not win-rate data. Play what you play well." }),
+        json!({ "map": map.name, "notes": map.notes, "agents": top, "comps": comps, "pro": pro_json, "footer": footer }),
     )
 }
 
@@ -528,6 +666,63 @@ mod tests {
         for m in &kb.pool {
             assert!(kb.map(m).is_some(), "{m} missing from maps.json");
         }
+    }
+    #[test]
+    fn pro_data_steers_and_explains_only_with_enough_games() {
+        let mut kb = Kb::load();
+        let inp = Input {
+            map: "Lotus",
+            team: vec![
+                "Jett".into(),
+                "Omen".into(),
+                "Fade".into(),
+                "Killjoy".into(),
+            ],
+            owned: all_owned(&kb),
+            comfort: HashMap::new(),
+        };
+        let pro_map = |n: i64| ProMap {
+            n,
+            agents: vec![ProAgent {
+                name: "Raze".into(),
+                picks: 2 * n,
+                pick: 100.0,
+                win: 55.0,
+            }],
+            comps: vec![ProComp {
+                agents: vec![
+                    "Fade".into(),
+                    "Jett".into(),
+                    "Killjoy".into(),
+                    "Omen".into(),
+                    "Raze".into(),
+                ],
+                n: 3,
+                wins: 2,
+            }],
+        };
+        kb.tier1.maps.insert("Lotus".into(), pro_map(3));
+        let thin = suggest(&kb, &inp).unwrap();
+        assert_eq!(thin["agents"][0]["tier"], "Role coverage");
+        assert_eq!(thin["pro"]["enough"], false);
+        let map = kb.map("Lotus").unwrap().clone();
+        let owned_team: Vec<Agent> = ["Jett", "Omen", "Fade", "Killjoy"]
+            .iter()
+            .map(|n| kb.agent(n).unwrap().clone())
+            .collect();
+        let team: Vec<&Agent> = owned_team.iter().collect();
+        let raze = kb.agent("Raze").unwrap().clone();
+        let before = score(&kb, &map, &team, &raze, None).score;
+        kb.tier1.maps.insert("Lotus".into(), pro_map(40));
+        let after = score(&kb, &map, &team, &raze, None);
+        assert!(after.score > before + 1.0, "{before} -> {}", after.score);
+        assert!(after
+            .reasons
+            .iter()
+            .any(|x| x.contains("Pro teams play Raze in 100% of games on Lotus (n=40)")));
+        let r = suggest(&kb, &inp).unwrap();
+        assert_eq!(r["agents"][0]["tier"], "Pro play + role coverage");
+        assert_eq!(r["pro"]["comps"][0]["n"], 3);
     }
     #[test]
     fn no_third_duelist_first() {

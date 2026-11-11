@@ -1,0 +1,54 @@
+# Publish advisor data (plan 15.6): whenever data/ changes on main, bundle it into one file, sign it
+# with the same minisign key as app updates, and upload it to the rolling "dataset" release. The app
+# checks it at most once a day and loads it only if the signature matches its built-in public key.
+# The release is a pre-release and never "latest", so it can't be mistaken for an app release.
+name: Dataset
+
+on:
+  push:
+    branches: [main]
+    paths: ["data/**", "meta-pipeline/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: dataset
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # the dataset version is the commit time of data/
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run meta:test
+      - run: npm run meta:validate
+      - name: Build dataset
+        run: node meta-pipeline/build-dataset.mjs out/dataset.json
+      - name: Sign and upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "::warning::TAURI_SIGNING_PRIVATE_KEY isn't set, so the dataset can't be signed. Apps keep their bundled data."
+            exit 0
+          fi
+          npx tauri signer sign -p "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD}" out/dataset.json
+          test -s out/dataset.json.sig
+          if ! gh release view dataset >/dev/null 2>&1; then
+            gh release create dataset --target "$GITHUB_SHA" --prerelease --latest=false \
+              --title "Advisor data" \
+              --notes "Signed advisor data the app downloads between releases (maps, agents, pro pick rates). Not an app release: get Postplant from the latest release."
+          fi
+          gh release upload dataset out/dataset.json out/dataset.json.sig --clobber
+          echo "Published dataset $(node -p 'require("./out/dataset.json").version')" >> "$GITHUB_STEP_SUMMARY"

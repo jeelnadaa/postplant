@@ -27,6 +27,7 @@
   });
   $effect(() => {
     if (!map) return;
+    void app.version;
     const t = [...team];
     error = "";
     api.suggest(map, t).then((r) => (res = r)).catch((e) => (error = errText(e)));
@@ -100,6 +101,22 @@
           </div>
         {/each}
       </div>
+      {#if res.pro}
+        <div class="card col-12">
+          <div class="card-head"><span class="h3">{t("Pro play on")} {res.map}</span><span class="spacer"></span><span class="faint" style="font-size:12px">{res.pro.n} {t("games")}{#if res.pro.window} · {res.pro.window.from} – {res.pro.window.to}{/if}</span></div>
+          {#if !res.pro.enough}<p class="faint" style="margin:0 0 8px;font-size:12px">{t("Too few pro games on this map to steer suggestions yet; shown for reference.")}</p>{/if}
+          <div class="row" style="gap:14px;flex-wrap:wrap">
+            {#each res.pro.top as a (a.name)}<div class="row" style="gap:6px"><Agent name={a.name} id={byName(a.name)?.id} sm /><div style="font-size:12px"><b>{a.name}</b><div class="faint">{a.pick}% {t("pick")} · {a.win}% {t("win")}</div></div></div>{/each}
+          </div>
+          {#if res.pro.comps.length}
+            <div class="label mt-4 mb-2">{team.length ? t("Pro comps that fit your team so far") : t("Most played pro comps")}</div>
+            {#each res.pro.comps as c, ci (ci)}
+              <div class="row" style="gap:6px;padding:3px 0">{#each c.agents as n (n)}<Agent name={n} id={byName(n)?.id} sm locked={!owned.has(byName(n)?.id)} title={n} />{/each}<span class="faint" style="font-size:12px;margin-left:6px">{c.n} {t("games")} · {c.wins}W</span></div>
+            {/each}
+          {/if}
+          <p class="faint" style="margin:8px 0 0;font-size:11px">{res.pro.attribution}</p>
+        </div>
+      {/if}
       <p class="notice col-12">{res.footer}</p>
     {/if}
   </div>

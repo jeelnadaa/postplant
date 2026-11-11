@@ -4,7 +4,7 @@
   import { getCurrentWebview } from "@tauri-apps/api/webview";
   import { api, errText, on } from "./lib/api";
   import { timeAgo } from "./lib/format";
-  import { app, init, nav, refreshState, toast } from "./lib/store.svelte";
+  import { app, init, loadKb, nav, refreshState, toast } from "./lib/store.svelte";
   import Icon from "./components/Icon.svelte";
   import Rank from "./components/Rank.svelte";
   import Toasts from "./components/Toasts.svelte";
@@ -35,6 +35,11 @@
     init();
     // Toasts raised by the Rust side (e.g. the live table hotkey with no match running).
     const upd = on("update-available", (u: { latest: string }) => toast("info", `Postplant ${u.latest} is available`, "Settings → Updates & startup to install it."));
+    // Newer signed advisor data was loaded in the background: refresh the screens that use it.
+    const kbu = on("kb-updated", async () => {
+      await loadKb();
+      app.version++;
+    });
     const un = on("toast", (t: { kind: "ok" | "err" | "warn" | "info"; title: string; text?: string }) => toast(t.kind, t.title, t.text));
     // Drop a .postplant or .json file anywhere to import it.
     const drop = getCurrentWebview().onDragDropEvent((e) => {
@@ -48,6 +53,7 @@
       clearInterval(t);
       un.then((f) => f());
       upd.then((f) => f());
+      kbu.then((f) => f());
       drop.then((f) => f());
     };
   });
