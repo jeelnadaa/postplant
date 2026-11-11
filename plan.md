@@ -16,7 +16,7 @@ This plan is a strong draft that should be **improved, not just executed**. Chal
 - **Live opponent ranks are in scope (owner decision)**, shown only once the match has started, never in agent select. They ship as an **opt-in, off-by-default** toggle with a mandatory warning, using the local Riot Client. Overwolf is ruled out (section 11).
 - **API key entry and a "how to get a key" guide live inside the app** (section 21).
 - **Distribution**: Windows installer with uninstaller, portable build, WebView2 handling, cached CI builds on GitHub Releases, in-app auto-updater (section 20).
-- **Project tracking**: `PROGRESS.md`, `README.md` and regular git commits (section 22). Static landing and download site for Cloudflare Pages (section 23).
+- **Project tracking**: `PROGRESS.md`, `README.md` and regular git commits (section 22). Static landing and download site on Cloudflare Workers static assets, deployed with wrangler (section 23).
 - **Comp Advisor redesigned** (section 14): three modes (solo queue, 5-stack planner, "what should I learn for this map"), an agent knowledge base with role and utility tags, map-specific traits, and honest confidence labels.
 - **Meta pipeline redesigned** (section 15) after testing the candidate sources on 2026-11-11. No source gives clean per-map ranked comp stats with sample sizes that we can legitimately fetch, so the pipeline now combines three tiers of evidence and runs **once, centrally, in the repo's CI**, instead of every install scraping websites.
 - **Game facts verified** as of 2026-11-11 (section 1.1): current map pool, roster size and newest agent.
@@ -160,7 +160,7 @@ postplant/
 ├─ data/              agents.json, maps.json, map-pool.json (reviewed by people)
 ├─ meta-pipeline/     source adapters, fixtures, validation, CLI
 ├─ docs/              compliance.md, meta-sources.md, privacy.md, architecture.md
-├─ site/              static landing + download pages (Cloudflare Pages)
+├─ site/              static landing + download pages (Cloudflare, wrangler.jsonc)
 ├─ PROGRESS.md        milestone checklist, updated with every meaningful commit
 ├─ README.md
 ├─ .github/           workflows, issue templates, CODEOWNERS
@@ -186,11 +186,14 @@ postplant/
 |---|---|
 | Show / hide overlay | `Ctrl+Shift+H` |
 | Toggle edit mode | `Ctrl+Shift+M` |
-| Reset overlay position | `Ctrl+Shift+R` |
-| Cycle overlay panel | `Ctrl+Shift+Tab` |
+| Reset overlay position | `Ctrl+Shift+Home` |
+| Cycle overlay panel | `Ctrl+Shift+PageDown` |
 | Force refresh | `Ctrl+Shift+F5` |
 | Open main app | `Ctrl+Shift+O` |
 | Open Comp Advisor panel | `Ctrl+Shift+A` |
+| Live match full table (section 11) | `Ctrl+Shift+L` |
+
+Global hotkeys take the key combination away from **every** app while they are registered. The defaults therefore avoid browser and editor staples (the earlier `Ctrl+Shift+R` hard-reload and `Ctrl+Shift+Tab` previous-tab clashed), and by default every hotkey except "Open main app" is registered **only while VALORANT is running** (setting: "Hotkeys only while the game runs", on by default).
 
 If a shortcut fails to register, Settings shows a warning and offers a rebind. Test plan: register, trigger and unregister every hotkey with Valorant focused in borderless mode on 60 Hz and 240 Hz monitors, and with Discord and NVIDIA overlays running.
 
@@ -211,7 +214,7 @@ If a shortcut fails to register, Settings shows a warning and offers a rebind. T
 | My match list | Driven by the adaptive polling in section 13. Fetch only matches not already stored. |
 | Player rank / MMR | TTL 2 min for me, 10 min for searched players. Manual refresh bypasses it. |
 | Account (name#tag → PUUID) | Re-resolve on every search because names change. Always key data by PUUID. |
-| Rank history | Snapshot after every detected match and on season change, tagged with season ID. |
+| Rank history | Snapshot after every detected match and on season change, tagged with season ID. RR gained or lost per match comes from the MMR history endpoint (one request after a sync that found new matches). |
 | Agent, map and rank assets | On disk, revalidated when the game version changes. |
 | Meta dataset | Checked at most once a day; downloaded only when a newer signed version exists (section 15.6). |
 
@@ -231,7 +234,9 @@ match_players(match_id, puuid, team, agent_id, score, kills, deaths, assists,
               headshots, bodyshots, legshots, damage_made, damage_received,
               rank_tier, ability_casts_json, PRIMARY KEY(match_id, puuid))
 
-mmr_snapshots(puuid, taken_at, season_id, tier, rr, peak_tier, elo)
+mmr_snapshots(puuid, taken_at, season_id, tier, rr, peak_tier, elo,
+              PRIMARY KEY(puuid, taken_at))
+rr_changes(match_id PK, puuid, rr_change, tier_after, rr_after)  -- from the MMR history endpoint
 
 rounds(match_id, round_no, winning_team, result_code, planter, defuser,
        plant_site, PRIMARY KEY(match_id, round_no))
@@ -275,7 +280,7 @@ import_log(id PK, file_name, format, mode, source_puuid, -- format: backup | jso
            imported_at, counts_json, conflicts_json)
 ```
 
-Headshot % is derived: `headshots / (headshots + bodyshots + legshots)`. A session is computed, not stored: consecutive matches with gaps under 2 hours. Store raw match JSON compressed (zstd) so new features can be computed later from existing data without refetching.
+Headshot % is derived: `headshots / (headshots + bodyshots + legshots)`. A session is computed, not stored: consecutive matches where the next one starts less than 45 minutes after the previous one ended (the same rule the Habits view uses). Store raw match JSON compressed (zstd) so new features can be computed later from existing data without refetching.
 
 ---
 
@@ -285,32 +290,32 @@ Headshot % is derived: `headshots / (headshots + bodyshots + legshots)`. A sessi
 M0, M1, M2 and M3 below, plus the Comp Advisor running on the **knowledge base only** (section 14, "Tier 3" mode). That is a useful, honest product before any meta scraping exists.
 
 ### M0: Setup (half a day)
-- [ ] Tauri v2 + Svelte + TypeScript project, CI running lint and tests on Windows.
-- [ ] Release workflow skeleton with caching (section 20), producing an unsigned installer and portable zip from day one.
-- [ ] Get a HenrikDev key; store it in the OS keychain.
-- [ ] Call account, MMR, match-list and match-detail endpoints with a real Riot ID. Record field names in `docs/api-notes.md`, and confirm whether rounds, kill events, **player locations** and **ability casts** are present.
+- [x] Tauri v2 + Svelte + TypeScript project, CI running lint and tests on Windows.
+- [x] Release workflow with caching and automatic versioning (section 20), producing an unsigned installer and portable zip from day one.
+- [x] Key entry in the app; stored in Windows Credential Manager.
+- [ ] Call account, MMR, match-list and match-detail endpoints with a real Riot ID (the client is written against the documented v4 shapes; `docs/api-notes.md` lists every field read, to confirm). Record field names in `docs/api-notes.md`, and confirm whether rounds, kill events, **player locations** and **ability casts** are present.
 
 ### M1: Data layer (1–2 days)
-- [ ] Budget governor (section 13), built before any feature that calls the API.
-- [ ] Henrik client with retries and 429 handling. Deduplicate in-flight requests.
-- [ ] SQLite schema and migrations; cache layer with TTLs.
-- [ ] Sync job for my recent matches.
+- [x] Budget governor (section 13), built before any feature that calls the API.
+- [x] Henrik client with retries and 429 handling. Deduplicate in-flight requests.
+- [x] SQLite schema and migrations; cache layer with TTLs.
+- [x] Sync job for my recent matches.
 
 ### M2: Search app (2–3 days)
-- [ ] Onboarding: region, Riot ID, API key entry with the in-app "how to get a key" guide (section 21), agent pool.
-- [ ] Search with recent history; profile page; match history; match detail; "look up this player".
-- [ ] Trend charts.
+- [x] Onboarding: region, Riot ID, API key entry with the in-app "how to get a key" guide (section 21), agent pool.
+- [x] Search with recent history; profile page; match history; match detail; "look up this player".
+- [x] Trend charts.
 
 ### M3: Overlay (2 days)
-- [ ] Window modes, hotkeys with rebinding, persistence, panels, new-match detection.
+- [x] Window modes, hotkeys with rebinding, persistence, panels, new-match detection.
 
 ### M2b: Analytics (2–3 days)
-- [ ] Everything in section 12, trimmed to what M0 showed the data supports.
+- [x] Everything in section 12, trimmed to what M0 showed the data supports.
 
 ### M4: Comp Advisor v1 (2–3 days)
-- [ ] `data/agents.json` and `data/maps.json` knowledge base, reviewed by people (section 14.2).
-- [ ] Scoring engine as pure Rust functions with fixture tests.
-- [ ] Solo-queue mode and stack planner UI, plus the compact overlay panel.
+- [x] `data/agents.json` and `data/maps.json` knowledge base, reviewed by people (section 14.2).
+- [x] Scoring engine as pure Rust functions with fixture tests.
+- [x] Solo-queue mode (teammates' picks entered by hand) and learn-for-this-map. Stack planner and compact overlay panel still to do.
 
 ### M5: Meta pipeline (3–5 days, can start after M0)
 - [ ] Source review recorded in `docs/meta-sources.md` (section 15.2).
@@ -323,20 +328,21 @@ M0, M1, M2 and M3 below, plus the Comp Advisor running on the **knowledge base o
   - [ ] Kill/death heatmaps per map (by side, filter by agent)
   - [ ] Opening duel map and win rate
   - [ ] Ability usage per round vs your own average
-  - [ ] Economy efficiency (damage per 1,000 credits; eco/force/full-buy results)
-  - [ ] Agent pool tracker (results per agent and map; feeds Comp Advisor comfort)
+  - [x] Economy results (eco/force/full-buy round win %); damage per 1,000 credits still to do
+  - [x] Agent pool tracker (results per agent and map; feeds Comp Advisor comfort)
   - [ ] Duo synergy (per agent pair with each friend)
   - [ ] Patch impact (before/after a patch that changed your agent)
-  - [ ] Post-match summary card
+  - [x] Post-match summary card (overlay scoreboard after each match)
   - [ ] English + Hindi UI (`lib/i18n`, every string translatable from day one)
-  - [ ] Colour-blind-safe palettes and scalable overlay text
-  - [ ] Section 25: recording sync (Watch at round/death), When you play best, review list
-  - [ ] Export / import and automatic backups (section 16.1): `.postplant` backup + JSON export, preview, merge/replace, conflict rules, anonymised export, weekly + safety backups, restore from onboarding
-- [ ] Settings, error states, tray icon, start with Windows, performance pass (section 9).
+  - [x] Colour-blind-safe palettes and scalable overlay text
+  - [x] Section 25: recording sync (Watch at round/death), When you play best, review list
+  - [x] Export / import and automatic backups (section 16.1): `.postplant` backup + JSON export, preview, merge/replace, conflict rules, anonymised export, weekly + safety backups, restore from onboarding
+- [x] Settings, error states, tray icon, start with Windows. Performance pass (section 9) still to measure.
 - [ ] Code signing, auto-updater (section 20), first stable release.
 
 ### Site (can run any time)
-- [ ] Landing and download pages in `site/` (section 23); deploy to Cloudflare Pages.
+- [x] Landing and download pages in `site/` (section 23); `wrangler.jsonc` for Cloudflare Workers static assets.
+- [ ] First deploy with `npx wrangler deploy` (owner).
 
 ### M7: Live match module (opt-in, 2–3 days, after v1.0 is stable)
 - [ ] Re-read Riot's VALORANT policy and the current state of the local client endpoints.
@@ -429,7 +435,7 @@ Read the Riot Client's lockfile for the local port and session, then ask Riot's 
 ### Guardrails
 - **Off by default.** Turning it on shows a plain-language notice: unsupported by Riot, may break, may carry account risk, use at your own risk. The choice is stored with a date.
 - **Phase gate:** active only when the client reports the in-game phase. During agent select the module does nothing, not even fetch PUUIDs. This is checked in code and covered by tests with recorded client responses.
-- **Hidden names are respected:** if a player has hidden their name (streamer mode), the app shows the agent and "Hidden name · Private", and makes **no** lookup for that player.
+- **Hidden names are respected:** if a player has hidden their name (streamer mode), the app shows them by their agent's name with an eye-off icon, as the game does, every other field reads **Private**, and **no** lookup is made for that player.
 - **Private profiles are labelled, not guessed:** fields HenrikDev can't return show "Private".
 - **Read only:** no requests that change anything, no agent-select calls, no automation.
 - **Quota:** ranks come from HenrikDev using PUUIDs, fetched through the governor's live budget (section 13), cached for the match. Calling Riot's rank endpoints with the user's session tokens is avoided, to keep token use to the minimum.
@@ -454,7 +460,7 @@ Everything below appears only when Live match is on (warning accepted) and only 
 - **Loading:** skeleton bars per field; ranks load before recent form.
 - **Queued:** waiting for quota (requests are spread over at least 60 s); shows a clock instead of a value.
 - **Private profile:** HenrikDev returns nothing for that player. Name, agent and level still show (from the client); rank, peak, last act and form show **Private** with a lock.
-- **Hidden name (streamer mode):** the agent shows, the name reads **Hidden name**, every other field reads **Private**, and **no lookup is made**.
+- **Hidden name (streamer mode):** shown by the agent's name with an eye-off icon, every other field reads **Private**, and **no lookup is made**.
 - **Unranked:** no competitive rank this act; peak still shows if it exists.
 - **Error / paused:** a dash with a retry hint; the panel never shows stale data from another player.
 
@@ -509,7 +515,7 @@ Goals, crosshair/lineup notes, CSV export, weekly reports, Discord webhook, tray
 ### Rules
 1. **Local first.** Every screen reads SQLite first.
 2. **Match details are fetched once, ever.** Identical in-flight requests are merged.
-3. **Cheap "anything new?" check**: latest match list at the smallest page size; fetch details only for new IDs.
+3. **Cheap "anything new?" check**: the stored-matches list (lightweight rows: id, map, agent, score) at a small page size; full match details (v4) only for IDs not stored yet. The v4 match list returns whole matches and is not used for polling.
 4. **Adaptive polling**: only while Valorant is running (process-exists check, nothing read from it) or the overlay is visible. Every 3 min, backing off 3 → 6 → 12 min while nothing changes; stop 10 min after the game closes.
 5. **Rank snapshots** only after a new match, plus once at start if the last one is over 30 min old.
 6. **Other players on demand only**, cached 10 minutes. The one exception is the opt-in live module (section 11): once per match it may fetch rank (1 request) and, if enabled, recent form (1 request) for up to 9 players: at most 18 requests, about 18–36 units. They are spread over at least 60 seconds, ranks first, skipping hidden-name players and anyone cached in the last 10 minutes. It counts against a separate per-match cap and never pushes total use above the 80% ceiling.
@@ -857,7 +863,7 @@ Before announcing: check domains (`.gg`, `.app`, `.dev`) and a basic trademark s
 | File | What it is | Notes |
 |---|---|---|
 | `Postplant_<ver>_x64-setup.exe` | **Installer** (NSIS) | Per-user install, no admin needed. Start-menu entry, optional desktop shortcut, optional "start with Windows". Registers in *Settings → Apps* with a working **uninstaller**. WebView2: `embedBootstrapper` (installs it only if missing; Windows 11 already has it). |
-| `Postplant_<ver>_x64-offline-setup.exe` | **Offline installer** | Same, but with the WebView2 runtime bundled (`offlineInstaller`), for machines without internet or with WebView2 removed. About 130 MB larger. |
+| `Postplant_<ver>_x64-offline-setup.exe` (later) | **Offline installer**, not built in v0.1 to keep release builds fast | Same, but with the WebView2 runtime bundled (`offlineInstaller`), for machines without internet or with WebView2 removed. About 130 MB larger. |
 | `Postplant_<ver>_x64-portable.zip` | **Portable** | Unzip and run. A `portable.flag` file next to the exe makes the app keep its database and settings in `.\data\` instead of `%APPDATA%`. Needs WebView2 (present on Windows 10 21H2+ and 11); if missing, the app shows a one-click link to Microsoft's installer. |
 | `latest.json`, `*.sig` | Updater manifest and signatures | Read by the in-app updater. |
 | `SHA256SUMS.txt` | Checksums | Linked from the download page. |
@@ -870,19 +876,20 @@ Before announcing: check domains (`.gg`, `.app`, `.dev`) and a basic trademark s
 | Workflow | Trigger | Does |
 |---|---|---|
 | `ci.yml` | Every PR and push | fmt, clippy, tests, Vitest, meta-pipeline fixture tests. Path filters: changes only under `site/`, `docs/` or `*.md` skip the Rust and app jobs. |
-| `release.yml` | Push to `main` that touches app paths (`src/`, `src-tauri/`, `data/`, lockfiles) | Builds and publishes a rolling **nightly** pre-release (tag `nightly`), replacing its assets. |
-| `release.yml` | Tag `v*.*.*` | Builds a **stable** release with `tauri-action`: draft → upload assets, `latest.json`, checksums → publish. Release notes generated from conventional commits. |
-| `site.yml` (optional) | Changes under `site/` | Not needed if Cloudflare Pages is connected to the repo; it deploys on its own. |
+| `release.yml` | Push to `main` that touches app paths (`src/`, `src-tauri/`, `data/`, `index.html`, `overlay.html`, `package*.json`, `vite.config.ts`, `svelte.config.js`), or a manual run with an optional bump override | **Automatic versioning** with `scripts/next-version.mjs`: reads Conventional Commits since the last `v*` tag (`feat` → minor, everything else → patch, `BREAKING CHANGE`/`!` → major, or minor while below 1.0; the first release uses the version in `package.json`). Commits that only touch docs, site or design don't count, and a commit containing `[skip release]` is left out. `scripts/set-version.mjs` stamps the version into `package.json`, `tauri.conf.json` and `Cargo.toml` inside the build only (the tag is the source of truth, nothing is committed back). The job runs check, Vitest and `cargo test`, builds the NSIS installer with `tauri build`, zips the portable build (`Postplant.exe` + `portable.flag`), writes `SHA256SUMS.txt`, and publishes GitHub Release `vX.Y.Z` with notes grouped from the commits (`gh release create`). |
+| `site.yml` | Changes under `site/` or `wrangler.jsonc` | `wrangler deploy` to Cloudflare Workers static assets via `cloudflare/wrangler-action`. Needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets and skips cleanly without them. Not needed if Workers Builds (dashboard Git integration) is connected; that reads the same `wrangler.jsonc`. |
 
 **No unnecessary rebuilds:**
-- Path filters (above) stop docs or site commits from building the app.
-- `concurrency` with `cancel-in-progress` so only the newest push to a branch keeps building.
-- `Swatinem/rust-cache` for Cargo registry and `target/`; `actions/setup-node` with the npm/pnpm cache.
-- **Build fingerprint:** the release job hashes app inputs (`hashFiles('src/**', 'src-tauri/**', 'data/**', '**/Cargo.lock', '**/pnpm-lock.yaml')`). Built bundles are saved with `actions/cache` under that key; if a later push has the same fingerprint (for example a README-only change that slipped past the filter, or re-running a tag on the same commit), the job restores the bundles and only re-publishes them.
+- Path filters (above) stop docs, design or site commits from building the app; `next-version.mjs` also skips when no app commit landed since the last tag.
+- `concurrency`: CI cancels superseded runs; releases queue one at a time so two pushes never race for the same version.
+- `Swatinem/rust-cache` for the Cargo registry and `target/`; `actions/setup-node` with the npm cache.
+- Later, if build times grow: cache built bundles under a hash of the app inputs and re-publish on a fingerprint hit.
 
-**Secrets:** `TAURI_SIGNING_PRIVATE_KEY` and its password (updater signatures, required). Authenticode signing later through a free open-source signing service such as SignPath Foundation, so SmartScreen warnings fade as reputation builds. Until then, the download page explains the SmartScreen prompt.
+**Secrets:** `TAURI_SIGNING_PRIVATE_KEY` and its password (updater signatures; the release workflow already passes them through when set, and builds unsigned bundles without them). Authenticode signing later through a free open-source signing service such as SignPath Foundation, so SmartScreen warnings fade as reputation builds. Until then, the download page explains the SmartScreen prompt.
 
 ### 20.3 In-app auto-updater
+**Status (v0.1):** the signed updater needs `TAURI_SIGNING_PRIVATE_KEY` as a repository secret and the matching public key in `tauri.conf.json`. Until the maintainer creates them, the app checks the GitHub Releases API (at start and every 6 hours, never during a match), shows "Version X is available" with the changelog, and opens the download page. Switching to the plugin below is a config change once the key exists.
+
 - `tauri-plugin-updater`, endpoint `https://github.com/<owner>/postplant/releases/latest/download/latest.json` (stable) or the `nightly` release's manifest (nightly channel).
 - Checks at start and every 6 hours. **Never interrupts a match:** if Valorant is running, the update waits until the game closes.
 - Shows version and changelog; buttons "Update now" and "On next restart". Every download is verified against the updater public key baked into the app; an invalid signature is rejected.
@@ -915,13 +922,18 @@ Before announcing: check domains (`.gg`, `.app`, `.dev`) and a basic trademark s
 
 ---
 
-## 23. Website (static, Cloudflare Pages)
+## 23. Website (static, Cloudflare Workers with wrangler)
 
-- `site/index.html` (landing) and `site/download.html` (download), shared `site/assets/`. **No build step**: plain HTML, CSS and a little JavaScript, so Cloudflare Pages serves the folder as is (build command: none, output directory: `site`).
+- `site/index.html` (landing), `site/download.html` (download) and `site/404.html`, shared `site/assets/`. **No build step**: plain HTML, CSS and a little JavaScript.
+- **Hosting: Cloudflare Workers static assets**, configured in `wrangler.jsonc` at the repo root (`name: postplant-site`, `assets.directory: ./site`, `html_handling: auto-trailing-slash` so `/download` serves `download.html`, `not_found_handling: 404-page`). No Worker script: Cloudflare serves the files directly and static requests are free.
+  - Preview locally: `npm run site:dev` (`npx wrangler@4 dev`, http://localhost:8787).
+  - Deploy by hand: `npx wrangler login` once, then `npm run site:deploy`.
+  - Deploy automatically: either connect the repo in the Cloudflare dashboard (Workers Builds, deploy command `npx wrangler deploy`), or add the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets so `.github/workflows/site.yml` deploys on every change under `site/`.
+  - Custom domain: add it under the Worker's *Domains & Routes* in the dashboard (or a `routes` entry in `wrangler.jsonc`).
+- `site/_headers` (security headers, CSP, asset caching) is applied by Workers static assets the same way Pages did; `site/.assetsignore` keeps OS junk files out of uploads.
 - Typography: Satoshi for body text (Fontshare), Big Shoulders Display and JetBrains Mono (Google Fonts). The CSP in `_headers` allows exactly these two font hosts. Motion is done with CSS and small vanilla scripts (scroll-linked reveals via IntersectionObserver, a canvas hero, magnetic buttons). Respects `prefers-reduced-motion`; no motion library needed.
-- The download page reads the latest release from the GitHub API (unauthenticated, cached in the browser for an hour) to show version, date, file sizes and checksums, and falls back to a link to the Releases page if the API is unavailable.
-- `site/_headers` sets security headers and long caching for assets.
-- Brand locked: logo C and the name Postplant everywhere; the temporary brand switcher has been removed.
+- The download page reads the latest release from the GitHub API for `jeelnadaa/postplant` (`site/assets/config.js`; unauthenticated, cached in the browser for an hour) to show version, date, file sizes and checksums, and falls back to a link to the Releases page if the API is unavailable. Asset name patterns match what `release.yml` publishes.
+- Brand locked: logo C and the name Postplant everywhere.
 - Riot "not endorsed" notice in the footer of both pages. No Riot logos or game art on the site.
 
 ---
@@ -986,3 +998,20 @@ Chosen because each one answers a question players actually ask, uses data Postp
 - **Enemy credits/loadouts, live K/D/A:** not available from the client, and Valorant's own scoreboard has them.
 - **In-round tips:** against Riot's policy and distracting.
 - **Goals, CSV export, weekly reports:** excluded earlier by the owner.
+
+---
+
+## 26. Small additions and fixes (2026-11-11, second review)
+
+**Fixed in this plan:** hidden-name wording in section 11 now matches the agent-name rule; one session rule (45 minutes) everywhere; `mmr_snapshots` primary key and `rr_changes` table; hotkey defaults that no longer steal browser shortcuts; polling uses the lightweight stored-matches list; releases are versioned automatically; the updater section states what is missing for signed updates.
+
+**Small features (cheap, useful):**
+| Feature | Why |
+|---|---|
+| **Command palette** (`Ctrl+K`) | Jump to any screen or look up `name#tag` without the mouse. |
+| **Copy Riot ID** on every player row and profile | Adding someone as a friend means typing their ID; one click instead. |
+| **Region detected from the account lookup** in setup | One less thing to get wrong; still editable. |
+| **Hotkeys only while the game runs** (default on) | Global hotkeys stop stealing key combinations from other apps when you are not playing. |
+| **Tray icon** with Show app, Show/hide overlay, Sync now, Quit; closing the window keeps the overlay and sync running | The overlay needs the app running; the tray makes that obvious and easy to quit. |
+| **Start with Windows** (off by default) | So the overlay is ready when you play. |
+| **Sync status pill** shows "Synced 2 min ago" and syncs on click | Freshness visible everywhere, refresh one click away. |

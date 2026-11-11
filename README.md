@@ -1,56 +1,104 @@
 # Postplant
 
-**A lightweight, open-source Valorant companion for Windows.** Look up any player, see where your games are won and lost, keep a movable overlay on screen, and get per-map agent and team-comp suggestions.
+**A lightweight, open-source Valorant companion for Windows.** See where your games are won and lost, look up any player, keep a small overlay on screen, and plan agent picks per map. Your data stays on your PC.
 
-> **Status: planned and fully designed.** The app is not built yet. See [PROGRESS.md](PROGRESS.md) for where things stand and [plan.md](plan.md) for the full design.
+[![CI](https://github.com/jeelnadaa/postplant/actions/workflows/ci.yml/badge.svg)](https://github.com/jeelnadaa/postplant/actions/workflows/ci.yml)
+[![Release](https://github.com/jeelnadaa/postplant/actions/workflows/release.yml/badge.svg)](https://github.com/jeelnadaa/postplant/releases/latest)
 
-## Planned features
+> **Status: v0.1, first pre-release.** Everything below is built. The API field names follow HenrikDev's documentation and still need a check against live data (see [docs/api-notes.md](docs/api-notes.md)). Track progress in [PROGRESS.md](PROGRESS.md); the full design is in [plan.md](plan.md).
 
-- **Player search** by Riot ID: rank, peak rank, recent matches, agents, maps, headshot %, ACS, K/D.
-- **Overlay** that you can move, resize and hide with hotkeys. Shows your last match, session and rank, and the full scoreboard when a match ends.
-- **Analytics** from your own match history: sessions with a tilt warning, breakdowns by agent, map, side and weapon, first bloods, clutches, round timelines, teammate and duo stats, notes on players.
-- **Comp Advisor**: pick the map and your teammates' agents, and get suggested agents and full team comps, with the reason, sample size and data date for each suggestion. Only suggests agents you own.
-- **Heatmaps** for you, your team and enemies (kills, deaths, where rounds end), a **2D round replay** and death review, ability usage, economy efficiency, and patch impact on your agents.
-- **Live match (experimental, off by default)**: opponents' rank and peak rank once the match has started. Never during agent select. See the warning below.
-- **Export and import**: back up everything, move to a new PC without re-downloading, or export open JSON for your own tools.
-- **Six themes** (three dark, three light), five UI fonts and a colour-blind-safe mode.
-- **Quota-safe**: a built-in request budget keeps you well inside your API limit.
-- **Private by design**: no telemetry. Your data stays on your PC.
+## Features
+
+- **Home**: rank and RR, this session (with a gentle break nudge after a losing streak), recent form, plain-language insights.
+- **Matches and match detail**: full scoreboard with every player's name, rank and stats after the match, party tags, how often you've met someone, rounds with side and loadout, and every death with who killed you, whether you were traded and how far your nearest teammate was.
+- **Analytics**: by agent, by map and side, economy (eco / force / full buy), kills by weapon, untraded deaths. **When you play best**: by match number in a session, time of day, party size and after losing streaks.
+- **Rank**: rating over time, RR per match, average gain, roughly how many wins to the next rank, past acts.
+- **Player lookup** by Riot ID (about 3 requests, cached 10 minutes), recent lookups, private-profile handling.
+- **People**: players you meet often, with your own notes and tags.
+- **Comp Advisor**: pick a map, enter teammates' agents yourself, get suggestions with reasons and full comps, only from agents you own. Never reads agent select.
+- **Overlay**: last match, session and rank panels; the scoreboard after each match. Click-through, movable, game-safe (no animations while VALORANT runs).
+- **Recordings**: point it at your ShadowPlay / OBS folder and every round and death gets a **Watch** button that opens the video at that moment. A **Review list** keeps moments to rewatch.
+- **Export / import**: full `.postplant` backups, JSON export (optionally anonymised), merge or replace with a preview, weekly automatic backups.
+- Six themes, five fonts, colour-blind mode, text size, `Ctrl+K` command palette, tray icon, start with Windows, global hotkeys that only work while the game runs.
 
 ## Download
 
-Releases will be published on the [Releases page](../../releases): installer, offline installer and portable zip, all with auto-update.
+Get the latest build from [Releases](https://github.com/jeelnadaa/postplant/releases/latest):
+
+| File | What it is |
+|---|---|
+| `Postplant_<ver>_x64-setup.exe` | Installer. Installs for your user only, no admin needed, includes an uninstaller. |
+| `Postplant_<ver>_x64-portable.zip` | Portable. Unzip and run; data is kept in a `data` folder next to the exe. |
+| `SHA256SUMS.txt` | Checksums to verify your download. |
+
+Builds aren't code-signed yet, so Windows SmartScreen may warn: choose **More info → Run anyway**.
 
 ## You need a HenrikDev API key
 
-Postplant uses the community [HenrikDev API](https://docs.henrikdev.xyz), not Riot's API (Riot does not issue personal VALORANT keys).
+Postplant uses the community [HenrikDev API](https://docs.henrikdev.xyz), not Riot's API (Riot doesn't issue personal VALORANT keys).
 
 1. Open [docs.henrikdev.xyz](https://docs.henrikdev.xyz) and join the HenrikDev Discord from there.
-2. Use their key bot to create a free **Basic** key (instant, 30 requests per minute; enough for Postplant).
-3. Paste it into Postplant (onboarding, or **Settings → API key**) and press **Test key**.
+2. Create a free **Basic** key with their key bot (instant, 30 requests per minute; plenty for Postplant).
+3. Paste it into Postplant during setup, or later in **Settings → API key & usage**.
 
-The key is stored in Windows Credential Manager and never leaves your PC except in requests to HenrikDev.
+The key is stored in Windows Credential Manager. It is never written to Postplant's files, backups or logs, and is only sent to `api.henrikdev.xyz`. A built-in budget keeps background sync to half of your per-minute limit.
 
-## About the live match feature
+## Privacy
 
-Live match reads the Riot Client running on your PC. **Riot does not support this**, it may stop working after any game update, and Riot may treat tools that show other players' information as a rules violation, which could put your account at risk. It is **off by default**, shows a warning before you can turn it on, never reads game memory, and never runs during agent select.
+No telemetry, no accounts, no servers of ours. Every outbound request is listed in [docs/privacy.md](docs/privacy.md). Postplant never reads game memory, never scouts during agent select, and never tries to reveal hidden names.
+
+## Hotkeys
+
+Default hotkeys (rebind in **Settings → Overlay & hotkeys**; by default they only work while VALORANT runs):
+
+| Action | Default |
+|---|---|
+| Show / hide overlay | `Ctrl+Shift+H` |
+| Move overlay | `Ctrl+Shift+M` |
+| Reset overlay position | `Ctrl+Shift+Home` |
+| Next overlay panel | `Ctrl+Shift+PageDown` |
+| Check for new matches | `Ctrl+Shift+F5` |
+| Open Postplant | `Ctrl+Shift+O` |
+| Open Comp Advisor | `Ctrl+Shift+A` |
 
 ## Build from source
 
-Not available yet. The stack will be Tauri v2 (Rust), Svelte 5 + TypeScript and SQLite.
+Needs Node 20+, Rust (stable, MSVC) and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for Windows.
 
-## Design
+```bash
+npm install
+npm run tauri dev          # run the app with hot reload
+npm run check && npm test  # type check and frontend tests
+cd src-tauri && cargo test # backend tests
+npm run tauri build        # build the installer
+```
 
-The complete design (tokens, components, every screen and the overlay) is in [`design/`](design/). Open `design/index.html` in a browser; the toolbar switches theme, font and colour-blind mode.
+Stack: Tauri v2 (Rust), Svelte 5 + TypeScript, SQLite (rusqlite, bundled). See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Releases and versioning
+
+Every push to `main` that changes the app builds and publishes a GitHub Release automatically ([release.yml](.github/workflows/release.yml)). The version comes from [Conventional Commits](https://www.conventionalcommits.org) since the last tag: `feat:` bumps the minor version, anything else the patch, and `!` / `BREAKING CHANGE` the major (minor while below 1.0). Docs, site and design commits never trigger a release, and `[skip release]` in a commit message leaves it out. You can also run the workflow by hand and choose the bump.
 
 ## Website
 
-The landing and download pages are static files in [`site/`](site/). To deploy on Cloudflare Pages: no build command, output directory `site`.
+The landing and download pages are static files in [`site/`](site/), served by Cloudflare Workers static assets via [`wrangler.jsonc`](wrangler.jsonc):
+
+```bash
+npm run site:dev      # preview at http://localhost:8787
+npx wrangler login    # once
+npm run site:deploy   # publish
+```
+
+Or connect the repository in the Cloudflare dashboard (Workers Builds), or add `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` as repository secrets so [site.yml](.github/workflows/site.yml) deploys on every change under `site/`.
+
+## Design
+
+The design system (tokens, components, every screen and the overlay) is in [`design/`](design/). Open `design/index.html` in a browser.
 
 ## License
 
-To be decided (likely MIT OR Apache-2.0).
+Licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option. Fonts and icons keep their own licences (SIL OFL, ITF Free Font License, ISC).
 
 ## Legal
 
-Postplant is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
+Postplant isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
