@@ -1,0 +1,210 @@
+/* ==========================================================================
+   Postplant design tokens: single source of truth for the app, overlay and site.
+   Every text colour (including --text-3) meets WCAG AA 4.5:1 on every
+   background and surface step in its theme. Re-checked 2026-11-11.
+   Themes: data-theme = ink | midnight | nebula | paper | frost | sandstone
+   Fonts:  data-font  = satoshi | general | geist | inter | atkinson
+   Colour-blind-safe win/loss: data-cvd="on"
+   ========================================================================== */
+
+/* ---------- Fonts ----------
+   Satoshi + General Sans: Fontshare (ITF Free Font License). Geist, Inter,
+   Atkinson Hyperlegible, Big Shoulders Display, JetBrains Mono: SIL OFL.
+   The app bundles the files locally; these design files load them from CDNs. */
+
+:root {
+  /* Type families */
+  --font-ui: "Satoshi", "General Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  /* Type scale (UI is 14px based; desktop app density) */
+  --fs-2xs: 0.6875rem;  /* 11 */
+  --fs-xs: 0.75rem;     /* 12 */
+  --fs-sm: 0.8125rem;   /* 13 */
+  --fs-md: 0.875rem;    /* 14  body */
+  --fs-lg: 1rem;        /* 16 */
+  --fs-xl: 1.25rem;     /* 20 */
+  --fs-2xl: 1.625rem;   /* 26 */
+  --fs-3xl: 2.25rem;    /* 36  display */
+  --fs-4xl: 3.25rem;    /* 52  display */
+  --fs-5xl: 4.5rem;     /* 72  display */
+  --lh-tight: 1.1;
+  --lh-snug: 1.3;
+  --lh-body: 1.5;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-bold: 700;
+  --fw-black: 900;
+  --tracking-caps: 0.06em;
+
+  /* Spacing (4px grid) */
+  --sp-0: 0; --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px;
+  --sp-6: 24px; --sp-8: 32px; --sp-10: 40px; --sp-12: 48px; --sp-16: 64px;
+
+  /* Radius */
+  --r-xs: 4px; --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px; --r-pill: 999px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-1: 120ms; --dur-2: 200ms; --dur-3: 320ms; --dur-4: 520ms;
+
+  /* Layout */
+  --sidebar-w: 232px;
+  --topbar-h: 56px;
+  --titlebar-h: 36px;
+  --control-h: 36px;
+  --control-h-sm: 28px;
+  --control-h-lg: 44px;
+
+  /* Z layers */
+  --z-dropdown: 40; --z-sticky: 30; --z-modal: 60; --z-toast: 70; --z-tooltip: 80;
+
+  /* Role colours (agent roles), shared by all themes; used as tints, never as text on bg */
+  --role-duelist: #ff7a59;
+  --role-initiator: #f5c84b;
+  --role-controller: #8b8cff;
+  --role-sentinel: #3fd0a8;
+
+  /* Rank tier colours (badge fills) */
+  --rank-iron: #6b6b6b; --rank-bronze: #a5733f; --rank-silver: #b9c1c6; --rank-gold: #e6b84a;
+  --rank-platinum: #4fb4c3; --rank-diamond: #c08cf5; --rank-ascendant: #3fbf7f;
+  --rank-immortal: #d9465f; --rank-radiant: #fff1a8;
+}
+
+/* Shared per-theme structure tokens:
+   --win-ink / --loss-ink: text drawn ON a solid win/loss fill.
+   --card-shadow: light themes lift cards off the page; dark themes rely on surface steps.
+   Every theme below is checked by script: text, text-2, text-3, accent-text and all
+   status colours reach 4.5:1 on bg, bg-2, surface, surface-2 and surface-3. */
+
+/* ---------- Dark: Ink (default) — warm black, electric lime ---------- */
+:root,
+[data-theme="ink"] {
+  color-scheme: dark;
+  --bg: #0a0b0e; --bg-2: #0e1014; --surface: #14161c; --surface-2: #1b1e26; --surface-3: #242832;
+  --line: rgba(237, 232, 223, 0.09); --line-2: rgba(237, 232, 223, 0.17);
+  --text: #ede8df; --text-2: #a8a49c; --text-3: #95918a;
+  --accent: #d7ff3a; --accent-ink: #0a0b0e; --accent-text: #d7ff3a; --accent-soft: rgba(215, 255, 58, 0.12);
+  --win: #a3e635;   --win-soft: rgba(163, 230, 53, 0.13);  --win-ink: #0a0b0e;
+  --loss: #ff6a4d;  --loss-soft: rgba(255, 106, 77, 0.13); --loss-ink: #0a0b0e;
+  --draw: #a8a49c; --atk: #ff8a5b; --def: #5ce1e6;
+  --warn: #ffb020;  --warn-soft: rgba(255, 176, 32, 0.13); --info: #7cc4ff;
+  --focus: #d7ff3a; --scrim: rgba(5, 6, 8, 0.72);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4); --shadow-2: 0 10px 30px -10px rgba(0, 0, 0, 0.6); --shadow-3: 0 30px 80px -20px rgba(0, 0, 0, 0.75);
+  --card-shadow: none;
+  --glass: rgba(10, 11, 14, 0.88);
+  --chart-1: #d7ff3a; --chart-2: #5ce1e6; --chart-3: #ff8a5b; --chart-4: #c4a1ff; --chart-5: #ffb020; --chart-6: #a8a49c;
+}
+
+/* ---------- Dark: Midnight — deep navy, sky blue ---------- */
+[data-theme="midnight"] {
+  color-scheme: dark;
+  --bg: #070b16; --bg-2: #0b1120; --surface: #121b31; --surface-2: #19243d; --surface-3: #232f4b;
+  --line: rgba(232, 238, 249, 0.1); --line-2: rgba(232, 238, 249, 0.19);
+  --text: #e8eef9; --text-2: #a6b3c9; --text-3: #8a9ab3;
+  --accent: #6cb6ff; --accent-ink: #06101f; --accent-text: #7dbfff; --accent-soft: rgba(108, 182, 255, 0.15);
+  --win: #4ade80; --win-soft: rgba(74, 222, 128, 0.13); --win-ink: #06101f;
+  --loss: #f87171; --loss-soft: rgba(248, 113, 113, 0.14); --loss-ink: #06101f;
+  --draw: #a6b3c9; --atk: #fb923c; --def: #67e8f9;
+  --warn: #fbbf24; --warn-soft: rgba(251, 191, 36, 0.13); --info: #a5b4fc;
+  --focus: #6cb6ff; --scrim: rgba(3, 6, 14, 0.74);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5); --shadow-2: 0 10px 30px -10px rgba(0, 0, 0, 0.7); --shadow-3: 0 30px 80px -20px rgba(0, 0, 0, 0.85);
+  --card-shadow: none;
+  --glass: rgba(7, 11, 22, 0.88);
+  --chart-1: #6cb6ff; --chart-2: #4ade80; --chart-3: #fb923c; --chart-4: #c4b5fd; --chart-5: #fbbf24; --chart-6: #a6b3c9;
+}
+
+/* ---------- Dark: Nebula — violet black, lavender ---------- */
+[data-theme="nebula"] {
+  color-scheme: dark;
+  --bg: #0a0711; --bg-2: #0f0b18; --surface: #1a142e; --surface-2: #231c3b; --surface-3: #2d2448;
+  --line: rgba(240, 234, 250, 0.1); --line-2: rgba(240, 234, 250, 0.19);
+  --text: #f0eafa; --text-2: #b5aacb; --text-3: #988db0;
+  --accent: #c4a1ff; --accent-ink: #140c24; --accent-text: #c9a9ff; --accent-soft: rgba(196, 161, 255, 0.15);
+  --win: #5eead4; --win-soft: rgba(94, 234, 212, 0.13); --win-ink: #140c24;
+  --loss: #fb7185; --loss-soft: rgba(251, 113, 133, 0.14); --loss-ink: #140c24;
+  --draw: #b5aacb; --atk: #fdba74; --def: #93c5fd;
+  --warn: #fcd34d; --warn-soft: rgba(252, 211, 77, 0.13); --info: #93c5fd;
+  --focus: #c4a1ff; --scrim: rgba(6, 4, 12, 0.76);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5); --shadow-2: 0 10px 30px -10px rgba(0, 0, 0, 0.7); --shadow-3: 0 30px 80px -20px rgba(0, 0, 0, 0.85);
+  --card-shadow: none;
+  --glass: rgba(10, 7, 17, 0.88);
+  --chart-1: #c4a1ff; --chart-2: #5eead4; --chart-3: #fdba74; --chart-4: #93c5fd; --chart-5: #fcd34d; --chart-6: #b5aacb;
+}
+
+/* ---------- Light: Paper (default light) — warm paper, lime fill, olive text ---------- */
+[data-theme="paper"] {
+  color-scheme: light;
+  --role-mix: 22%;
+  --bg: #ebe6dc; --bg-2: #e3ddd1; --surface: #ffffff; --surface-2: #f7f4ee; --surface-3: #eee9df;
+  --line: rgba(20, 21, 25, 0.11); --line-2: rgba(20, 21, 25, 0.2);
+  --text: #141519; --text-2: #4b4842; --text-3: #625e57;
+  --accent: #c8f031; --accent-ink: #141519; --accent-text: #405700; --accent-soft: rgba(110, 145, 0, 0.1);
+  --win: #2a6004; --win-soft: rgba(42, 96, 4, 0.08); --win-ink: #ffffff;
+  --loss: #a82e17; --loss-soft: rgba(168, 46, 23, 0.07); --loss-ink: #ffffff;
+  --draw: #4b4842; --atk: #a33b0a; --def: #0b6680;
+  --warn: #8a4205; --warn-soft: rgba(217, 119, 6, 0.14); --info: #1d4ed8;
+  --focus: #405700; --scrim: rgba(20, 21, 25, 0.45);
+  --shadow-1: 0 1px 2px rgba(20, 21, 25, 0.08); --shadow-2: 0 10px 30px -12px rgba(20, 21, 25, 0.22); --shadow-3: 0 30px 80px -24px rgba(20, 21, 25, 0.32);
+  --card-shadow: 0 1px 2px rgba(20, 21, 25, 0.06), 0 4px 14px -6px rgba(20, 21, 25, 0.1);
+  --glass: rgba(255, 255, 255, 0.88);
+  --chart-1: #6f9a00; --chart-2: #0b6680; --chart-3: #c2410c; --chart-4: #7c3aed; --chart-5: #b45309; --chart-6: #625e57;
+}
+
+/* ---------- Light: Frost — cool grey-blue page, white cards, cobalt ---------- */
+[data-theme="frost"] {
+  color-scheme: light;
+  --role-mix: 22%;
+  --bg: #e2e8f0; --bg-2: #d9e0ea; --surface: #ffffff; --surface-2: #f5f7fa; --surface-3: #e9eef4;
+  --line: rgba(13, 22, 38, 0.11); --line-2: rgba(13, 22, 38, 0.2);
+  --text: #0d1626; --text-2: #3d4a5e; --text-3: #4f5b6f;
+  --accent: #2563eb; --accent-ink: #ffffff; --accent-text: #1d4ed8; --accent-soft: rgba(37, 99, 235, 0.08);
+  --win: #0f6430; --win-soft: rgba(15, 100, 48, 0.08); --win-ink: #ffffff;
+  --loss: #b91c1c; --loss-soft: rgba(185, 28, 28, 0.07); --loss-ink: #ffffff;
+  --draw: #3d4a5e; --atk: #b03a0a; --def: #035e91;
+  --warn: #7f4f05; --warn-soft: rgba(202, 138, 4, 0.14); --info: #1d4ed8;
+  --focus: #2563eb; --scrim: rgba(13, 22, 38, 0.45);
+  --shadow-1: 0 1px 2px rgba(13, 22, 38, 0.08); --shadow-2: 0 10px 30px -12px rgba(13, 22, 38, 0.22); --shadow-3: 0 30px 80px -24px rgba(13, 22, 38, 0.32);
+  --card-shadow: 0 1px 2px rgba(13, 22, 38, 0.06), 0 4px 14px -6px rgba(13, 22, 38, 0.1);
+  --glass: rgba(255, 255, 255, 0.88);
+  --chart-1: #2563eb; --chart-2: #0891b2; --chart-3: #ea580c; --chart-4: #7c3aed; --chart-5: #ca8a04; --chart-6: #556175;
+}
+
+/* ---------- Light: Sandstone — warm sand, terracotta ---------- */
+[data-theme="sandstone"] {
+  color-scheme: light;
+  --role-mix: 18%;
+  --bg: #eee3d5; --bg-2: #e6d9c9; --surface: #fffcf8; --surface-2: #faf4ec; --surface-3: #f1e7db;
+  --line: rgba(34, 24, 15, 0.11); --line-2: rgba(34, 24, 15, 0.2);
+  --text: #22180f; --text-2: #5a493e; --text-3: #66544a;
+  --accent: #c2410c; --accent-ink: #ffffff; --accent-text: #9a3309; --accent-soft: rgba(194, 65, 12, 0.12);
+  --win: #225f3b; --win-soft: rgba(34, 95, 59, 0.08); --win-ink: #ffffff;
+  --loss: #a51f28; --loss-soft: rgba(165, 31, 40, 0.07); --loss-ink: #ffffff;
+  --draw: #5a493e; --atk: #963f06; --def: #1a6380;
+  --warn: #7f4f05; --warn-soft: rgba(202, 138, 4, 0.14); --info: #1a6380;
+  --focus: #c2410c; --scrim: rgba(34, 24, 15, 0.45);
+  --shadow-1: 0 1px 2px rgba(34, 24, 15, 0.08); --shadow-2: 0 10px 30px -12px rgba(34, 24, 15, 0.22); --shadow-3: 0 30px 80px -24px rgba(34, 24, 15, 0.32);
+  --card-shadow: 0 1px 2px rgba(34, 24, 15, 0.06), 0 4px 14px -6px rgba(34, 24, 15, 0.1);
+  --glass: rgba(255, 252, 248, 0.88);
+  --chart-1: #c2410c; --chart-2: #1a6380; --chart-3: #276a43; --chart-4: #7e5bab; --chart-5: #b7791f; --chart-6: #6c5a4e;
+}
+
+/* ---------- Colour-blind-safe win/loss (blue / orange, Okabe–Ito based) ---------- */
+[data-cvd="on"] { --win: #56b4e9; --win-soft: rgba(86, 180, 233, 0.14); --loss: #e69f00; --loss-soft: rgba(230, 159, 0, 0.14); }
+[data-cvd="on"][data-theme="paper"],
+[data-cvd="on"][data-theme="frost"],
+[data-cvd="on"][data-theme="sandstone"] { --win: #005a96; --win-soft: rgba(0, 90, 150, 0.11); --loss: #8a5000; --loss-soft: rgba(138, 80, 0, 0.12); }
+
+/* ---------- UI font options ---------- */
+[data-font="satoshi"] { --font-ui: "Satoshi", system-ui, sans-serif; }
+[data-font="general"] { --font-ui: "General Sans", system-ui, sans-serif; }
+[data-font="geist"] { --font-ui: "Geist", system-ui, sans-serif; }
+[data-font="inter"] { --font-ui: "Inter", system-ui, sans-serif; }
+[data-font="atkinson"] { --font-ui: "Atkinson Hyperlegible", system-ui, sans-serif; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-1: 0ms; --dur-2: 0ms; --dur-3: 0ms; --dur-4: 0ms; }
+}

@@ -1,0 +1,3 @@
+# Link the C runtime statically so users don't need the Visual C++ Redistributable (plan 20.1).
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

@@ -6,3 +6,4 @@ dist/
 Thumbs.db
 *.log
 .env
+src-tauri/gen/

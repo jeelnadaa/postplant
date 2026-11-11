@@ -1,0 +1,343 @@
+{
+ "status": "draft: values are a starting point and need maintainer review with cited sources (plan section 14.2)",
+ "maps": [
+  {
+   "map_id": "224b0a95-48b9-f703-1bd8-67aca101a61f",
+   "name": "Abyss",
+   "map_url": "/Game/Maps/Infinity/Infinity",
+   "utility_needs": {
+    "smokes": 3,
+    "flash": 3,
+    "recon": 4,
+    "stun": 2,
+    "entry": 3,
+    "anchor": 3,
+    "flank": 2,
+    "heal": 1,
+    "wall": 1,
+    "postplant": 2,
+    "mobility": 4,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 2,
+    "Controller": 1,
+    "Sentinel": 1
+   },
+   "notes": "Open edges you can fall from; mobility and recon gain value."
+  },
+  {
+   "map_id": "7eaecc1b-4337-bbf6-6ab9-04b8f06b3319",
+   "name": "Ascent",
+   "map_url": "/Game/Maps/Ascent/Ascent",
+   "utility_needs": {
+    "smokes": 3,
+    "flash": 3,
+    "recon": 3,
+    "stun": 2,
+    "entry": 3,
+    "anchor": 3,
+    "flank": 2,
+    "heal": 1,
+    "wall": 1,
+    "postplant": 2,
+    "mobility": 2,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 2,
+    "Controller": 1,
+    "Sentinel": 1
+   },
+   "notes": ""
+  },
+  {
+   "map_id": "2c9d57ec-4431-9c5e-2939-8f9ef6dd5cba",
+   "name": "Bind",
+   "map_url": "/Game/Maps/Duality/Duality",
+   "utility_needs": {
+    "smokes": 5,
+    "flash": 3,
+    "recon": 3,
+    "stun": 2,
+    "entry": 3,
+    "anchor": 4,
+    "flank": 2,
+    "heal": 1,
+    "wall": 2,
+    "postplant": 3,
+    "mobility": 2,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 1,
+    "Controller": 2,
+    "Sentinel": 1
+   },
+   "notes": "No mid; two one-way teleporters. Rewards a second smoker or wall and strong anchors."
+  },
+  {
+   "map_id": "2fb9a4fd-47b8-4e7d-a969-74b4046ebd53",
+   "name": "Breeze",
+   "map_url": "/Game/Maps/Foxtrot/Foxtrot",
+   "utility_needs": {
+    "smokes": 3,
+    "flash": 3,
+    "recon": 3,
+    "stun": 2,
+    "entry": 3,
+    "anchor": 3,
+    "flank": 2,
+    "heal": 1,
+    "wall": 1,
+    "postplant": 2,
+    "mobility": 2,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 2,
+    "Controller": 1,
+    "Sentinel": 1
+   },
+   "notes": ""
+  },
+  {
+   "map_id": "1c18ab1f-420d-0d8b-71d0-77ad3c439115",
+   "name": "Corrode",
+   "map_url": "/Game/Maps/Rook/Rook",
+   "utility_needs": {
+    "smokes": 3,
+    "flash": 3,
+    "recon": 3,
+    "stun": 2,
+    "entry": 3,
+    "anchor": 3,
+    "flank": 2,
+    "heal": 1,
+    "wall": 1,
+    "postplant": 2,
+    "mobility": 2,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 2,
+    "Controller": 1,
+    "Sentinel": 1
+   },
+   "notes": "Newest rotation map; generic needs until data exists."
+  },
+  {
+   "map_id": "b529448b-4d60-346e-e89e-00a4c527a405",
+   "name": "Fracture",
+   "map_url": "/Game/Maps/Canyon/Canyon",
+   "utility_needs": {
+    "smokes": 3,
+    "flash": 3,
+    "recon": 3,
+    "stun": 2,
+    "entry": 3,
+    "anchor": 3,
+    "flank": 2,
+    "heal": 1,
+    "wall": 1,
+    "postplant": 2,
+    "mobility": 2,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 2,
+    "Controller": 1,
+    "Sentinel": 1
+   },
+   "notes": ""
+  },
+  {
+   "map_id": "2bee0dc9-4ffe-519b-1cbd-7fbe763a6047",
+   "name": "Haven",
+   "map_url": "/Game/Maps/Triad/Triad",
+   "utility_needs": {
+    "smokes": 4,
+    "flash": 3,
+    "recon": 3,
+    "stun": 2,
+    "entry": 3,
+    "anchor": 3,
+    "flank": 4,
+    "heal": 1,
+    "wall": 1,
+    "postplant": 2,
+    "mobility": 3,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 2,
+    "Controller": 1,
+    "Sentinel": 1
+   },
+   "notes": "Three sites: flank watch and fast rotations matter."
+  },
+  {
+   "map_id": "e2ad5c54-4114-a870-9641-8ea21279579a",
+   "name": "Icebox",
+   "map_url": "/Game/Maps/Port/Port",
+   "utility_needs": {
+    "smokes": 3,
+    "flash": 3,
+    "recon": 3,
+    "stun": 2,
+    "entry": 3,
+    "anchor": 3,
+    "flank": 2,
+    "heal": 1,
+    "wall": 1,
+    "postplant": 2,
+    "mobility": 2,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 2,
+    "Controller": 1,
+    "Sentinel": 1
+   },
+   "notes": ""
+  },
+  {
+   "map_id": "2fe4ed3a-450a-948b-6d6b-e89a78e680a9",
+   "name": "Lotus",
+   "map_url": "/Game/Maps/Jam/Jam",
+   "utility_needs": {
+    "smokes": 4,
+    "flash": 3,
+    "recon": 3,
+    "stun": 3,
+    "entry": 3,
+    "anchor": 3,
+    "flank": 3,
+    "heal": 1,
+    "wall": 1,
+    "postplant": 2,
+    "mobility": 2,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 2,
+    "Controller": 1,
+    "Sentinel": 1
+   },
+   "notes": "Three sites with rotating doors; stuns clear tight entrances."
+  },
+  {
+   "map_id": "fd267378-4d1d-484f-ff52-77821ed10dc2",
+   "name": "Pearl",
+   "map_url": "/Game/Maps/Pitt/Pitt",
+   "utility_needs": {
+    "smokes": 3,
+    "flash": 3,
+    "recon": 3,
+    "stun": 2,
+    "entry": 3,
+    "anchor": 3,
+    "flank": 2,
+    "heal": 1,
+    "wall": 1,
+    "postplant": 2,
+    "mobility": 2,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 2,
+    "Controller": 1,
+    "Sentinel": 1
+   },
+   "notes": ""
+  },
+  {
+   "map_id": "d960549e-485c-e861-8d71-aa9d1aed12a2",
+   "name": "Split",
+   "map_url": "/Game/Maps/Bonsai/Bonsai",
+   "utility_needs": {
+    "smokes": 3,
+    "flash": 3,
+    "recon": 3,
+    "stun": 2,
+    "entry": 3,
+    "anchor": 3,
+    "flank": 2,
+    "heal": 1,
+    "wall": 1,
+    "postplant": 2,
+    "mobility": 2,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 2,
+    "Controller": 1,
+    "Sentinel": 1
+   },
+   "notes": ""
+  },
+  {
+   "map_id": "756da597-416b-c0f2-f47b-afbdf28670bc",
+   "name": "Summit",
+   "map_url": "/Game/Maps/Plummet/Plummet",
+   "utility_needs": {
+    "smokes": 3,
+    "flash": 3,
+    "recon": 4,
+    "stun": 2,
+    "entry": 3,
+    "anchor": 4,
+    "flank": 2,
+    "heal": 1,
+    "wall": 1,
+    "postplant": 2,
+    "mobility": 3,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 1,
+    "Controller": 1,
+    "Sentinel": 2
+   },
+   "notes": "Three lanes, busy mid, retractable walls on A, B and mid; two sentinels to hold walls."
+  },
+  {
+   "map_id": "92584fbe-486a-b1b2-9faa-39b0f486b498",
+   "name": "Sunset",
+   "map_url": "/Game/Maps/Juliett/Juliett",
+   "utility_needs": {
+    "smokes": 3,
+    "flash": 3,
+    "recon": 3,
+    "stun": 3,
+    "entry": 3,
+    "anchor": 4,
+    "flank": 2,
+    "heal": 1,
+    "wall": 1,
+    "postplant": 2,
+    "mobility": 2,
+    "info_denial": 1
+   },
+   "role_mix": {
+    "Duelist": 1,
+    "Initiator": 1,
+    "Controller": 1,
+    "Sentinel": 2
+   },
+   "notes": "Tight mid fights; sentinels hold the flank."
+  }
+ ]
+}

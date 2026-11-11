@@ -1,0 +1,47 @@
+[package]
+name = "postplant"
+version = "0.1.0"
+description = "Open-source Valorant companion: search, analytics, overlay, Comp Advisor"
+authors = ["Postplant contributors"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/jeelnadaa/postplant"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "postplant_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-autostart = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { version = "1", features = ["time", "sync", "macros"] }
+keyring = { version = "3", features = ["windows-native", "apple-native"] }
+zstd = "0.13"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+sha2 = "0.10"
+hex = "0.4"
+chrono = "0.4"
+sysinfo = { version = "0.32", default-features = false, features = ["system"] }
+anyhow = "1"
+
+[features]
+default = []
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
