@@ -17,7 +17,7 @@
   --cyan-dim: rgba(92, 225, 230, 0.14);
 
   --f-display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
-  --f-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-body: "Satoshi", "General Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
 
   --gutter: clamp(16px, 4vw, 56px);
@@ -378,18 +378,6 @@ footer { border-top: 1px solid var(--line); padding: 56px 0 40px; color: var(--m
 @media (max-width: 760px) { .foot { grid-template-columns: 1fr; } }
 
 /* ---------- Brand switcher (temporary) ---------- */
-.bswitch { position: fixed; left: 16px; bottom: 16px; z-index: 80; font-size: 0.85rem; }
-.bswitch > button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px; background: var(--bone); color: var(--ink); font-weight: 600; box-shadow: 0 14px 40px -10px rgba(0, 0, 0, 0.6); }
-.bswitch > button svg { width: 18px; height: 18px; }
-.bpanel { position: absolute; left: 0; bottom: 52px; width: min(340px, calc(100vw - 32px)); padding: 18px; border-radius: 18px; background: rgba(17, 19, 24, 0.94); border: 1px solid var(--line-2); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); transform-origin: bottom left; transform: scale(0.92) translateY(10px); opacity: 0; pointer-events: none; transition: all 0.45s var(--ease-out); }
-.bswitch.open .bpanel { transform: none; opacity: 1; pointer-events: auto; }
-.bpanel h5 { margin: 0 0 4px; font-size: 0.95rem; }
-.bpanel p { margin: 0 0 14px; color: var(--mute); font-size: 0.8rem; }
-.bgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
-.bopt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border-radius: 12px; border: 1px solid var(--line); color: var(--mute); font-size: 0.72rem; transition: all 0.3s; }
-.bopt svg { width: 38px; height: 38px; color: var(--lime); }
-.bopt[aria-pressed="true"] { border-color: var(--lime); color: var(--bone); background: var(--lime-dim); }
-.bnames { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* ---------- Download page ---------- */
 .dl-hero { position: relative; padding: 150px 0 60px; overflow: hidden; }

@@ -95,7 +95,7 @@
   --focus: #d7ff3a; --scrim: rgba(5, 6, 8, 0.72);
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4); --shadow-2: 0 10px 30px -10px rgba(0, 0, 0, 0.6); --shadow-3: 0 30px 80px -20px rgba(0, 0, 0, 0.75);
   --card-shadow: none;
-  --glass: rgba(10, 11, 14, 0.7);
+  --glass: rgba(10, 11, 14, 0.88);
   --chart-1: #d7ff3a; --chart-2: #5ce1e6; --chart-3: #ff8a5b; --chart-4: #c4a1ff; --chart-5: #ffb020; --chart-6: #a8a49c;
 }
 
@@ -113,7 +113,7 @@
   --focus: #6cb6ff; --scrim: rgba(3, 6, 14, 0.74);
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5); --shadow-2: 0 10px 30px -10px rgba(0, 0, 0, 0.7); --shadow-3: 0 30px 80px -20px rgba(0, 0, 0, 0.85);
   --card-shadow: none;
-  --glass: rgba(7, 11, 22, 0.72);
+  --glass: rgba(7, 11, 22, 0.88);
   --chart-1: #6cb6ff; --chart-2: #4ade80; --chart-3: #fb923c; --chart-4: #c4b5fd; --chart-5: #fbbf24; --chart-6: #a6b3c9;
 }
 
@@ -131,7 +131,7 @@
   --focus: #c4a1ff; --scrim: rgba(6, 4, 12, 0.76);
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5); --shadow-2: 0 10px 30px -10px rgba(0, 0, 0, 0.7); --shadow-3: 0 30px 80px -20px rgba(0, 0, 0, 0.85);
   --card-shadow: none;
-  --glass: rgba(10, 7, 17, 0.72);
+  --glass: rgba(10, 7, 17, 0.88);
   --chart-1: #c4a1ff; --chart-2: #5eead4; --chart-3: #fdba74; --chart-4: #93c5fd; --chart-5: #fcd34d; --chart-6: #b5aacb;
 }
 
@@ -150,7 +150,7 @@
   --focus: #405700; --scrim: rgba(20, 21, 25, 0.45);
   --shadow-1: 0 1px 2px rgba(20, 21, 25, 0.08); --shadow-2: 0 10px 30px -12px rgba(20, 21, 25, 0.22); --shadow-3: 0 30px 80px -24px rgba(20, 21, 25, 0.32);
   --card-shadow: 0 1px 2px rgba(20, 21, 25, 0.06), 0 4px 14px -6px rgba(20, 21, 25, 0.1);
-  --glass: rgba(255, 255, 255, 0.8);
+  --glass: rgba(255, 255, 255, 0.88);
   --chart-1: #6f9a00; --chart-2: #0b6680; --chart-3: #c2410c; --chart-4: #7c3aed; --chart-5: #b45309; --chart-6: #625e57;
 }
 
@@ -169,7 +169,7 @@
   --focus: #2563eb; --scrim: rgba(13, 22, 38, 0.45);
   --shadow-1: 0 1px 2px rgba(13, 22, 38, 0.08); --shadow-2: 0 10px 30px -12px rgba(13, 22, 38, 0.22); --shadow-3: 0 30px 80px -24px rgba(13, 22, 38, 0.32);
   --card-shadow: 0 1px 2px rgba(13, 22, 38, 0.06), 0 4px 14px -6px rgba(13, 22, 38, 0.1);
-  --glass: rgba(255, 255, 255, 0.82);
+  --glass: rgba(255, 255, 255, 0.88);
   --chart-1: #2563eb; --chart-2: #0891b2; --chart-3: #ea580c; --chart-4: #7c3aed; --chart-5: #ca8a04; --chart-6: #556175;
 }
 
@@ -188,7 +188,7 @@
   --focus: #c2410c; --scrim: rgba(34, 24, 15, 0.45);
   --shadow-1: 0 1px 2px rgba(34, 24, 15, 0.08); --shadow-2: 0 10px 30px -12px rgba(34, 24, 15, 0.22); --shadow-3: 0 30px 80px -24px rgba(34, 24, 15, 0.32);
   --card-shadow: 0 1px 2px rgba(34, 24, 15, 0.06), 0 4px 14px -6px rgba(34, 24, 15, 0.1);
-  --glass: rgba(255, 252, 248, 0.82);
+  --glass: rgba(255, 252, 248, 0.88);
   --chart-1: #c2410c; --chart-2: #1a6380; --chart-3: #276a43; --chart-4: #7e5bab; --chart-5: #b7791f; --chart-6: #6c5a4e;
 }
 

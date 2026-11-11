@@ -1,4 +1,4 @@
-// Shared behaviour for every page: brand preview, cursor, nav, reveals, split text,
+// Shared behaviour for every page: cursor, nav, reveals, split text,
 // magnetic buttons, counters. Vanilla JS, no dependencies.
 (() => {
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -7,63 +7,6 @@
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } },
   };
-
-  /* ---------- Brand preview (temporary, remove once the brand is confirmed) ---------- */
-  const NAMES = ["Postplant", "Afterspike", "Plantside", "Sitehold"];
-  const LOGOS = { a: "Plant", b: "P-mark", c: "Pulse" };
-  const params = new URLSearchParams(location.search);
-  let logo = params.get("logo") || store.get("pp-logo") || "a";
-  let name = params.get("name") || store.get("pp-name") || "Postplant";
-  if (!LOGOS[logo]) logo = "a";
-  if (!NAMES.some((n) => n.toLowerCase() === name.toLowerCase())) name = "Postplant";
-  name = NAMES.find((n) => n.toLowerCase() === name.toLowerCase());
-
-  function applyBrand() {
-    document.querySelectorAll("use[data-logo]").forEach((u) => u.setAttribute("href", "#logo-" + logo));
-    document.querySelectorAll("[data-brand-name]").forEach((el) => {
-      el.textContent = el.dataset.brandName === "upper" ? name.toUpperCase() : name;
-    });
-    const title = document.querySelector("title");
-    if (title && title.dataset.tpl) title.textContent = title.dataset.tpl.replace("{name}", name);
-    document.querySelectorAll(".bopt").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.logo === logo)));
-    document.querySelectorAll(".bname").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.name === name)));
-    // Favicon follows the chosen logo.
-    const sym = document.getElementById("logo-" + logo);
-    const fav = document.querySelector("link[rel=icon]");
-    if (sym && fav) {
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" color="#d7ff3a"><rect width="48" height="48" rx="12" fill="#0a0b0e"/><g transform="translate(6 6) scale(.75)">${sym.innerHTML}</g></svg>`;
-      fav.href = "data:image/svg+xml," + encodeURIComponent(svg.replace(/currentColor/g, "#d7ff3a"));
-    }
-  }
-
-  function buildSwitcher() {
-    const wrap = document.createElement("div");
-    wrap.className = "bswitch";
-    wrap.innerHTML = `
-      <button type="button" aria-expanded="false" aria-controls="bpanel">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
-        Brand preview
-      </button>
-      <div class="bpanel" id="bpanel" role="dialog" aria-label="Brand preview">
-        <h5>Pick a logo and name</h5>
-        <p>Temporary panel for confirming the brand. Your choice is remembered on this device and can be shared with <code>?logo=b&amp;name=postplant</code>.</p>
-        <div class="bgrid">
-          ${Object.entries(LOGOS).map(([k, v]) => `<button type="button" class="bopt" data-logo="${k}" aria-pressed="false"><svg><use href="#logo-${k}"/></svg>${k.toUpperCase()} · ${v}</button>`).join("")}
-        </div>
-        <div class="bnames">
-          ${NAMES.map((n) => `<button type="button" class="chip bname" data-name="${n}" aria-pressed="false">${n}</button>`).join("")}
-        </div>
-      </div>`;
-    document.body.appendChild(wrap);
-    const toggle = wrap.querySelector(":scope > button");
-    toggle.addEventListener("click", () => {
-      const open = wrap.classList.toggle("open");
-      toggle.setAttribute("aria-expanded", String(open));
-    });
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape") { wrap.classList.remove("open"); toggle.setAttribute("aria-expanded", "false"); } });
-    wrap.querySelectorAll(".bopt").forEach((b) => b.addEventListener("click", () => { logo = b.dataset.logo; store.set("pp-logo", logo); applyBrand(); }));
-    wrap.querySelectorAll(".bname").forEach((b) => b.addEventListener("click", () => { name = b.dataset.name; store.set("pp-name", name); applyBrand(); }));
-  }
 
   /* ---------- Split text into animated words ---------- */
   function splitWords(el) {
@@ -225,8 +168,6 @@
     a.rel = "noopener";
   });
   document.querySelectorAll("[data-type]").forEach((el) => { el.dataset.type = el.dataset.type.replace(/OWNER\/postplant/g, repo); });
-  buildSwitcher();
-  applyBrand();
   reveals();
   nav();
   cursor();

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" data-theme="ink" data-font="satoshi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Postplant Design · Overlay</title>
+  <link rel="icon" href="../site/favicon.svg" type="image/svg+xml">
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="board.css">
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js" defer></script>
+  <style>
+    .scene { margin-bottom: 64px; }
+    .scene-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .scene-head h3 { margin: 0; font-size: var(--fs-xl); }
+    .scene-head .n { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--accent-text); }
+    .game { height: 720px; }
+    .ov .row { gap: 8px; }
+    .ov .sep { height: 1px; background: var(--line); margin: 10px 0; }
+    .ov-wide { width: 640px; }
+    .ov-mid { width: 340px; }
+    .ov-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .ov-table td { padding: 4px 4px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    .ov-table td.num { text-align: right; font-family: var(--font-mono); }
+    .ov-table tr.me td { background: var(--accent-soft); }
+    .ov-table tr.head td { font-family: var(--font-mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); border-bottom: 0; padding-top: 8px; }
+    .ov .rank { font-size: 11px; }
+    .ov .agent-sm { width: 26px; height: 26px; border-radius: 6px; }
+    .ov .agent-sm .mono-glyph { font-size: 13px; }
+    .tilt { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: var(--r-md); background: var(--warn-soft); color: var(--text); font-size: 12px; margin-top: 10px; }
+    .tilt .icon { color: var(--warn); flex: none; }
+    .sticky-key { position: absolute; z-index: 4; }
+    .tray { width: 260px; padding: 6px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow-3); font-size: 13px; }
+    .tray .menu-item { width: 100%; }
+    .tray-bar { display: flex; justify-content: flex-end; align-items: center; gap: 14px; height: 40px; padding: 0 14px; border-radius: 0 0 12px 12px; background: #1c1c1c; color: #fff; font-size: 12px; }
+    .tray-bar .ic { width: 28px; height: 28px; border-radius: 6px; display: grid; place-items: center; background: rgba(255,255,255,.1); color: #d7ff3a; }
+    .anchors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 180px; aspect-ratio: 16 / 9; padding: 6px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); }
+    .anchors span { border-radius: 4px; background: var(--surface-3); }
+    .anchors span.on { background: var(--accent); }
+    .edit-bar { position: absolute; left: 50%; top: 70px; transform: translateX(-50%); z-index: 5; display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 14px; border-radius: var(--r-pill); background: var(--surface); border: 1px solid var(--line-2); box-shadow: var(--shadow-3); font-size: 13px; }
+    .grid-guides { position: absolute; inset: 0; z-index: 1; background-image: linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px); background-size: 40px 40px; }
+    .snap { position: absolute; z-index: 2; background: var(--accent); opacity: .7; }
+  </style>
+</head>
+<body data-page="overlay">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="logo" viewBox="0 0 48 48">
+      <path d="M29.05 5.16A19.5 19.5 0 1 1 7.11 14.25" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>
+      <circle cx="16.54" cy="5.98" r="2.6" fill="currentColor"/>
+      <path d="M24 14.5 33.5 24 24 33.5 14.5 24Z" fill="currentColor"/>
+    </symbol>
+  </svg>
+  <header class="dt" data-toolbar></header>
+
+  <main class="board">
+    <section class="hero-b" style="padding-bottom:36px;margin-bottom:48px">
+      <span class="caps">Overlay · transparent always-on-top window · Windowed Fullscreen only</span>
+      <h1 class="display" style="margin:14px 0 10px;font-size:clamp(2.6rem,6vw,5rem)">Glanceable, <span class="accent">then gone.</span></h1>
+      <p>One panel at a time, readable in under a second, never covering the minimap, kill feed, ability bar or crosshair. Shown over an abstract game scene with the HUD zones it must avoid. The overlay follows the app theme; its glass is 88% opaque by default so text stays readable even over a white sky.</p>
+      <div class="toc" id="toc"></div>
+    </section>
+
+    <section class="sec">
+      <div class="sec-head"><div><span class="k">Rules</span><h2>Behaviour</h2></div>
+        <div class="stack" style="gap:6px;color:var(--text-2)">
+          <div>• <b style="color:var(--text)">Click-through</b> at all times except in edit mode. Never takes keyboard focus from the game.</div>
+          <div>• <b style="color:var(--text)">Default anchor:</b> top right, 24 px from the edges, below the scoreboard strip. Snaps to 9 anchors or free position; saved per monitor resolution.</div>
+          <div>• <b style="color:var(--text)">Panels</b> cycle with <span class="kbd">Ctrl</span> <span class="kbd">Shift</span> <span class="kbd">Tab</span>; dots in the header show which one. Show/hide with <span class="kbd">Ctrl</span> <span class="kbd">Shift</span> <span class="kbd">H</span>.</div>
+          <div>• <b style="color:var(--text)">Motion:</b> fade + 8 px slide, 200 ms in, 120 ms out. Numbers never animate while you're in a round.</div>
+          <div>• <b style="color:var(--text)">Scale:</b> S 0.85×, M 1×, L 1.2× (and per-DPI). <b style="color:var(--text)">Glass opacity</b> 75–100%, default 88% (readable over a white sky in every theme). It changes only the panel background; below 88% secondary text switches to <code>--text-2</code>.</div>
+          <div>• <b style="color:var(--text)">Never during agent select:</b> nothing about other players. Comp Advisor only uses picks you enter yourself.</div>
+        </div></div>
+    </section>
+
+    <div id="scenes"></div>
+  </main>
+
+  <script src="design.js"></script>
+  <script>
+  (() => {
+    const { agentTile } = window.PP;
+    const ic = (n, c = "") => `<i data-lucide="${n}" class="icon ${c}"></i>`;
+    const ag = (a) => agentTile(a, { sm: true });
+    const rk = (t, l) => `<span class="rank t-${t}"><i class="rank-gem"></i>${l}</span>`;
+    const logo = `<span class="logo"><svg viewBox="0 0 48 48"><use href="#logo"/></svg></span>`;
+    const head = (title, on, extra = "") => `<div class="ov-head">${logo}<span class="caps">${title}</span>${extra}<span class="ov-dots">${[0, 1, 2, 3].map((i) => `<i class="${i === on ? "on" : ""}"></i>`).join("")}</span></div>`;
+    const hud = `<div class="xh"></div><div class="hud-mini"></div><div class="hud-top"></div><div class="hud-bottom"></div>`;
+    const zone = (l, t, w, h, txt) => `<div class="zone" style="left:${l}px;top:${t}px;width:${w}px;height:${h}px">${txt}</div>`;
+    const zones = zone(20, 20, 190, 190, "MINIMAP · keep clear") + zone(1060, 20, 300, 150, "KILL FEED · keep clear") + zone(470, 600, 460, 90, "ABILITIES / HEALTH · keep clear");
+
+    const P = {
+      last: `<div class="ov">${head("Last match", 0)}
+        <div class="row"><span class="big"><span class="win">Win</span> 13–9</span><span class="spacer"></span><span class="badge win">+21 RR</span></div>
+        <div class="faint" style="font-size:12px;margin-top:4px">Lotus · Omen · 2 min ago</div>
+        <div class="ov-grid"><div><b>248</b><small>ACS</small></div><div><b>21/14/6</b><small>K/D/A</small></div><div><b>27%</b><small>HS</small></div></div></div>`,
+      session: `<div class="ov">${head("Session", 1)}
+        <div class="row"><span class="big"><span class="win">2</span><span class="faint">–</span><span class="loss">3</span></span><span class="spacer"></span><span class="badge loss">−12 RR</span></div>
+        <div class="round-strip" style="display:flex;gap:3px;margin-top:10px">${"wlwll".split("").map((r) => `<span style="flex:1;height:6px;border-radius:3px;background:var(--${r === "w" ? "win" : "loss"})"></span>`).join("")}</div>
+        <div class="ov-grid"><div><b>1 h 52</b><small>Played</small></div><div><b>203</b><small>Avg ACS</small></div><div><b>0.94</b><small>K/D</small></div></div>
+        <div class="tilt">${ic("coffee")}<div><b>3 losses in a row.</b> Your ACS drops 18% after a streak like this. Maybe take 10?</div></div></div>`,
+      rank: `<div class="ov">${head("Rank", 2)}
+        <span class="rank rank-lg t-diamond"><i class="rank-gem"></i><span><b style="font-size:18px">Diamond 2</b><br><span class="rr">64 / 100 RR</span></span></span>
+        <div class="progress" style="--v:64%;margin:10px 0 6px"><i></i></div><div class="faint" style="font-size:12px">~2 wins to Diamond 3 · peak Ascendant 1</div></div>`,
+      advisor: `<div class="ov ov-mid">${head("Comp Advisor · Lotus", 3)}
+        <div class="row" style="gap:5px;margin-bottom:10px">${["Raze", "Fade", "Viper"].map(ag).join("")}<span class="agent agent-sm" style="border-style:dashed"><span class="mono-glyph faint">?</span></span><span class="badge accent" style="margin-left:auto">You</span></div>
+        ${[["Omen", 92, "Second smoke · your best here (61%)", true], ["Vyse", 78, "No sentinel yet", false], ["Killjoy", 71, "No sentinel · comfort pick", false]].map(([a, s, why, top]) => `<div class="row" style="padding:6px;border-radius:8px;${top ? "background:var(--accent-soft)" : ""}">${ag(a)}<div style="min-width:0"><b>${a}</b><div class="faint" style="font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${why}</div></div><span class="spacer"></span><b class="mono ${top ? "accent" : ""}">${s}</b></div>`).join("")}
+        <div class="faint" style="font-size:11px;margin-top:8px">Picks entered by you · only agents you own · <span class="kbd">Ctrl</span><span class="kbd">⇧</span><span class="kbd">A</span></div></div>`,
+      live: `<div class="ov ov-mid">${head("Live · Lotus", -1, '<span class="badge warn" style="margin-left:6px">Live</span>')}
+        <table class="ov-table">
+          <tr class="head"><td colspan="3"><span class="def">● Your team</span></td></tr>
+          ${[["Sova", "Kairo", "diamond", "D3", '<span class="tag good">duo</span>'], ["Omen", "You", "diamond", "D2", ""], ["Raze", "Riven", "platinum", "P3", ""], ["Vyse", "Hidden", "", "", ""], ["Viper", "Lumen", "diamond", "D1", ""]].map(([a, n, t, r, x]) => `<tr class="${n === "You" ? "me" : ""}"><td>${ag(a)}</td><td>${n === "Hidden" ? '<span class="hidden-name faint">Hidden name</span>' : `<b>${n}</b> ${x}`}</td><td class="num">${t ? rk(t, r) : '<span class="faint">—</span>'}</td></tr>`).join("")}
+          <tr class="head"><td colspan="3"><span class="atk">● Enemy team</span></td></tr>
+          ${[["Jett", "Zephyr", "immortal", "Imm1", '<span class="tag warnish">smurf?</span>'], ["Fade", "Okto", "diamond", "D2", ""], ["Omen", "Bao", "ascendant", "A1", ""], ["Killjoy", "Mika", "platinum", "P2", '<span class="tag bad">toxic</span>'], ["Neon", "Hidden", "", "", ""]].map(([a, n, t, r, x]) => `<tr><td>${ag(a)}</td><td>${n === "Hidden" ? '<span class="hidden-name faint">Hidden name</span>' : `<b>${n}</b> ${x}`}</td><td class="num">${t ? rk(t, r) : '<span class="faint">—</span>'}</td></tr>`).join("")}
+        </table>
+        <div class="faint" style="font-size:11px;margin-top:8px">After match start only · 8 of 10 looked up · hidden names never looked up</div></div>`,
+      board: `<div class="ov ov-wide">${head("Match over", -1, '<span class="faint" style="margin-left:8px;font-size:12px">Hides in 14 s · <span class="kbd">Esc</span></span>')}
+        <div class="row" style="margin-bottom:6px"><span class="big"><span class="win">Victory</span> 13–9</span><span class="spacer"></span><span class="badge win">+21 RR</span>${rk("diamond", "Diamond 2 · 64")}</div>
+        <table class="ov-table">
+          <tr class="head"><td></td><td>Your team</td><td>Rank</td><td class="num">ACS</td><td class="num">K/D/A</td><td class="num">HS</td></tr>
+          ${[["Sova", "Kairo", "diamond", "D3", 262, "22/13/8", "26%", '<span class="tag good">duo</span>'], ["Omen", "Nova", "diamond", "D2", 248, "21/14/6", "27%", ""], ["Raze", "Riven", "platinum", "P3", 221, "19/15/3", "19%", ""], ["Vyse", "Hidden", "", "", 180, "14/15/5", "22%", ""], ["Viper", "Lumen", "diamond", "D1", 165, "12/16/9", "24%", '<span class="faint" style="font-size:11px">met 1×</span>']].map(([a, n, t, r, acs, k, hs, x]) => `<tr class="${n === "Nova" ? "me" : ""}"><td>${ag(a)}</td><td>${n === "Hidden" ? '<span class="hidden-name faint">Hidden name</span>' : `<b>${n}</b> ${x}`}</td><td>${t ? rk(t, r) : '<span class="faint">—</span>'}</td><td class="num">${acs}</td><td class="num">${k}</td><td class="num">${hs}</td></tr>`).join("")}
+          <tr class="head"><td></td><td>Enemy team</td><td></td><td></td><td></td><td></td></tr>
+          ${[["Jett", "Zephyr", "immortal", "Imm1", 281, "24/17/2", "31%"], ["Fade", "Okto", "diamond", "D2", 205, "16/18/7", "23%"], ["Omen", "Bao", "ascendant", "A1", 190, "15/18/6", "20%"], ["Killjoy", "Mika", "platinum", "P2", 158, "11/19/4", "18%"], ["Neon", "Ash", "diamond", "D1", 150, "12/18/3", "21%"]].map(([a, n, t, r, acs, k, hs]) => `<tr><td>${ag(a)}</td><td><b>${n}</b></td><td>${rk(t, r)}</td><td class="num">${acs}</td><td class="num">${k}</td><td class="num">${hs}</td></tr>`).join("")}
+        </table>
+        <div class="row" style="margin-top:10px;font-size:12px"><span class="faint">${ic("lightbulb")} First to die on B Main in 4 of 6 attack rounds</span><span class="spacer"></span><span class="faint">Open in app <span class="kbd">Ctrl</span><span class="kbd">⇧</span><span class="kbd">O</span></span></div></div>`,
+    };
+
+    const scenes = [
+      ["menus", "In menus · last match", "Default panel between games, anchored top right below the kill-feed zone. The hotkey toast confirms a show/hide.",
+        `${hud}${zones}<div class="ov" style="right:24px;top:190px;position:absolute">${P.last.replace(/^<div class="ov">/, "").replace(/<\/div>$/, "")}</div>
+         <div class="hotkey-toast" style="position:absolute;left:50%;top:120px;transform:translateX(-50%);z-index:4">${ic("eye")}Overlay shown<span class="kbd">Ctrl</span><span class="kbd">Shift</span><span class="kbd">H</span></div>`,
+        ["Panel 272 px wide", "Top right · 24 px inset · below kill feed", "Toast 1.2 s, centre top"]],
+      ["session", "Between matches · session with tilt warning", "Appears after the third loss in a row (setting). Warm, never preachy; dismisses with the same hotkey.",
+        `${hud}${zones}<div style="position:absolute;right:24px;top:190px;z-index:3">${P.session}</div>`, ["Tilt copy is factual: uses your own numbers"]],
+      ["live", "In match · live panel (opt-in)", "Only after the match has started, only when Live match is on. Ranks only; never positions or anything in-round. Sits left of centre, clear of the minimap.",
+        `${hud}${zones}<div style="position:absolute;left:24px;top:216px;z-index:3">${P.live}</div>`, ["Width 340 px", "Hidden names: agent only", "Shown during buy phase; auto-hides after 25 s, recall with hotkey"]],
+      ["post", "Post-match scoreboard", "Auto-shows when a new match is stored, hides after 20 s or on Esc. Centred; the game is in its end screen so nothing is covered.",
+        `${hud}<div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3">${P.board}</div>`, ["Width 640 px", "Your row highlighted", "Notes and tags inline"]],
+      ["advisor", "Comp Advisor (compact)", "From menus or the main window. You tap teammates' picks; Postplant never reads agent select. Only agents you own are listed.",
+        `${hud}${zones}<div style="position:absolute;right:24px;top:190px;z-index:3">${P.advisor}</div>`, ["Same scoring as the app", "Locked agents never shown"]],
+      ["edit", "Edit mode · move, resize, opacity", "Ctrl+Shift+M. The overlay becomes clickable; a grid and snap lines appear; the bar sets opacity and scale. Esc or Done saves.",
+        `<div class="grid-guides"></div>${hud}
+         <div class="snap" style="right:24px;top:0;bottom:0;width:1px"></div><div class="snap" style="left:0;right:0;top:190px;height:1px"></div>
+         <div class="edit-bar">${ic("move")}<b>Edit overlay</b><span class="faint">Drag to move · corners to resize</span>
+           <span style="display:flex;align-items:center;gap:8px"><span class="faint">Glass</span><span class="slider" style="width:110px"><span class="rail"></span><span class="fill" style="width:84%"></span><span class="thumb" style="left:84%"></span></span><span class="mono">88%</span></span>
+           <div class="segmented"><button aria-pressed="false">S</button><button aria-pressed="true">M</button><button aria-pressed="false">L</button></div>
+           <button class="btn btn-sm btn-ghost">Reset</button><button class="btn btn-sm btn-primary">Done</button></div>
+         <div style="position:absolute;right:24px;top:190px;z-index:3"><div class="ov edit" style="position:relative">${P.last.replace(/^<div class="ov">/, "").replace(/<\/div>$/, "")}
+           <span class="handle" style="left:-9px;top:-9px"></span><span class="handle" style="right:-9px;top:-9px"></span><span class="handle" style="left:-9px;bottom:-9px"></span><span class="handle" style="right:-9px;bottom:-9px"></span></div>
+           <div class="mono faint" style="font-size:11px;text-align:right;margin-top:10px;color:#fff;opacity:.8">x 1624 · y 190 · 272 × 168</div></div>`,
+        ["Snaps within 8 px", "Position stored per resolution", "Outside edit mode: click-through"]],
+    ];
+
+    document.getElementById("toc").innerHTML = scenes.map((s, i) => `<a class="chip" href="#${s[0]}">${String(i + 1).padStart(2, "0")} ${s[1].split(" · ")[0]}</a>`).join("") + `<a class="chip" href="#panels">07 All panels</a><a class="chip" href="#tray">08 Tray</a>`;
+    document.getElementById("scenes").innerHTML = scenes.map(([id, t, d, html, specs], i) => `
+      <section class="scene" id="${id}"><div class="scene-head"><span class="n">${String(i + 1).padStart(2, "0")}</span><h3>${t}</h3><span class="muted" style="font-size:13px">${d}</span></div>
+        <div class="game">${html}</div><div class="specs">${specs.map((s) => `<span class="spec">${s}</span>`).join("")}</div></section>`).join("") + `
+      <section class="scene" id="panels"><div class="scene-head"><span class="n">07</span><h3>All panels, side by side</h3><span class="muted" style="font-size:13px">The four cycling panels share one header: logo, title, position dots.</span></div>
+        <div class="demo dotted" style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">${P.last}${P.session}${P.rank}${P.advisor}</div>
+        <div class="demo dotted" style="display:flex;gap:28px;flex-wrap:wrap;align-items:flex-end;margin-top:16px">
+          <div><span class="demo-label">Scale S · 0.85×</span><div style="zoom:.85">${P.rank}</div></div>
+          <div><span class="demo-label">Scale M · 1×</span>${P.rank}</div>
+          <div><span class="demo-label">Scale L · 1.2×</span><div style="zoom:1.2">${P.rank}</div></div>
+          <div><span class="demo-label">Glass 75% · text stays 100%</span><div style="--glass:color-mix(in srgb, var(--bg) 75%, transparent)">${P.rank}</div></div>
+          <div><span class="demo-label">Anchors</span><div class="anchors">${Array.from({ length: 9 }, (_, i) => `<span class="${i === 2 ? "on" : ""}"></span>`).join("")}</div></div>
+        </div></section>
+      <section class="scene" id="tray"><div class="scene-head"><span class="n">08</span><h3>Tray icon &amp; menu</h3><span class="muted" style="font-size:13px">Postplant lives in the tray when the window is closed. Left click opens the window; right click opens this menu.</span></div>
+        <div class="demo dotted" style="display:flex;gap:40px;flex-wrap:wrap;align-items:flex-end">
+          <div style="width:420px"><div class="tray" style="margin-left:auto;margin-bottom:8px">
+            <div class="row" style="padding:8px 10px;gap:10px"><svg viewBox="0 0 48 48" style="width:18px;height:18px;color:var(--accent-text)"><use href="#logo"/></svg><b>Postplant</b><span class="spacer"></span><span class="faint" style="font-size:12px">Synced 1 min ago</span></div>
+            <div class="menu-sep"></div>
+            <button class="menu-item">${ic("app-window")}Open Postplant<span class="keys"><span class="kbd">Ctrl</span><span class="kbd">⇧</span><span class="kbd">O</span></span></button>
+            <button class="menu-item">${ic("layers")}Show overlay<span class="keys"><span class="kbd">Ctrl</span><span class="kbd">⇧</span><span class="kbd">H</span></span></button>
+            <button class="menu-item">${ic("compass")}Comp Advisor</button>
+            <button class="menu-item">${ic("refresh-cw")}Refresh now</button>
+            <div class="menu-sep"></div>
+            <button class="menu-item">${ic("pause")}Pause syncing for 1 hour</button>
+            <button class="menu-item">${ic("download")}Update ready · 0.4.0</button>
+            <div class="menu-sep"></div>
+            <button class="menu-item danger">${ic("power")}Quit</button></div>
+            <div class="tray-bar"><span>ENG</span><span class="ic"><svg viewBox="0 0 48 48" style="width:16px;height:16px"><use href="#logo"/></svg></span><span>19:42</span></div></div>
+          <div class="stack" style="gap:10px"><span class="demo-label">Tray icon states (16 px)</span>
+            <div class="row" style="gap:18px">${[["#d7ff3a", "Idle"], ["#d7ff3a", "Syncing", true], ["#ffb020", "Paused / rate limit"], ["#ff6a4d", "Offline"]].map(([c, l, spin]) => `<div style="text-align:center"><div style="width:40px;height:40px;border-radius:8px;background:#1c1c1c;display:grid;place-items:center;position:relative"><svg viewBox="0 0 48 48" style="width:18px;height:18px;color:#ede8df"><use href="#logo"/></svg><span style="position:absolute;right:7px;bottom:7px;width:8px;height:8px;border-radius:50%;background:${c};${spin ? "box-shadow:0 0 0 2px #1c1c1c,0 0 0 3px " + c : ""}"></span></div><div class="faint" style="font-size:11px;margin-top:6px">${l}</div></div>`).join("")}</div>
+            <p class="faint" style="font-size:12px;max-width:340px;margin:0">The status dot uses fixed colours because the taskbar is always dark or light by Windows setting, not by Postplant theme.</p></div>
+        </div></section>`;
+    window.PP.icons();
+  })();
+  </script>
+</body>
+</html>

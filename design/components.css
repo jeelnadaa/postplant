@@ -392,3 +392,5 @@ button.agent:hover { transform: translateY(-2px); border-color: var(--line-2); }
 .ov.edit { outline: 2px dashed var(--accent-text); outline-offset: 4px; cursor: move; }
 .ov .handle { position: absolute; width: 10px; height: 10px; border-radius: 3px; background: var(--accent); border: 2px solid var(--bg); }
 .hotkey-toast { display: inline-flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--r-pill); background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line-2); font-size: var(--fs-sm); box-shadow: var(--shadow-2); }
+/* Overlay glass below the 88% default: promote faint text so it stays readable over bright scenes. */
+.ov[data-glass-low] .faint, .ov[data-glass-low] .caps { color: var(--text-2); }

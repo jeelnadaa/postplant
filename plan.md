@@ -106,6 +106,8 @@ These facts belong in versioned data files (section 15.5), not in code. When a n
 | Player data | **HenrikDev Unofficial Valorant API (v4)** | Riot's official VALORANT API does not issue personal keys and needs production approval. |
 | Assets | **valorant-api.com** | Agent, map, rank icons and minimap transform values. Cached on disk, refreshed when the game version changes. |
 | Meta data | **Postplant meta dataset** (section 15) | Built in CI, reviewed by a person, published as a signed release file. |
+| Design system | `design/tokens.css` + `design/components.css` (section 24) | One token file drives the app, overlay and site; six themes. |
+| Type and icons | **Satoshi** (UI default; alternatives General Sans, Geist, Inter, Atkinson Hyperlegible), **Big Shoulders Display** (numbers and headings), **JetBrains Mono**; **Lucide** icons | Fonts bundled locally in the app (licences allow it); Lucide is ISC licensed and tree-shakeable. |
 | Tests | `cargo test`, Vitest, Playwright for UI smoke tests | Run in GitHub Actions on every PR. |
 
 ---
@@ -502,6 +504,22 @@ Three modes, all using the same engine.
 
 The compact overlay panel (`Ctrl+Shift+A`) shows a 5-slot row: click a slot, click an agent, and suggestions update instantly.
 
+### 14.1a Only agents you own
+The advisor **never suggests an agent the user can't pick**. Ownership is stored in `agent_pool` (comfort 0 = owned but won't play; a missing row = not owned).
+
+| Source | When | Notes |
+|---|---|---|
+| Starter agents | Always | Brimstone, Jett, Phoenix, Sage, Sova are on every account |
+| Agents in stored match history | After each sync | If you've played it, you own it (or had it on a free trial; the user can untick) |
+| Riot Client entitlements | Only when Live match (section 11) is on | Read from the local client's owned-items list; same opt-in, same warnings |
+| Manual | Onboarding step "Agents you own" and Settings → Comp Advisor | Final say; auto-detection never removes a manual tick |
+
+UI rules:
+- Locked agents show greyscale with a lock and a tooltip ("Not on your account; tap to mark as owned"). In the teammate-pick grid they stay selectable, since teammates can own them.
+- Solo suggestions and full comps only include owned agents in your slot. The stack planner uses each friend's own pool.
+- A newly released agent appears locked until it shows up in your matches or you tick it.
+- Learn-a-map may name an agent you don't own, clearly labelled "Not owned: unlock to try".
+
 ### 14.2 Agent knowledge base (`data/agents.json`, reviewed by people)
 This is what keeps advice sensible when statistics are thin, for example for Hush right after release.
 
@@ -761,6 +779,8 @@ The file size is estimated before saving. **The API key is never exported**; it 
 
 **Owner approved Postplant on 2026-11-11.**
 
+**Logo locked 2026-11-11: concept C, "Pulse"**: an open ring with a dot at the gap (a spike timer about to complete) around a solid diamond (the planted spike). Geometry, clear space, minimum sizes (16 px with a heavier stroke), app and tray icons and don'ts are in `design/index.html`. The site and design files use the same `#logo` symbol; `site/favicon.svg` is the Ink tile version.
+
 ### Availability check (2026-11-11)
 Checked for an exact GitHub repository name, an npm package and a crates.io crate. "Free" means none exist; domains and trademarks were **not** checked.
 
@@ -849,8 +869,42 @@ Before announcing: check domains (`.gg`, `.app`, `.dev`) and a basic trademark s
 ## 23. Website (static, Cloudflare Pages)
 
 - `site/index.html` (landing) and `site/download.html` (download), shared `site/assets/`. **No build step**: plain HTML, CSS and a little JavaScript, so Cloudflare Pages serves the folder as is (build command: none, output directory: `site`).
-- Custom typography from Google Fonts, motion done with CSS and small vanilla scripts (scroll-linked reveals via IntersectionObserver, a canvas hero, magnetic buttons). Respects `prefers-reduced-motion`; no motion library needed.
+- Typography: Satoshi for body text (Fontshare), Big Shoulders Display and JetBrains Mono (Google Fonts). The CSP in `_headers` allows exactly these two font hosts. Motion is done with CSS and small vanilla scripts (scroll-linked reveals via IntersectionObserver, a canvas hero, magnetic buttons). Respects `prefers-reduced-motion`; no motion library needed.
 - The download page reads the latest release from the GitHub API (unauthenticated, cached in the browser for an hour) to show version, date, file sizes and checksums, and falls back to a link to the Releases page if the API is unavailable.
 - `site/_headers` sets security headers and long caching for assets.
-- While the brand is being confirmed, both pages include a small **brand switcher** (logo concepts and name options) that will be removed once the owner picks.
+- Brand locked: logo C and the name Postplant everywhere; the temporary brand switcher has been removed.
 - Riot "not endorsed" notice in the footer of both pages. No Riot logos or game art on the site.
+
+---
+
+## 24. Design system (`design/`)
+
+The design is finished up front so implementation is translation, not invention. Open `design/index.html` in a browser; the toolbar switches theme, font and colour-blind mode on every page.
+
+| File | What it holds |
+|---|---|
+| `design/tokens.css` | **Source of truth.** Type scale, spacing (4 px grid), radii, motion, layout sizes, z-layers, role and rank colours, and six themes. The app imports it unchanged. |
+| `design/components.css` | The component contract: buttons, inputs, custom dropdowns and menus, switches, checkboxes, radios, segmented controls, tabs, sliders, chips, badges, ranks, agent tiles (available / selected / picked / locked), map tiles, cards, stats, tables, match rows, progress, skeletons, banners, toasts, tooltips, popovers, modals, empty states, app shell, charts and overlay panels. Svelte components reproduce these class names and states. |
+| `design/index.html` | Foundations: logo and icons, themes, typography, spacing, elevation, motion, icon set, data colours, writing rules. |
+| `design/components.html` | Every component in every state, including all modals (live-match warning, delete data, update ready, keybind capture, backfill cost, unsaved changes, player note, agents you own, export, import preview, replace confirmation), command palette and player card. |
+| `design/screens.html` | 27 screens at 1280 × 800: setup (5 steps, including restore from backup), home, search, profile, match history, match detail (scoreboard, round replay), heatmaps, analytics, rank, Comp Advisor (solo, stack planner, learn a map), people, settings (appearance, API key, overlay & hotkeys, Comp Advisor, live match, updates, data & privacy, about) and offline / rate-limit / empty / loading states. |
+| `design/overlay.html` | The overlay over an abstract game scene with the HUD zones it must avoid: last match, session with tilt warning, rank, live panel, post-match scoreboard, compact Comp Advisor, edit mode, scales, anchors, tray menu and tray icon states. |
+
+### 24.1 Themes
+Ink (default dark, lime), Midnight (navy, sky blue), Nebula (violet, lavender), Paper (default light, lime fill with olive text), Frost (cool grey-blue, cobalt), Sandstone (sand, terracotta). "Follow Windows" switches between Ink and Paper.
+
+Rules every theme meets (checked on every text element of the design pages):
+- `--text`, `--text-2`, `--text-3`, `--accent-text` and all status colours reach **4.5:1** on `--bg`, `--bg-2`, `--surface`, `--surface-2` and `--surface-3`.
+- Page, sidebar and cards are clearly separate steps. Light themes also lift cards with `--card-shadow`.
+- Text on solid win/loss fills uses `--win-ink` / `--loss-ink`.
+- Colour-blind mode (`data-cvd="on"`) swaps win/loss to blue/orange in every theme.
+- Overlay glass is 88% opaque, so even faint text passes 4.5:1 over a pure white or black game scene. The user's glass slider (75–100%) changes only the background; below 88%, secondary text switches to `--text-2`.
+
+### 24.2 Fonts
+UI default **Satoshi**. Options: General Sans, Geist, Inter, Atkinson Hyperlegible (for low vision). Satoshi and General Sans are under the ITF Free Font License (Fontshare); the others are SIL OFL. The app bundles the font files; the design pages load them from CDNs.
+
+### 24.3 Implementation notes
+- Copy `tokens.css` into the app as is; theme = `data-theme` on `<html>`, font = `data-font`, colour-blind = `data-cvd`.
+- Agent, map and rank art is shown as monograms in the designs; the app uses valorant-api.com images in the same boxes.
+- Never hard-code a colour in a component; add a token instead and check it against the 4.5:1 rule above.
+

@@ -3,31 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title data-tpl="Download {name} for Windows">Download Postplant for Windows</title>
+  <title>Download Postplant for Windows</title>
   <meta name="description" content="Download the installer, offline installer or portable build. Free and open source, with automatic updates.">
   <meta name="theme-color" content="#0a0b0e">
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
-  <!-- Logo concepts (temporary: pick one with the "Brand preview" button) -->
+  <!-- Brand mark: Pulse (locked 2026-11-11). Source of truth: design/index.html -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <symbol id="logo-a" viewBox="0 0 48 48">
-      <path d="M24 3.5 44.5 24 24 44.5 3.5 24Z" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linejoin="round"/>
-      <path d="M24 13.5v15" stroke="currentColor" stroke-width="4.2" stroke-linecap="round"/>
-      <circle cx="24" cy="35" r="2.7" fill="currentColor"/>
-    </symbol>
-    <symbol id="logo-b" viewBox="0 0 48 48">
-      <path d="M12 43V6h15a12.5 12.5 0 0 1 0 25H19" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M27 12.5 32.5 18.5 27 24.5 21.5 18.5Z" fill="currentColor"/>
-    </symbol>
-    <symbol id="logo-c" viewBox="0 0 48 48">
-      <path d="M24 4.5a19.5 19.5 0 1 1-13.8 5.7" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>
+    <symbol id="logo" viewBox="0 0 48 48">
+      <path d="M29.05 5.16A19.5 19.5 0 1 1 7.11 14.25" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>
+      <circle cx="16.54" cy="5.98" r="2.6" fill="currentColor"/>
       <path d="M24 14.5 33.5 24 24 33.5 14.5 24Z" fill="currentColor"/>
-      <circle cx="10.2" cy="10.2" r="2.4" fill="currentColor"/>
     </symbol>
     <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-win" viewBox="0 0 24 24"><path fill="currentColor" d="M3 5.1 10.4 4v7.2H3Zm8.4-1.2L21 2.5v8.7h-9.6ZM3 12.2h7.4v7.2L3 18.3Zm8.4 0H21v8.7l-9.6-1.4Z"/></symbol>
@@ -39,7 +32,7 @@
 
   <header class="nav">
     <div class="wrap">
-      <a class="brand" href="./" aria-label="Home"><svg><use data-logo href="#logo-a"/></svg><span data-brand-name>Postplant</span></a>
+      <a class="brand" href="./" aria-label="Home"><svg><use href="#logo"/></svg><span>Postplant</span></a>
       <nav class="nav-links" aria-label="Main">
         <a class="hide-sm" href="./">Home</a>
         <a class="hide-sm" href="#install">Install</a>
@@ -113,7 +106,7 @@
           <h2 class="h2" data-split>Up and running in <span class="outline">two minutes.</span></h2>
           <div class="steps">
             <span class="line-fill" aria-hidden="true"></span>
-            <div class="step"><div><h4>Run the installer</h4><p>Windows may show a SmartScreen prompt for new apps. Click <strong>More info → Run anyway</strong> if the publisher is <span data-brand-name>Postplant</span>. Check the file first with the checksum below if you like.</p></div></div>
+            <div class="step"><div><h4>Run the installer</h4><p>Windows may show a SmartScreen prompt for new apps. Click <strong>More info → Run anyway</strong> if the publisher is <span>Postplant</span>. Check the file first with the checksum below if you like.</p></div></div>
             <div class="step"><div><h4>Get a free API key</h4><p>Open <a class="lime" href="https://docs.henrikdev.xyz" rel="noopener">docs.henrikdev.xyz</a>, join the HenrikDev Discord, and create a Basic key with their bot. It's free and instant. The app walks you through it.</p></div></div>
             <div class="step"><div><h4>Paste it in and press Test key</h4><p>The key is stored in Windows Credential Manager and only sent to HenrikDev.</p></div></div>
             <div class="step"><div><h4>Enter your Riot ID and region</h4><p>Your recent matches load once, then stay on your PC.</p></div></div>
@@ -169,13 +162,13 @@
     <div class="wrap">
       <div class="foot">
         <div>
-          <a class="brand" href="./"><svg><use data-logo href="#logo-a"/></svg><span data-brand-name>Postplant</span></a>
+          <a class="brand" href="./"><svg><use href="#logo"/></svg><span>Postplant</span></a>
           <p style="max-width:360px; margin-top:14px">A free, open-source Valorant companion for Windows.</p>
         </div>
         <div><h4>Product</h4><ul><li><a href="./">Home</a></li><li><a href="#install">Install guide</a></li><li><a href="#verify">Verify download</a></li></ul></div>
         <div><h4>Project</h4><ul><li><a data-repo href="#">Source code</a></li><li><a data-repo="/releases" href="#">All releases</a></li><li><a data-repo="/issues" href="#">Report an issue</a></li></ul></div>
       </div>
-      <p class="legal">© <span data-year></span> <span data-brand-name>Postplant</span> contributors. <span data-brand-name>Postplant</span> is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
+      <p class="legal">© <span data-year></span> <span>Postplant</span> contributors. <span>Postplant</span> is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
     </div>
   </footer>
 

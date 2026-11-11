@@ -2,16 +2,18 @@
 
 **A lightweight, open-source Valorant companion for Windows.** Look up any player, see where your games are won and lost, keep a movable overlay on screen, and get per-map agent and team-comp suggestions.
 
-> **Status: planning and website.** The app is not built yet. See [PROGRESS.md](PROGRESS.md) for where things stand and [plan.md](plan.md) for the full design.
+> **Status: planned and fully designed.** The app is not built yet. See [PROGRESS.md](PROGRESS.md) for where things stand and [plan.md](plan.md) for the full design.
 
 ## Planned features
 
 - **Player search** by Riot ID: rank, peak rank, recent matches, agents, maps, headshot %, ACS, K/D.
 - **Overlay** that you can move, resize and hide with hotkeys. Shows your last match, session and rank, and the full scoreboard when a match ends.
 - **Analytics** from your own match history: sessions with a tilt warning, breakdowns by agent, map, side and weapon, first bloods, clutches, round timelines, teammate and duo stats, notes on players.
-- **Comp Advisor**: pick the map and your teammates' agents, and get suggested agents and full team comps, with the reason, sample size and data date for each suggestion.
-- **Heatmaps** of where you get kills and die, ability usage, economy efficiency, and patch impact on your agents.
+- **Comp Advisor**: pick the map and your teammates' agents, and get suggested agents and full team comps, with the reason, sample size and data date for each suggestion. Only suggests agents you own.
+- **Heatmaps** for you, your team and enemies (kills, deaths, where rounds end), a **2D round replay** and death review, ability usage, economy efficiency, and patch impact on your agents.
 - **Live match (experimental, off by default)**: opponents' rank and peak rank once the match has started. Never during agent select. See the warning below.
+- **Export and import**: back up everything, move to a new PC without re-downloading, or export open JSON for your own tools.
+- **Six themes** (three dark, three light), five UI fonts and a colour-blind-safe mode.
 - **Quota-safe**: a built-in request budget keeps you well inside your API limit.
 - **Private by design**: no telemetry. Your data stays on your PC.
 
@@ -36,6 +38,10 @@ Live match reads the Riot Client running on your PC. **Riot does not support thi
 ## Build from source
 
 Not available yet. The stack will be Tauri v2 (Rust), Svelte 5 + TypeScript and SQLite.
+
+## Design
+
+The complete design (tokens, components, every screen and the overlay) is in [`design/`](design/). Open `design/index.html` in a browser; the toolbar switches theme, font and colour-blind mode.
 
 ## Website
 

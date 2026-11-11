@@ -82,7 +82,7 @@ body { background: var(--bg); }
 .game .hud-bottom { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); width: 420px; height: 46px; border-radius: 8px; background: rgba(0,0,0,0.35); z-index: 2; }
 .game .hud-top { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); width: 260px; height: 38px; border-radius: 6px; background: rgba(0,0,0,0.35); z-index: 2; }
 .game .zone { position: absolute; z-index: 1; border: 1px dashed rgba(255, 255, 255, 0.35); border-radius: 10px; color: rgba(255,255,255,0.7); font-family: var(--font-mono); font-size: 10px; padding: 4px 6px; }
-.game .ov { position: absolute; z-index: 3; }
+.game > .ov { position: absolute; z-index: 3; }
 .game-caption { margin-top: 10px; }
 /* Screens whose content scrolls inside the app are shown at full height on the board. */
 .frame-wrap > .window.tall { height: auto; min-height: 800px; }

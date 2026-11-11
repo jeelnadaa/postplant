@@ -3,34 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title data-tpl="{name} · Win the rounds after the round">Postplant · Win the rounds after the round</title>
+  <title>Postplant · Win the rounds after the round</title>
   <meta name="description" content="A free, open-source Valorant companion for Windows: player search, a movable overlay, deep personal analytics and per-map agent and team-comp suggestions.">
   <meta name="theme-color" content="#0a0b0e">
   <meta property="og:title" content="Postplant">
   <meta property="og:description" content="Free, open-source Valorant companion for Windows.">
   <meta property="og:type" content="website">
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
-  <!-- Logo concepts (temporary: pick one with the "Brand preview" button) -->
+  <!-- Brand mark: Pulse (locked 2026-11-11). Source of truth: design/index.html -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <symbol id="logo-a" viewBox="0 0 48 48">
-      <path d="M24 3.5 44.5 24 24 44.5 3.5 24Z" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linejoin="round"/>
-      <path d="M24 13.5v15" stroke="currentColor" stroke-width="4.2" stroke-linecap="round"/>
-      <circle cx="24" cy="35" r="2.7" fill="currentColor"/>
-    </symbol>
-    <symbol id="logo-b" viewBox="0 0 48 48">
-      <path d="M12 43V6h15a12.5 12.5 0 0 1 0 25H19" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M27 12.5 32.5 18.5 27 24.5 21.5 18.5Z" fill="currentColor"/>
-    </symbol>
-    <symbol id="logo-c" viewBox="0 0 48 48">
-      <path d="M24 4.5a19.5 19.5 0 1 1-13.8 5.7" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>
+    <symbol id="logo" viewBox="0 0 48 48">
+      <path d="M29.05 5.16A19.5 19.5 0 1 1 7.11 14.25" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/>
+      <circle cx="16.54" cy="5.98" r="2.6" fill="currentColor"/>
       <path d="M24 14.5 33.5 24 24 33.5 14.5 24Z" fill="currentColor"/>
-      <circle cx="10.2" cy="10.2" r="2.4" fill="currentColor"/>
     </symbol>
     <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-gh" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.53 2.34 1.09 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.6 9.6 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.93.36.31.68.92.68 1.85v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/></symbol>
@@ -41,7 +34,7 @@
 
   <header class="nav">
     <div class="wrap">
-      <a class="brand" href="./" aria-label="Home"><svg><use data-logo href="#logo-a"/></svg><span data-brand-name>Postplant</span></a>
+      <a class="brand" href="./" aria-label="Home"><svg><use href="#logo"/></svg><span>Postplant</span></a>
       <nav class="nav-links" aria-label="Main">
         <a class="hide-sm" href="#overlay">Overlay</a>
         <a class="hide-sm" href="#advisor-sec">Comp Advisor</a>
@@ -65,7 +58,7 @@
         <h1 data-split>Win the <span class="outline">rounds</span><br>after the <span class="accent">round.</span></h1>
         <div class="hero-bottom">
           <div>
-            <p data-reveal style="--d:.5s"><strong data-brand-name>Postplant</strong> is a free, open-source Valorant companion for Windows. Look up any player, keep a lightweight overlay on screen, find out where your games are won and lost, and get per-map agent and comp suggestions that show their sources.</p>
+            <p data-reveal style="--d:.5s"><strong>Postplant</strong> is a free, open-source Valorant companion for Windows. Look up any player, keep a lightweight overlay on screen, find out where your games are won and lost, and get per-map agent and comp suggestions that show their sources.</p>
           </div>
           <div class="hero-cta" data-reveal style="--d:.65s">
             <a class="btn" href="download.html" data-magnetic><svg><use href="#i-dl"/></svg>Download for Windows</a>
@@ -82,8 +75,8 @@
     <!-- MARQUEE -->
     <div class="marquee" aria-hidden="true">
       <div class="marquee-track">
-        <span>Player search <svg><use data-logo href="#logo-a"/></svg> <em>Overlay</em> <svg><use data-logo href="#logo-a"/></svg> Comp advisor <svg><use data-logo href="#logo-a"/></svg> <em>Heatmaps</em> <svg><use data-logo href="#logo-a"/></svg> Quota-safe <svg><use data-logo href="#logo-a"/></svg> <em>Open source</em> <svg><use href="#logo-a"/></svg></span>
-        <span>Player search <svg><use data-logo href="#logo-a"/></svg> <em>Overlay</em> <svg><use data-logo href="#logo-a"/></svg> Comp advisor <svg><use data-logo href="#logo-a"/></svg> <em>Heatmaps</em> <svg><use data-logo href="#logo-a"/></svg> Quota-safe <svg><use data-logo href="#logo-a"/></svg> <em>Open source</em> <svg><use href="#logo-a"/></svg></span>
+        <span>Player search <svg><use href="#logo"/></svg> <em>Overlay</em> <svg><use href="#logo"/></svg> Comp advisor <svg><use href="#logo"/></svg> <em>Heatmaps</em> <svg><use href="#logo"/></svg> Quota-safe <svg><use href="#logo"/></svg> <em>Open source</em> <svg><use href="#logo"/></svg></span>
+        <span>Player search <svg><use href="#logo"/></svg> <em>Overlay</em> <svg><use href="#logo"/></svg> Comp advisor <svg><use href="#logo"/></svg> <em>Heatmaps</em> <svg><use href="#logo"/></svg> Quota-safe <svg><use href="#logo"/></svg> <em>Open source</em> <svg><use href="#logo"/></svg></span>
       </div>
     </div>
 
@@ -217,7 +210,7 @@
             <svg class="art" viewBox="0 0 200 120" aria-hidden="true"><path d="M10 100 L40 80 L70 86 L100 60 L130 64 L160 36 L190 30" fill="none" stroke="#5ce1e6" stroke-width="2.5"/><circle cx="190" cy="30" r="5" fill="#d7ff3a"/></svg>
             <div><h3>Rank view</h3><p>RR over time, peak vs now, act-by-act comparison and an estimate of games to the next rank.</p></div></article>
           <article class="hcard"><span class="num">/07</span>
-            <svg class="art" viewBox="0 0 200 120" aria-hidden="true"><text x="12" y="70" fill="#ede8df" font-family="Big Shoulders Display" font-weight="800" font-size="44">Aa</text><text x="96" y="70" fill="#d7ff3a" font-family="Instrument Sans" font-size="40">अ</text><circle cx="160" cy="56" r="14" fill="none" stroke="#5ce1e6" stroke-width="2"/></svg>
+            <svg class="art" viewBox="0 0 200 120" aria-hidden="true"><text x="12" y="70" fill="#ede8df" font-family="Big Shoulders Display" font-weight="800" font-size="44">Aa</text><text x="96" y="70" fill="#d7ff3a" font-family="Satoshi" font-size="40">अ</text><circle cx="160" cy="56" r="14" fill="none" stroke="#5ce1e6" stroke-width="2"/></svg>
             <div><h3>English &amp; Hindi</h3><p>Every screen translatable, with colour-blind-safe palettes and scalable overlay text.</p></div></article>
         </div>
       </div>
@@ -267,7 +260,7 @@
                 <span><strong>Live match</strong> <span class="mono mute" data-live-state>Off</span></span>
               </div>
               <div class="warn" role="note">
-                <strong>Before you turn this on.</strong> Live match uses the Riot Client running on your PC. Riot does not support this, it may stop working after any game update, and Riot may treat tools that show other players' information as a rules violation. This could put your account at risk. <span data-brand-name>Postplant</span> never reads game memory and never runs during agent select.
+                <strong>Before you turn this on.</strong> Live match uses the Riot Client running on your PC. Riot does not support this, it may stop working after any game update, and Riot may treat tools that show other players' information as a rules violation. This could put your account at risk. <span>Postplant</span> never reads game memory and never runs during agent select.
               </div>
             </div>
             <div class="scoreboard" aria-label="Example live scoreboard">
@@ -340,7 +333,7 @@
       <div class="final-glow" aria-hidden="true"></div>
       <div class="wrap" style="position:relative">
         <h2 class="h2" data-split>Plant it. <span class="outline">Own it.</span></h2>
-        <a class="btn" href="download.html" data-magnetic><svg><use href="#i-dl"/></svg>Get <span data-brand-name>Postplant</span> for Windows</a>
+        <a class="btn" href="download.html" data-magnetic><svg><use href="#i-dl"/></svg>Get <span>Postplant</span> for Windows</a>
       </div>
     </section>
   </main>
@@ -349,13 +342,13 @@
     <div class="wrap">
       <div class="foot">
         <div>
-          <a class="brand" href="./"><svg><use data-logo href="#logo-a"/></svg><span data-brand-name>Postplant</span></a>
+          <a class="brand" href="./"><svg><use href="#logo"/></svg><span>Postplant</span></a>
           <p style="max-width:360px; margin-top:14px">A free, open-source Valorant companion for Windows.</p>
         </div>
         <div><h4>Product</h4><ul><li><a href="download.html">Download</a></li><li><a href="#advisor-sec">Comp Advisor</a></li><li><a href="#overlay">Overlay</a></li><li><a href="#faq">FAQ</a></li></ul></div>
         <div><h4>Project</h4><ul><li><a data-repo href="#">Source code</a></li><li><a data-repo="/releases" href="#">Releases</a></li><li><a data-repo="/issues" href="#">Report an issue</a></li></ul></div>
       </div>
-      <p class="legal">© <span data-year></span> <span data-brand-name>Postplant</span> contributors. <span data-brand-name>Postplant</span> is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
+      <p class="legal">© <span data-year></span> <span>Postplant</span> contributors. <span>Postplant</span> is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
     </div>
   </footer>
 
