@@ -11,12 +11,15 @@
 
 - **Home**: rank and RR, this session (with a gentle break nudge after a losing streak), recent form, plain-language insights.
 - **Matches and match detail**: full scoreboard with every player's name, rank and stats after the match, party tags, how often you've met someone, rounds with side and loadout, and every death with who killed you, whether you were traded and how far your nearest teammate was.
-- **Analytics**: by agent, by map and side, economy (eco / force / full buy), kills by weapon, untraded deaths. **When you play best**: by match number in a session, time of day, party size and after losing streaks.
-- **Rank**: rating over time, RR per match, average gain, roughly how many wins to the next rank, past acts.
-- **Player lookup** by Riot ID (about 3 requests, cached 10 minutes), recent lookups, private-profile handling.
+- **Analytics**: by agent, by map and side, economy (eco / force / full buy), kills by weapon, untraded deaths. **Lifetime**: every stat over all your matches, per agent, map, agent × map, patch, weapon and mode: win %, K/D, KDA, ACS, ADR, HS %, KAST, first duels, plants, defuses and defuse rate, post-plant and retake kills, clutches, multi-kills, attack/defense rounds, trades, damage per 1,000 credits. **When you play best**: by match number in a session, time of day, party size and after losing streaks.
+- **Rank**: hero cards for current rank, peak rank and RR; rating over time, RR per match, average gain, roughly how many wins to the next rank, past acts.
+- **Player lookup** by Riot ID (about 3 requests, cached 10 minutes): rank, peak, act record, a quick per-agent and per-map summary of the last 25 competitive games, and **detailed career stats** (the same full set as Lifetime) for 5–25 of their matches at 1 request per match, kept on this PC so asking again is free.
+- **Match detail**: rank at match time plus each player's **peak and current rank**, and a **2D replay** that steps through every kill with where all ten players stood.
+- **Heatmaps**: where you die and where you get kills on each map, by side.
 - **People**: players you meet often, with your own notes and tags.
-- **Comp Advisor**: pick a map, enter teammates' agents yourself, get suggestions with reasons and full comps, only from agents you own. Never reads agent select.
-- **Overlay**: last match, session and rank panels; the scoreboard after each match. Click-through, movable, game-safe (no animations while VALORANT runs).
+- **Comp Advisor**: pick a map, enter teammates' agents yourself, get suggestions with reasons and full comps, only from agents you own. **Stack planner**: you and up to four friends, each assigned an agent from their own pool, with the top three line-ups and why. Also opens **in the overlay** (hotkey, or automatically in agent select with Live match on).
+- **Overlay**: last match, session and rank panels; the scoreboard pops up by itself after each match. Click-through, movable, game-safe.
+- **Live match** (opt-in, off by default, behind a warning): reads the Riot Client on your PC to know when you're in agent select or a match. Agent select only opens your Comp Advisor; nothing about other players is read there. In the match: a short round-1 panel, hold **Tab** for rank, peak and form beside the scoreboard, and a full table on a hotkey. Players who hide their name stay hidden.
 - **Recordings**: point it at your ShadowPlay / OBS folder and every round and death gets a **Watch** button that opens the video at that moment. A **Review list** keeps moments to rewatch.
 - **Export / import**: full `.postplant` backups, JSON export (optionally anonymised), merge or replace with a preview, weekly automatic backups.
 - Six themes, five fonts, colour-blind mode, text size, `Ctrl+K` command palette, tray icon, start with Windows, global hotkeys that only work while the game runs.
@@ -45,11 +48,11 @@ The key is stored in Windows Credential Manager. It is never written to Postplan
 
 ## Privacy
 
-No telemetry, no accounts, no servers of ours. Every outbound request is listed in [docs/privacy.md](docs/privacy.md). Postplant never reads game memory, never scouts during agent select, and never tries to reveal hidden names.
+No telemetry, no accounts, no servers of ours. Every outbound request is listed in [docs/privacy.md](docs/privacy.md). Postplant never reads game memory, never scouts during agent select, and never tries to reveal hidden names. The opt-in Live match module talks to the Riot Client on 127.0.0.1 and to Riot's own servers; Riot tokens stay in memory and are never sent anywhere else.
 
 ## Hotkeys
 
-Default hotkeys (rebind in **Settings → Overlay & hotkeys**; by default they only work while VALORANT runs):
+Default hotkeys (click one in **Settings → Overlay & hotkeys** and press the new combination; by default they only work while VALORANT runs):
 
 | Action | Default |
 |---|---|
@@ -59,7 +62,8 @@ Default hotkeys (rebind in **Settings → Overlay & hotkeys**; by default they o
 | Next overlay panel | `Ctrl+Shift+PageDown` |
 | Check for new matches | `Ctrl+Shift+F5` |
 | Open Postplant | `Ctrl+Shift+O` |
-| Open Comp Advisor | `Ctrl+Shift+A` |
+| Comp Advisor in the overlay | `Ctrl+Shift+A` |
+| Live match table | `Ctrl+Shift+L` |
 
 ## Build from source
 

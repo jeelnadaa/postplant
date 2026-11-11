@@ -325,13 +325,13 @@ M0, M1, M2 and M3 below, plus the Comp Advisor running on the **knowledge base o
 
 ### M6: Extras (section 16), polish and v1.0
 - [ ] Every feature in section 16, each trimmed to what the M0 field check showed:
-  - [ ] Kill/death heatmaps per map (by side, filter by agent)
-  - [ ] Opening duel map and win rate
+  - [x] Kill/death heatmaps per map (by side; agent filter still to do)
+  - [x] Opening duel map and win rate
   - [ ] Ability usage per round vs your own average
-  - [x] Economy results (eco/force/full-buy round win %); damage per 1,000 credits still to do
+  - [x] Economy results (eco/force/full-buy round win %) and damage per 1,000 credits (Lifetime)
   - [x] Agent pool tracker (results per agent and map; feeds Comp Advisor comfort)
   - [ ] Duo synergy (per agent pair with each friend)
-  - [ ] Patch impact (before/after a patch that changed your agent)
+  - [x] Patch impact (before/after a patch that changed your agent)
   - [x] Post-match summary card (overlay scoreboard after each match)
   - [ ] English + Hindi UI (`lib/i18n`, every string translatable from day one)
   - [x] Colour-blind-safe palettes and scalable overlay text
@@ -346,10 +346,10 @@ M0, M1, M2 and M3 below, plus the Comp Advisor running on the **knowledge base o
 
 ### M7: Live match module (opt-in, 2–3 days, after v1.0 is stable)
 - [ ] Re-read Riot's VALORANT policy and the current state of the local client endpoints.
-- [ ] Phase detection: activate only when the match phase is in-game; do nothing during pre-game (agent select).
-- [ ] Read players and agents for the current match; fetch ranks through the governor's live budget (section 13).
-- [ ] Live overlay panel with the "show only what's available" rules: buy-phase compact panel, hold-Tab full panel, Ctrl+Shift+L toggle; per-player states (loading, queued, private profile, hidden name, unranked, error); hidden-name players never looked up. Plus section 25.2: experience on current agent, rematch notice, your context line.
-- [ ] Opt-in screen with the risk notice; module disabled by default and removable at build time (`--no-default-features`).
+- [x] Phase detection: activate only when the match phase is in-game; do nothing during pre-game (agent select).
+- [x] Read players and agents for the current match; fetch ranks through the governor's live budget (section 13).
+- [x] Live overlay panel with the "show only what's available" rules: buy-phase compact panel, hold-Tab full panel, Ctrl+Shift+L toggle; per-player states (loading, queued, private profile, hidden name, unranked, error); hidden-name players never looked up. Plus section 25.2: experience on current agent, rematch notice, your context line.
+- [x] Opt-in screen with the risk notice; module disabled by default and removable at build time (`--no-default-features`).
 
 ---
 
