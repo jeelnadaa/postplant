@@ -25,6 +25,10 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
         .shadow(false)
         .resizable(false)
         .focused(false)
+        // Never take focus from the game: tao drops its "don't focus" marker after creation, so a
+        // focusable overlay would be activated by every later show(), which made the hold-Tab check
+        // see VALORANT lose focus and hide/show in a loop. Edit and advisor turn focus back on.
+        .focusable(false)
         .visible(false)
         .build()?;
     let _ = win.set_ignore_cursor_events(true);
@@ -121,6 +125,7 @@ pub fn set_edit(app: &AppHandle, edit: bool) {
     };
     st.overlay_edit.store(edit, Ordering::SeqCst);
     let _ = win.set_ignore_cursor_events(!edit);
+    let _ = win.set_focusable(edit || st.overlay_layout.lock().unwrap().as_str() == "advisor");
     if edit {
         set_visible(app, true);
         let _ = win.set_focus();
@@ -159,6 +164,7 @@ pub fn layout(app: &AppHandle, kind: &str) {
     };
     let _ = win.set_size(tauri::LogicalSize::new(w, h));
     let _ = win.set_ignore_cursor_events(!interactive);
+    let _ = win.set_focusable(interactive);
     if kind == "normal" {
         restore_position(app);
     } else if let Some(m) = mon {
@@ -199,20 +205,21 @@ pub fn show_auto(app: &AppHandle) {
 
 pub fn auto_done(app: &AppHandle) {
     let st = app.state::<AppState>();
-    layout(app, "normal");
+    // Hide before switching back, or the normal panel flashes at its old spot for a frame.
     if st.overlay_auto.swap(false, Ordering::SeqCst) {
         set_visible(app, false);
     }
+    layout(app, "normal");
 }
 
 pub fn open_advisor(app: &AppHandle, map: Option<&str>, auto: bool) {
+    layout(app, "advisor");
+    let _ = app.emit_to(LABEL, "advisor-open", json!({ "map": map, "auto": auto }));
     if auto {
         show_auto(app);
     } else {
         set_visible(app, true);
     }
-    layout(app, "advisor");
-    let _ = app.emit_to(LABEL, "advisor-open", json!({ "map": map, "auto": auto }));
 }
 
 pub fn close_advisor(app: &AppHandle, _auto: bool) {
@@ -247,13 +254,13 @@ pub fn toggle_advisor(app: &AppHandle) {
 
 /// Live round-1 panel: shown for 25 s when the match starts (the overlay page runs the timer).
 pub fn show_live_compact(app: &AppHandle) {
-    show_auto(app);
     layout(app, "compact");
     let _ = app.emit_to(
         LABEL,
         "live-show",
         json!({ "mode": "compact", "seconds": 25 }),
     );
+    show_auto(app);
 }
 
 pub fn live_tab(app: &AppHandle, down: bool) {
@@ -262,9 +269,11 @@ pub fn live_tab(app: &AppHandle, down: bool) {
         return;
     }
     if down {
-        show_auto(app);
+        // Size, place and switch the page first, then show, so the hidden window never appears
+        // with its previous layout.
         layout(app, "rail");
         let _ = app.emit_to(LABEL, "live-show", json!({ "mode": "rail" }));
+        show_auto(app);
     } else {
         let _ = app.emit_to(LABEL, "live-show", json!({ "mode": "none" }));
         auto_done(app);
@@ -280,9 +289,9 @@ pub fn toggle_live_table(app: &AppHandle) {
     let open = !live.table_open.load(Ordering::SeqCst);
     live.table_open.store(open, Ordering::SeqCst);
     if open {
-        show_auto(app);
         layout(app, "full");
         let _ = app.emit_to(LABEL, "live-show", json!({ "mode": "full" }));
+        show_auto(app);
     } else {
         let _ = app.emit_to(LABEL, "live-show", json!({ "mode": "none" }));
         auto_done(app);
