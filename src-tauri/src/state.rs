@@ -26,6 +26,8 @@ pub struct AppState {
     pub hotkeys_paused: AtomicBool,
     /// Poll for a just-finished match every 45 s until this time (ms).
     pub fast_poll_until: AtomicI64,
+    /// Id of the match that just ended (known from the opt-in live module), fetched directly by id.
+    pub pending_match: Mutex<String>,
     /// The overlay was shown automatically (post-match board / agent select) and should hide again.
     pub overlay_auto: AtomicBool,
     /// Current overlay layout: normal | advisor | compact | rail | full.
@@ -59,6 +61,7 @@ impl AppState {
             hotkeys: Mutex::new(Vec::new()),
             hotkeys_paused: AtomicBool::new(false),
             fast_poll_until: AtomicI64::new(0),
+            pending_match: Mutex::new(String::new()),
             overlay_auto: AtomicBool::new(false),
             overlay_layout: Mutex::new("normal".into()),
             career_cache: Mutex::new(None),

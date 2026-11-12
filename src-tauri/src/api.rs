@@ -289,6 +289,14 @@ pub mod paths {
         let m = mode.map(|m| format!("&mode={m}")).unwrap_or_default();
         format!("/valorant/v1/by-puuid/stored-matches/{region}/{puuid}?size={size}{m}")
     }
+    /// Fresh match history straight from Riot through HenrikDev (full v4 match objects, up to 10).
+    /// Unlike stored-matches, this sees a match within a minute or two of it ending.
+    pub fn matches_v4(region: &str, puuid: &str, size: u32) -> String {
+        format!(
+            "/valorant/v4/by-puuid/matches/{region}/pc/{puuid}?size={}",
+            size.clamp(1, 10)
+        )
+    }
     pub fn match_v4(region: &str, id: &str) -> String {
         format!("/valorant/v4/match/{region}/{id}")
     }

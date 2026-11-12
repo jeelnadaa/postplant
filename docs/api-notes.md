@@ -12,7 +12,8 @@ Postplant talks to the HenrikDev API (`https://api.henrikdev.xyz`) with the user
 | `/valorant/v2/account/{name}/{tag}` | Setup, player lookup | 1 |
 | `/valorant/v3/by-puuid/mmr/{region}/pc/{puuid}` | Current rank, peak, act history | 1 |
 | `/valorant/v1/by-puuid/mmr-history/{region}/{puuid}` | RR change per match | 1 |
-| `/valorant/v1/by-puuid/stored-matches/{region}/{puuid}?size=N[&mode=]` | Polling for new matches (light), lookup recent matches | 1 |
+| `/valorant/v4/by-puuid/matches/{region}/pc/{puuid}?size=N` (N ≤ 10) | Polling for my new matches: fresh from Riot, full match objects in one request | 1 |
+| `/valorant/v1/by-puuid/stored-matches/{region}/{puuid}?size=N[&mode=]` | Fallback when the fresh list fails, backfills over 10, player lookup (lags behind new matches) | 1 |
 | `/valorant/v4/match/{region}/{match_id}` | Full match detail (stored compressed) | 1 per new match |
 
 Rate-limit headers read: `x-ratelimit-limit`, `x-ratelimit-remaining`, `retry-after` (on 429).

@@ -850,10 +850,12 @@ pub fn heatmap(
     agent: Option<String>,
     outcome: Option<String>,
     rtype: Option<String>,
+    match_id: Option<String>,
 ) -> Res {
     let kb = kb.get();
     let me = need_me(&st)?;
     let o = crate::insights::HeatOpts {
+        match_id: match_id.unwrap_or_default(),
         map,
         event: event.unwrap_or_else(|| "deaths".into()),
         side: side.unwrap_or_default(),

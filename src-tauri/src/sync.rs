@@ -60,34 +60,82 @@ async fn sync_inner(
     prio: Prio,
     size: u32,
 ) -> Result<Value, String> {
-    let list = st
-        .api
-        .get(
-            &paths::stored_matches(&me.region, &me.puuid, size, None),
-            prio,
-        )
-        .await
-        .map_err(|e| e.to_string())?;
-    let ids: Vec<String> = arr(&list, "/data")
-        .iter()
-        .map(|m| s(m, "/meta/id").to_string())
-        .filter(|x| !x.is_empty())
-        .collect();
-    let missing: Vec<String> = {
-        let c = st.db.lock().unwrap();
+    let have = |id: &str| {
+        st.db
+            .lock()
+            .unwrap()
+            .query_row("SELECT 1 FROM matches WHERE match_id=?1", [id], |_| Ok(()))
+            .is_ok()
+    };
+    let mut stored = Vec::new();
+    // 1. The match the live module saw end: fetch it by id (1 request, no list needed).
+    let pending = st.pending_match.lock().unwrap().clone();
+    if !pending.is_empty() {
+        if have(&pending) {
+            st.pending_match.lock().unwrap().clear();
+        } else if let Ok(raw) = st
+            .api
+            .get(&paths::match_v4(&me.region, &pending), prio)
+            .await
+        {
+            let mut c = st.db.lock().unwrap();
+            if let Ok(id) = parse::store_match(&mut c, &raw) {
+                stored.push(id);
+                st.pending_match.lock().unwrap().clear();
+            }
+        }
+    }
+    // 2. Fresh match history (full matches in one request). stored-matches lags behind by minutes
+    //    to hours, so it is only the fallback and the path for bigger backfills.
+    let mut ids: Vec<String> = Vec::new();
+    let mut fresh_ok = false;
+    if size <= 10 {
+        if let Ok(list) = st
+            .api
+            .get(&paths::matches_v4(&me.region, &me.puuid, size), prio)
+            .await
+        {
+            fresh_ok = true;
+            for m in arr(&list, "/data") {
+                let id = s(m, "/metadata/match_id").to_string();
+                if id.is_empty() {
+                    continue;
+                }
+                ids.push(id.clone());
+                if !have(&id) && !stored.contains(&id) {
+                    let mut c = st.db.lock().unwrap();
+                    if let Ok(id) = parse::store_match(&mut c, m) {
+                        stored.push(id);
+                    }
+                }
+            }
+        }
+    }
+    let missing: Vec<String> = if fresh_ok {
+        Vec::new()
+    } else {
+        let list = match st
+            .api
+            .get(
+                &paths::stored_matches(&me.region, &me.puuid, size, None),
+                prio,
+            )
+            .await
+        {
+            Ok(l) => l,
+            Err(e) if stored.is_empty() => return Err(e.to_string()),
+            Err(_) => Value::Null,
+        };
+        ids = arr(&list, "/data")
+            .iter()
+            .map(|m| s(m, "/meta/id").to_string())
+            .filter(|x| !x.is_empty())
+            .collect();
         ids.iter()
-            .filter(|id| {
-                c.query_row(
-                    "SELECT 1 FROM matches WHERE match_id=?1",
-                    [id.as_str()],
-                    |_| Ok(()),
-                )
-                .is_err()
-            })
+            .filter(|id| !have(id) && !stored.contains(id))
             .cloned()
             .collect()
     };
-    let mut stored = Vec::new();
     for id in &missing {
         let raw = match st.api.get(&paths::match_v4(&me.region, id), prio).await {
             Ok(v) => v,
@@ -174,8 +222,9 @@ pub fn ensure_starters(c: &rusqlite::Connection, puuid: &str, kb: &crate::adviso
     }
 }
 
-/// Background loop: game detection every 10 s, adaptive polling 3 → 6 → 12 min while the game runs
-/// or the overlay is visible, stopping 10 min after the game closes.
+/// Background loop: game detection every 10 s; a check every 75 s while the game runs, every 30 s for
+/// 10 min after it closes, every 20 s by match id right after the live module sees a match end,
+/// backing off to 12 min otherwise.
 pub fn start_background(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         let mut sys = sysinfo::System::new();
@@ -206,6 +255,7 @@ pub fn start_background(app: AppHandle) {
                     }
                 } else {
                     closed_at = Some(Instant::now());
+                    next_poll = Instant::now() + Duration::from_secs(15);
                     crate::overlay::layout(&app, "normal");
                     crate::overlay::set_visible(&app, false);
                 }
@@ -216,10 +266,10 @@ pub fn start_background(app: AppHandle) {
             let active = running || st.overlay_visible.load(Ordering::SeqCst) || recently_closed;
             let stale = now_ms() - st.last_sync.load(Ordering::SeqCst) > 5 * 60_000;
             let has_me = st.me().is_some() && st.api.has_key();
-            // Right after a match ends (seen by the live module), look every 45 s for a few minutes.
+            // Right after a match ends (seen by the live module), look every 20 s for a few minutes.
             let fast = now_ms() < st.fast_poll_until.load(Ordering::SeqCst);
-            if fast && next_poll > Instant::now() + Duration::from_secs(45) {
-                next_poll = Instant::now() + Duration::from_secs(45);
+            if fast && next_poll > Instant::now() + Duration::from_secs(20) {
+                next_poll = Instant::now() + Duration::from_secs(20);
             }
             if has_me && Instant::now() >= next_poll && ((startup && stale) || active || fast) {
                 let r = sync_me(&app, Prio::Background, 5).await;
@@ -227,13 +277,17 @@ pub fn start_background(app: AppHandle) {
                     .as_ref()
                     .map(|v| v["new"].as_i64().unwrap_or(0) > 0)
                     .unwrap_or(false);
-                // Back off while nothing changes: 2 → 4 min while the game runs (a match ends at most
-                // ~4 min before the scoreboard shows), up to 12 min otherwise.
-                let cap = if running { 240 } else { 720 };
-                interval = if got_new {
+                // While the game runs, check every 75 s (one light request) so a finished match shows
+                // up within a minute or two. Right after the game closes, every 30 s for 10 min.
+                // Otherwise back off up to 12 min.
+                interval = if running {
+                    Duration::from_secs(75)
+                } else if recently_closed {
+                    Duration::from_secs(30)
+                } else if got_new {
                     Duration::from_secs(120)
                 } else {
-                    (interval * 2).min(Duration::from_secs(cap))
+                    (interval * 2).min(Duration::from_secs(720))
                 };
                 next_poll = Instant::now() + interval;
                 if got_new {

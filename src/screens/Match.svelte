@@ -9,6 +9,7 @@
   import PlayerName from "../components/PlayerName.svelte";
   import Rank from "../components/Rank.svelte";
   import Replay from "../components/Replay.svelte";
+  import Heatmaps from "./Heatmaps.svelte";
 
   let { id }: { id: string } = $props();
   let d = $state<J>(null);
@@ -98,6 +99,7 @@
     <button role="tab" class="tab" aria-selected={tab === "rounds"} onclick={() => (tab = "rounds")}>{t("Rounds")}<span class="count">{d.rounds.length}</span></button>
     <button role="tab" class="tab" aria-selected={tab === "deaths"} onclick={() => (tab = "deaths")}>{t("Your deaths")}<span class="count">{d.deaths.length}</span></button>
     <button role="tab" class="tab" aria-selected={tab === "replay"} onclick={() => (tab = "replay")}>{t("2D replay")}</button>
+    <button role="tab" class="tab" aria-selected={tab === "heatmap"} onclick={() => (tab = "heatmap")}>{t("Heatmap")}</button>
   </div>
 
   {#if tab === "score"}
@@ -158,6 +160,8 @@
     </table>
   {:else if tab === "replay"}
     <Replay {id} myTeam={d.my_team} />
+  {:else if tab === "heatmap"}
+    <Heatmaps matchId={id} fixedMap={d.map} />
   {:else}
     <div class="stack" style="gap:10px">
       {#each d.deaths as x (x.time_in_match_ms)}

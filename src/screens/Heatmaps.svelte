@@ -9,6 +9,8 @@
   import Icon from "../components/Icon.svelte";
   import Select from "../components/Select.svelte";
 
+  // With matchId and fixedMap set, this shows one match (embedded in the match page).
+  let { matchId = "", fixedMap = "" }: { matchId?: string; fixedMap?: string } = $props();
   let map = $state("");
   let event = $state("deaths");
   let side = $state("");
@@ -22,13 +24,14 @@
   const EVENTS: [string, string][] = [["deaths", "Deaths"], ["kills", "Kills"], ["opening", "Opening duels"], ["round_end", "Where rounds end"], ["plants", "Spike plants"], ["defuses", "Defuses"]];
   const maps = $derived((app.kb?.maps ?? []).filter((m: J) => m.minimap));
   $effect(() => {
-    if (!map && maps.length) map = (maps.find((m: J) => m.in_pool) ?? maps[0]).name;
+    if (fixedMap) map = fixedMap;
+    else if (!map && maps.length) map = (maps.find((m: J) => m.in_pool) ?? maps[0]).name;
   });
   $effect(() => {
     void app.version;
     if (!map) return;
     error = "";
-    api.heatmap({ map, event, side, layer, agent, outcome, rtype }).then((r) => (d = r)).catch((e) => (error = errText(e)));
+    api.heatmap({ map, event, side, layer, agent, outcome, rtype, matchId }).then((r) => (d = r)).catch((e) => (error = errText(e)));
   });
   const mm = $derived(maps.find((m: J) => m.name === map)?.minimap);
   const pts = $derived(
@@ -43,10 +46,12 @@
   const color = $derived(event === "deaths" ? "var(--loss)" : event === "kills" || event === "opening" ? "var(--win)" : "var(--accent)");
 </script>
 
+{#if !matchId}
 <div class="page-head"><div><h1 class="h1">{t("Heatmaps")}</h1><div class="sub">{t("From matches you played, stored on this PC · zero requests")}</div></div></div>
 <div class="row mb-4" style="gap:8px;flex-wrap:wrap">
   {#each maps as m (m.name)}<button class="chip" aria-pressed={map === m.name} onclick={() => (map = m.name)}><Icon name="map" />{m.name}</button>{/each}
 </div>
+{/if}
 <div class="row mb-2" style="gap:12px;flex-wrap:wrap">
   <div class="segmented">{#each EVENTS as [v, l] (v)}<button aria-pressed={event === v} onclick={() => (event = v)}>{t(l)}</button>{/each}</div>
 </div>
@@ -73,7 +78,8 @@
     <div class="col-4 stack" style="gap:10px">
       <div class="stat-grid" style="grid-template-columns:1fr 1fr">
         <div class="stat"><div class="v">{pts.length}</div><div class="l">{EVENTS.find((e) => e[0] === event)?.[1]}</div></div>
-        <div class="stat"><div class="v">{d?.matches ?? 0}</div><div class="l">{t("Matches on")} {map}</div></div>
+        {#if matchId}<div class="stat"><div class="v">{d?.spots?.[0]?.name ?? "–"}</div><div class="l">{t("Busiest spot")}</div></div>
+        {:else}<div class="stat"><div class="v">{d?.matches ?? 0}</div><div class="l">{t("Matches on")} {map}</div></div>{/if}
       </div>
       <div class="card">
         <div class="card-head"><span class="h3">{t("Hot spots")}</span><span class="spacer"></span><span class="faint" style="font-size:11px">{goodLabel} %</span></div>

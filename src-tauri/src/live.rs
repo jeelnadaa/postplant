@@ -443,7 +443,8 @@ fn on_leave(app: &AppHandle, prev: Phase) {
                     "INSERT OR REPLACE INTO live_rosters(match_id, saved_at, roster_json) VALUES (?1,?2,?3)",
                     rusqlite::params![id.to_lowercase(), now_ms(), roster.to_string()],
                 );
-                // The match just ended: look for it every 45 s for a few minutes (plan: scoreboard after the match).
+                // The match just ended: fetch it by id every 20 s for a few minutes (scoreboard after the match).
+                *st.pending_match.lock().unwrap() = id.to_lowercase();
                 st.fast_poll_until
                     .store(now_ms() + 8 * 60_000, Ordering::SeqCst);
                 st.wake.notify_one();
