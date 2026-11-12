@@ -435,3 +435,9 @@ footer { border-top: 1px solid var(--line); padding: 56px 0 40px; color: var(--m
   [data-reveal], .split .w > span { opacity: 1 !important; transform: none !important; }
   .grain { display: none; }
 }
+
+/* Launch film */
+.film { padding-bottom: 0; }
+.film-frame { margin: clamp(28px, 4vw, 48px) 0 0; }
+.film-frame video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 22px; border: 1px solid var(--line-2); background: var(--ink-2); box-shadow: 0 40px 120px -40px rgba(215, 255, 58, 0.18); }
+.film-frame figcaption { margin-top: 14px; font-size: 0.8rem; color: var(--mute); }

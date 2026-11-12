@@ -7,6 +7,8 @@
 
 > **Status: v0.1, first pre-release.** Everything below is built. The API field names follow HenrikDev's documentation and still need a check against live data (see [docs/api-notes.md](docs/api-notes.md)). Track progress in [PROGRESS.md](PROGRESS.md); the full design is in [plan.md](plan.md).
 
+**Watch the 33-second launch film:** [postplant.solarquack.in](https://postplant.solarquack.in/#film) ([MP4](site/assets/media/postplant-launch.mp4)).
+
 ## Features
 
 - **Home**: rank and RR, this session (with a gentle break nudge after a losing streak), recent form, plain-language insights.
