@@ -8,6 +8,7 @@
   import { app } from "../lib/store.svelte";
   import Icon from "../components/Icon.svelte";
   import Select from "../components/Select.svelte";
+  import ExportImage from "../components/ExportImage.svelte";
 
   // With matchId and fixedMap set, this shows one match (embedded in the match page).
   let { matchId = "", fixedMap = "" }: { matchId?: string; fixedMap?: string } = $props();
@@ -18,6 +19,9 @@
   let agent = $state("");
   let outcome = $state("");
   let rtype = $state("");
+  let queue = $state("");
+  let days = $state(0);
+  let svgEl = $state<SVGSVGElement>();
   let d = $state<J>(null);
   let error = $state("");
 
@@ -31,7 +35,7 @@
     void app.version;
     if (!map) return;
     error = "";
-    api.heatmap({ map, event, side, layer, agent, outcome, rtype, matchId }).then((r) => (d = r)).catch((e) => (error = errText(e)));
+    api.heatmap({ map, event, side, layer, agent, outcome, rtype, matchId, queue: matchId ? "" : queue, days: matchId ? 0 : days }).then((r) => (d = r)).catch((e) => (error = errText(e)));
   });
   const mm = $derived(maps.find((m: J) => m.name === map)?.minimap);
   const pts = $derived(
@@ -61,12 +65,18 @@
   <Select value={rtype} options={[["", "All rounds"], ["pistol", "Pistol"], ["eco", "Your eco"], ["force", "Your force buy"], ["full", "Your full buy"]]} onchange={(v) => (rtype = v)} />
   <Select value={outcome} options={[["", "Won and lost"], ["won", "Rounds won"], ["lost", "Rounds lost"]]} onchange={(v) => (outcome = v)} />
   {#if event !== "round_end"}<Select value={agent} options={[["", "Any agent"], ...((app.kb?.agents ?? []).map((a: J) => [a.name, a.name]) as [string, string][])]} onchange={(v) => (agent = v)} />{/if}
+  {#if !matchId}
+    <Select value={queue} icon="swords" options={[["", "All modes"], ["competitive", "Competitive"], ["unrated", "Unrated"], ["swiftplay", "Swiftplay"], ["premier", "Premier"]]} onchange={(v) => (queue = v)} />
+    <Select value={String(days)} icon="clock" options={[["0", "All time"], ["7", "Last 7 days"], ["30", "Last 30 days"], ["90", "Last 90 days"]]} onchange={(v) => (days = Number(v))} />
+  {/if}
+  <span class="spacer"></span>
+  <ExportImage svg={svgEl} title={`${map} · ${EVENTS.find((e) => e[0] === event)?.[1]} · ${layer === "me" ? "me" : layer === "team" ? "my team" : "enemies"}${matchId ? " · one match" : ` · ${d?.matches ?? 0} matches`}`} name={`postplant-heatmap-${map}-${event}`} />
 </div>
 {#if error}<div class="banner danger mb-4"><Icon name="alert" />{error}</div>{/if}
 {#if mm}
   <div class="grid-12">
     <div class="card col-8" style="padding:8px">
-      <svg viewBox="0 0 1000 1000" style="width:100%;height:auto;display:block" role="img" aria-label="{event} on {map}">
+      <svg bind:this={svgEl} viewBox="0 0 1000 1000" style="width:100%;height:auto;display:block" role="img" aria-label="{event} on {map}">
         <defs>
           <radialGradient id="hm-dot"><stop offset="0%" stop-color={color} stop-opacity="0.5" /><stop offset="100%" stop-color={color} stop-opacity="0" /></radialGradient>
         </defs>

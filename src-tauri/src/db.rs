@@ -3,7 +3,7 @@ use anyhow::Result;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::Path;
 
-pub const SCHEMA_VERSION: i64 = 2;
+pub const SCHEMA_VERSION: i64 = 3;
 
 const MIGRATION_1: &str = r#"
 CREATE TABLE IF NOT EXISTS schema_info(version INTEGER NOT NULL, app_version TEXT, created_at TEXT);
@@ -57,6 +57,11 @@ CREATE INDEX IF NOT EXISTS emp_puuid ON ext_match_players(puuid);
 CREATE TABLE IF NOT EXISTS live_rosters(match_id TEXT PRIMARY KEY, saved_at INTEGER NOT NULL, roster_json TEXT NOT NULL);
 "#;
 
+const MIGRATION_3: &str = r#"
+CREATE TABLE IF NOT EXISTS history(match_id TEXT PRIMARY KEY, puuid TEXT NOT NULL, started_at INTEGER NOT NULL, row_json TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS history_puuid ON history(puuid, started_at);
+"#;
+
 /// Tables copied by export/import, in dependency order.
 pub const DATA_TABLES: &[&str] = &[
     "players",
@@ -71,6 +76,7 @@ pub const DATA_TABLES: &[&str] = &[
     "review_items",
     "agent_pool",
     "live_rosters",
+    "history",
 ];
 
 pub fn open(path: &Path) -> Result<Connection> {
@@ -110,6 +116,13 @@ pub fn migrate(conn: &Connection) -> Result<()> {
         conn.execute_batch(MIGRATION_2)?;
         conn.execute(
             "INSERT INTO schema_info(version, app_version, created_at) VALUES (2, ?1, ?2)",
+            params![env!("CARGO_PKG_VERSION"), chrono::Utc::now().to_rfc3339()],
+        )?;
+    }
+    if schema_version(conn) < 3 {
+        conn.execute_batch(MIGRATION_3)?;
+        conn.execute(
+            "INSERT INTO schema_info(version, app_version, created_at) VALUES (3, ?1, ?2)",
             params![env!("CARGO_PKG_VERSION"), chrono::Utc::now().to_rfc3339()],
         )?;
     }

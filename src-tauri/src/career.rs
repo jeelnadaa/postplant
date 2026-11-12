@@ -42,6 +42,12 @@ struct Acc {
     trades: i64,
     traded_deaths: i64,
     casts: [i64; 4],
+    // Round-level stats only exist for matches stored in full; these count just those, so KAST,
+    // damage per credit and similar stay correct when lifetime totals add history-only matches.
+    dgames: i64,
+    drounds: i64,
+    ddmg: i64,
+    ddeaths: i64,
 }
 
 impl Acc {
@@ -62,13 +68,14 @@ impl Acc {
     fn json(&self) -> Value {
         let shots = self.hs + self.body + self.leg;
         let r = self.rounds.max(1) as f64;
+        let dr = self.drounds.max(1) as f64;
         json!({
             "games": self.games, "wins": self.wins, "losses": self.losses, "draws": self.games - self.wins - self.losses,
             "win": Acc::pct(self.wins, self.games), "rounds": self.rounds,
             "k": self.k, "d": self.d, "a": self.a, "kd": Acc::ratio(self.k, self.d), "kda": Acc::ratio(self.k + self.a, self.d),
             "kpr": ((self.k as f64 / r) * 100.0).round() / 100.0, "dpr": ((self.d as f64 / r) * 100.0).round() / 100.0,
             "acs": (self.score as f64 / r).round(), "adr": (self.dmg as f64 / r).round(), "dd": ((self.dmg - self.dmg_recv) as f64 / r).round(),
-            "hs": Acc::pct(self.hs, shots), "kast": Acc::pct(self.kast_rounds, self.rounds),
+            "hs": Acc::pct(self.hs, shots), "kast": Acc::pct(self.kast_rounds, self.drounds),
             "fb": self.fb, "fd": self.fd, "fb_win": Acc::pct(self.fb, self.fb + self.fd),
             "plants": self.plants, "defuses": self.defuses,
             "plant_rate": Acc::pct(self.plants, self.atk_rounds), "defuse_rate": Acc::pct(self.defuses, self.def_planted_rounds),
@@ -76,12 +83,13 @@ impl Acc {
             "atk_win": Acc::pct(self.atk_won, self.atk_rounds), "def_win": Acc::pct(self.def_won, self.def_rounds),
             "clutches": self.clutch_won, "clutch_att": self.clutch_att, "clutch_win": Acc::pct(self.clutch_won, self.clutch_att),
             "k2": self.k2, "k3": self.k3, "k4": self.k4, "aces": self.aces,
-            "dmg_per_1k": if self.spent > 0 { json!((self.dmg as f64 * 1000.0 / self.spent as f64).round()) } else { Value::Null },
-            "trades": self.trades, "traded_deaths": Acc::pct(self.traded_deaths, self.d),
+            "dmg_per_1k": if self.spent > 0 { json!((self.ddmg as f64 * 1000.0 / self.spent as f64).round()) } else { Value::Null },
+            "trades": self.trades, "traded_deaths": Acc::pct(self.traded_deaths, self.ddeaths),
             "casts_per_round": {
-                "grenade": ((self.casts[0] as f64 / r) * 100.0).round() / 100.0, "ability1": ((self.casts[1] as f64 / r) * 100.0).round() / 100.0,
-                "ability2": ((self.casts[2] as f64 / r) * 100.0).round() / 100.0, "ultimate": ((self.casts[3] as f64 / r) * 100.0).round() / 100.0,
+                "grenade": ((self.casts[0] as f64 / dr) * 100.0).round() / 100.0, "ability1": ((self.casts[1] as f64 / dr) * 100.0).round() / 100.0,
+                "ability2": ((self.casts[2] as f64 / dr) * 100.0).round() / 100.0, "ultimate": ((self.casts[3] as f64 / dr) * 100.0).round() / 100.0,
             },
+            "detail_games": self.dgames,
         })
     }
     fn add(&mut self, o: &Acc) {
@@ -120,7 +128,11 @@ impl Acc {
             aces,
             spent,
             trades,
-            traded_deaths
+            traded_deaths,
+            dgames,
+            drounds,
+            ddmg,
+            ddeaths
         );
         for n in 0..4 {
             self.casts[n] += o.casts[n];
@@ -345,6 +357,10 @@ fn one(
         }
     }
     let wv: Vec<(String, i64, i64)> = weapons.into_iter().map(|(k, v)| (k, v.0, v.1)).collect();
+    a.dgames = 1;
+    a.drounds = a.rounds;
+    a.ddmg = a.dmg;
+    a.ddeaths = a.d;
     Some((
         a,
         s(p, "/agent/name").to_string(),
@@ -364,6 +380,12 @@ fn one(
     ))
 }
 
+fn sorted(h: HashSet<String>) -> Vec<String> {
+    let mut v: Vec<String> = h.into_iter().filter(|x| !x.is_empty()).collect();
+    v.sort();
+    v
+}
+
 /// "release-13.08-shipping-…" → "13.08".
 pub fn patch_of(v: &str) -> String {
     v.split('-')
@@ -372,46 +394,187 @@ pub fn patch_of(v: &str) -> String {
         .to_string()
 }
 
+/// Filters for career stats. Empty strings and 0 mean "any".
+#[derive(Default, Clone)]
+pub struct Filt {
+    pub queue: String,
+    pub map: String,
+    pub agent: String,
+    pub season: String,
+    pub since: i64,
+}
+
+/// Stored-match mode names ("Team Deathmatch") as v4 queue ids ("hurm").
+pub fn mode_id(name: &str) -> String {
+    let n = name.to_lowercase().replace([' ', '-'], "");
+    match n.as_str() {
+        "teamdeathmatch" => "hurm".into(),
+        "escalation" => "ggteam".into(),
+        "replication" => "onefa".into(),
+        "snowballfight" => "snowball".into(),
+        _ => n,
+    }
+}
+
+struct Entry {
+    a: Acc,
+    agent: String,
+    agent_id: String,
+    map: String,
+    q: String,
+    wv: Vec<(String, i64, i64)>,
+    ver: String,
+    result: char,
+    t: i64,
+    season: String,
+}
+
+/// One HenrikDev stored-match row (totals only, no rounds) as an entry.
+fn stored_entry(m: &Value) -> Entry {
+    let team = s(m, "/stats/team").to_lowercase();
+    let (mine, theirs) = if team == "red" {
+        (i(m, "/teams/red"), i(m, "/teams/blue"))
+    } else {
+        (i(m, "/teams/blue"), i(m, "/teams/red"))
+    };
+    let a = Acc {
+        games: 1,
+        wins: (mine > theirs) as i64,
+        losses: (mine < theirs) as i64,
+        rounds: (mine + theirs).max(1),
+        k: i(m, "/stats/kills"),
+        d: i(m, "/stats/deaths"),
+        a: i(m, "/stats/assists"),
+        score: i(m, "/stats/score"),
+        dmg: i(m, "/stats/damage/made"),
+        dmg_recv: i(m, "/stats/damage/received"),
+        hs: i(m, "/stats/shots/head"),
+        body: i(m, "/stats/shots/body"),
+        leg: i(m, "/stats/shots/leg"),
+        ..Default::default()
+    };
+    let result = if mine > theirs {
+        'W'
+    } else if mine < theirs {
+        'L'
+    } else {
+        'D'
+    };
+    Entry {
+        a,
+        agent: s(m, "/stats/character/name").to_string(),
+        agent_id: s(m, "/stats/character/id").to_string(),
+        map: s(m, "/meta/map/name").to_string(),
+        q: mode_id(s(m, "/meta/mode")),
+        wv: vec![],
+        ver: s(m, "/meta/version").to_string(),
+        result,
+        t: crate::parse::time_ms(m.pointer("/meta/started_at").unwrap_or(&Value::Null)),
+        season: s(m, "/meta/season/short").to_string(),
+    }
+}
+
 /// Full career for `puuid` over `matches` (any order). `queue` filters ("" = all).
 pub fn compute(matches: &[Value], puuid: &str, queue: &str) -> Value {
+    compute_with(
+        matches,
+        &[],
+        puuid,
+        &Filt {
+            queue: queue.into(),
+            ..Default::default()
+        },
+    )
+}
+
+/// Career over full matches plus HenrikDev history rows (`history`, stored-match format) for
+/// matches not held in full. Totals use both; round-level stats use the full matches only.
+pub fn compute_with(matches: &[Value], history: &[Value], puuid: &str, f: &Filt) -> Value {
+    let mut entries: Vec<Entry> = vec![];
+    let mut seen: HashSet<String> = HashSet::new();
+    for m in matches {
+        let Some((a, agent, agent_id, map, q, wv, ver, result)) = one(m, puuid) else {
+            continue;
+        };
+        let mm = unwrap_data(m);
+        seen.insert(s(mm, "/metadata/match_id").to_string());
+        entries.push(Entry {
+            a,
+            agent,
+            agent_id,
+            map,
+            q,
+            wv,
+            ver,
+            result,
+            t: crate::parse::time_ms(mm.pointer("/metadata/started_at").unwrap_or(&Value::Null)),
+            season: s(mm, "/metadata/season/short").to_string(),
+        });
+    }
+    let full_n = entries.len();
+    for h in history {
+        if seen.insert(s(h, "/meta/id").to_string()) {
+            entries.push(stored_entry(h));
+        }
+    }
+    let hist_n = entries.len() - full_n;
     let mut total = Acc::default();
     let mut agents: HashMap<String, (String, Acc)> = HashMap::new();
     let mut maps: HashMap<String, Acc> = HashMap::new();
     let mut combos: HashMap<(String, String), Acc> = HashMap::new();
     let mut queues: HashMap<String, Acc> = HashMap::new();
     let mut patches: HashMap<String, Acc> = HashMap::new();
+    let mut seasons: HashMap<String, Acc> = HashMap::new();
     let mut weapons: HashMap<String, i64> = HashMap::new();
     let mut form: Vec<(i64, char, String, i64)> = vec![];
-    for m in matches {
-        let Some((a, agent, agent_id, map, q, wv, ver, result)) = one(m, puuid) else {
-            continue;
-        };
-        queues.entry(q.clone()).or_default().add(&a);
-        if !queue.is_empty() && q != queue {
+    let mut av_maps = HashSet::<String>::new();
+    let mut av_agents = HashSet::<String>::new();
+    let mut av_seasons = HashSet::<String>::new();
+    let (mut first, mut last) = (i64::MAX, 0i64);
+    for e in entries {
+        av_maps.insert(e.map.clone());
+        av_agents.insert(e.agent.clone());
+        av_seasons.insert(e.season.clone());
+        // Mode counts ignore the mode filter so the mode tabs can show every count.
+        let other_ok = (f.map.is_empty() || e.map == f.map)
+            && (f.agent.is_empty() || e.agent.eq_ignore_ascii_case(&f.agent))
+            && (f.season.is_empty() || e.season == f.season)
+            && e.t >= f.since;
+        if !other_ok {
             continue;
         }
+        queues.entry(e.q.clone()).or_default().add(&e.a);
+        if !f.queue.is_empty() && e.q != f.queue {
+            continue;
+        }
+        let a = e.a;
         total.add(&a);
+        if e.t > 0 {
+            first = first.min(e.t);
+            last = last.max(e.t);
+        }
         agents
-            .entry(agent.clone())
-            .or_insert_with(|| (agent_id.clone(), Acc::default()))
+            .entry(e.agent.clone())
+            .or_insert_with(|| (e.agent_id.clone(), Acc::default()))
             .1
             .add(&a);
-        maps.entry(map.clone()).or_default().add(&a);
+        maps.entry(e.map.clone()).or_default().add(&a);
         combos
-            .entry((agent.clone(), map.clone()))
+            .entry((e.agent.clone(), e.map.clone()))
             .or_default()
             .add(&a);
-        let p = patch_of(&ver);
+        let p = patch_of(&e.ver);
         if !p.is_empty() {
             patches.entry(p).or_default().add(&a);
         }
-        for (w, k, _) in wv {
+        if !e.season.is_empty() {
+            seasons.entry(e.season.clone()).or_default().add(&a);
+        }
+        for (w, k, _) in e.wv {
             *weapons.entry(w).or_default() += k;
         }
-        let mm = unwrap_data(m);
-        let t = crate::parse::time_ms(mm.pointer("/metadata/started_at").unwrap_or(&Value::Null));
         let acs = if a.rounds > 0 { a.score / a.rounds } else { 0 };
-        form.push((t, result, agent.clone(), acs));
+        form.push((e.t, e.result, e.agent.clone(), acs));
     }
     form.sort_by_key(|x| -x.0);
     let mut ag: Vec<Value> = agents
@@ -459,6 +622,17 @@ pub fn compute(matches: &[Value], puuid: &str, queue: &str) -> Value {
         })
         .collect();
     pt.sort_by(|a, b| b["name"].as_str().cmp(&a["name"].as_str()));
+    let mut ss: Vec<Value> = seasons
+        .into_iter()
+        .map(|(name, a)| {
+            let mut v = a.json();
+            v["name"] = json!(name);
+            v
+        })
+        .collect();
+    ss.sort_by(|a, b| b["name"].as_str().cmp(&a["name"].as_str()));
+    let mut seasons_desc = sorted(av_seasons);
+    seasons_desc.reverse();
     let wk: i64 = weapons.values().sum::<i64>().max(1);
     let mut wp: Vec<Value> = weapons
         .into_iter()
@@ -467,69 +641,16 @@ pub fn compute(matches: &[Value], puuid: &str, queue: &str) -> Value {
     wp.sort_by_key(|v| -v["kills"].as_i64().unwrap_or(0));
     wp.truncate(12);
     json!({
-        "overall": total.json(), "agents": ag, "maps": mp, "combos": cb, "queues": qs, "patches": pt, "weapons": wp,
+        "overall": total.json(), "agents": ag, "maps": mp, "combos": cb, "queues": qs, "patches": pt, "weapons": wp, "seasons": ss,
+        "avail": { "maps": sorted(av_maps), "agents": sorted(av_agents), "seasons": seasons_desc },
+        "sources": { "full": full_n, "history": hist_n, "first": if first == i64::MAX { 0 } else { first }, "last": last },
         "form": form.iter().take(20).map(|(t, r, a, acs)| json!({ "at": t, "result": r.to_string(), "agent": a, "acs": acs })).collect::<Vec<_>>(),
     })
 }
 
 /// Cheap summary from HenrikDev "stored matches" rows (no rounds or kill events): per agent / map.
 pub fn from_stored(rows: &[Value]) -> Value {
-    let mut total = Acc::default();
-    let mut agents: HashMap<String, (String, Acc)> = HashMap::new();
-    let mut maps: HashMap<String, Acc> = HashMap::new();
-    for m in rows {
-        let team = s(m, "/stats/team").to_lowercase();
-        let (mine, theirs) = if team == "red" {
-            (i(m, "/teams/red"), i(m, "/teams/blue"))
-        } else {
-            (i(m, "/teams/blue"), i(m, "/teams/red"))
-        };
-        let a = Acc {
-            games: 1,
-            wins: (mine > theirs) as i64,
-            losses: (mine < theirs) as i64,
-            rounds: (mine + theirs).max(1),
-            k: i(m, "/stats/kills"),
-            d: i(m, "/stats/deaths"),
-            a: i(m, "/stats/assists"),
-            score: i(m, "/stats/score"),
-            dmg: i(m, "/stats/damage/made"),
-            dmg_recv: i(m, "/stats/damage/received"),
-            hs: i(m, "/stats/shots/head"),
-            body: i(m, "/stats/shots/body"),
-            leg: i(m, "/stats/shots/leg"),
-            ..Default::default()
-        };
-        total.add(&a);
-        agents
-            .entry(s(m, "/stats/character/name").to_string())
-            .or_insert_with(|| (s(m, "/stats/character/id").to_string(), Acc::default()))
-            .1
-            .add(&a);
-        maps.entry(s(m, "/meta/map/name").to_string())
-            .or_default()
-            .add(&a);
-    }
-    let mut ag: Vec<Value> = agents
-        .into_iter()
-        .map(|(n, (id, a))| {
-            let mut v = a.json();
-            v["name"] = json!(n);
-            v["id"] = json!(id);
-            v
-        })
-        .collect();
-    ag.sort_by_key(|v| -v["games"].as_i64().unwrap_or(0));
-    let mut mp: Vec<Value> = maps
-        .into_iter()
-        .map(|(n, a)| {
-            let mut v = a.json();
-            v["name"] = json!(n);
-            v
-        })
-        .collect();
-    mp.sort_by_key(|v| -v["games"].as_i64().unwrap_or(0));
-    json!({ "overall": total.json(), "agents": ag, "maps": mp })
+    compute_with(&[], rows, "", &Filt::default())
 }
 
 #[cfg(test)]

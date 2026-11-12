@@ -159,7 +159,7 @@
       </tbody>
     </table>
   {:else if tab === "replay"}
-    <Replay {id} myTeam={d.my_team} />
+    <Replay {id} myTeam={d.my_team} me={d.players?.find((p: J) => p.me)?.puuid ?? ""} />
   {:else if tab === "heatmap"}
     <Heatmaps matchId={id} fixedMap={d.map} />
   {:else}

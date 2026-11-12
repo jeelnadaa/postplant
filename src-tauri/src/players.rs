@@ -236,8 +236,27 @@ pub async fn load_career(
 
 /// Career from what we already hold (zero requests).
 pub fn career_local(c: &Connection, puuid: &str, queue: &str) -> Value {
+    career_lifetime(
+        c,
+        puuid,
+        &career::Filt {
+            queue: queue.into(),
+            ..Default::default()
+        },
+        false,
+    )
+}
+
+/// Career from the matches held in full plus, with `with_history`, every match in my HenrikDev
+/// record that isn't held in full (totals only).
+pub fn career_lifetime(c: &Connection, puuid: &str, f: &career::Filt, with_history: bool) -> Value {
     let raws = raw_matches_with(c, puuid);
-    let mut v = career::compute(&raws, puuid, queue);
+    let hist = if with_history {
+        crate::history::rows(c, puuid)
+    } else {
+        vec![]
+    };
+    let mut v = career::compute_with(&raws, &hist, puuid, f);
     v["held"] = json!(raws.len());
     v
 }

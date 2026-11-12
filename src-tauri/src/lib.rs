@@ -7,6 +7,7 @@ pub mod commands;
 pub mod dataset;
 pub mod db;
 pub mod fieldcheck;
+pub mod history;
 pub mod insights;
 pub mod live;
 pub mod overlay;
@@ -140,6 +141,7 @@ pub fn run() {
             live::start(handle.clone());
             updater::start(handle.clone());
             dataset::start(handle.clone());
+            history::start(handle.clone());
             sync::start_background(handle);
             Ok(())
         })
@@ -200,6 +202,9 @@ pub fn run() {
             commands::overlay_data,
             commands::live_status,
             commands::my_career,
+            commands::history_status,
+            commands::history_backfill,
+            commands::save_png,
             commands::player_career,
             commands::player_rank,
             commands::match_ranks,

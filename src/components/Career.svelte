@@ -16,7 +16,7 @@
     ["atk_win", "ATK", "pct"], ["def_win", "DEF", "pct"],
   ];
   const cols = $derived(quick ? BASIC : [...BASIC, ...DEEP]);
-  const VIEWS = $derived(quick ? [["agents", "Agents"], ["maps", "Maps"]] : [["agents", "Agents"], ["maps", "Maps"], ["combos", "Agent × map"], ["patches", "Patches"], ["weapons", "Weapons"], ["queues", "Modes"]]);
+  const VIEWS = $derived(quick ? [["agents", "Agents"], ["maps", "Maps"]] : [["agents", "Agents"], ["maps", "Maps"], ["combos", "Agent × map"], ["seasons", "Acts"], ["patches", "Patches"], ["weapons", "Weapons"], ["queues", "Modes"]]);
   let view = $state("agents");
   let sortKey = $state("games");
   let desc = $state(true);
@@ -70,7 +70,7 @@
       </tbody></table>
     {:else}
       <table class="table career-t"><thead><tr>
-        <th>{view === "agents" ? "Agent" : view === "maps" ? "Map" : view === "patches" ? "Patch" : "Agent · map"}</th>
+        <th>{view === "agents" ? "Agent" : view === "maps" ? "Map" : view === "patches" ? "Patch" : view === "seasons" ? "Act" : "Agent · map"}</th>
         {#each cols as [k, l] (k)}<th class="num sortable" aria-sort={sortKey === k ? (desc ? "descending" : "ascending") : undefined} onclick={() => sortBy(k)}>{l}</th>{/each}
       </tr></thead><tbody>
         {#each rows as r, i (i)}

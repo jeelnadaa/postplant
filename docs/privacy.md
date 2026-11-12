@@ -6,7 +6,7 @@ Postplant has no telemetry, no analytics, no accounts and no servers of its own.
 
 | Host | When | What is sent |
 |---|---|---|
-| `api.henrikdev.xyz` | Setup, background sync (only while VALORANT is running, every 3–12 minutes), player lookups you start | Your API key (header), Riot IDs or PUUIDs, region, match IDs. Nothing else. |
+| `api.henrikdev.xyz` | Setup; match sync (every 75 s while VALORANT runs, every 30 s for 10 min after it closes, then backing off to 12 min); your lifetime record (up to 80 requests once, then 1 every 6 hours, never while VALORANT runs); player lookups you start | Your API key (header), Riot IDs or PUUIDs, region, match IDs. Nothing else. |
 | `media.valorant-api.com` | When a screen shows an agent portrait | A plain image request. Cached by the webview. |
 | `github.com`, `objects.githubusercontent.com` | Update check: 20 s after start and every 6 hours (if enabled), and when you press **Check now**; never while VALORANT runs | Downloads `latest.json` from the latest release; if there is a newer version and you press **Update and restart**, downloads the signed installer. Nothing about you is sent. |
 | `github.com` (advisor data) | Once a day if **Update advisor data automatically** is on (default), and when you press **Check advisor data**; never while VALORANT runs | Downloads `dataset.json.sig` and, if needed, `dataset.json` from the `dataset` release. Nothing about you is sent. |

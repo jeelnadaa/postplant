@@ -297,6 +297,9 @@ pub mod paths {
             size.clamp(1, 10)
         )
     }
+    pub fn stored_matches_page(region: &str, puuid: &str, size: u32, page: u32) -> String {
+        format!("/valorant/v1/by-puuid/stored-matches/{region}/{puuid}?size={size}&page={page}")
+    }
     pub fn match_v4(region: &str, id: &str) -> String {
         format!("/valorant/v4/match/{region}/{id}")
     }

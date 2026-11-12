@@ -137,6 +137,9 @@ pub struct HeatOpts {
     pub rtype: String,
     /// Only this match (empty: every stored match on the map).
     pub match_id: String,
+    /// Queue id ("" = all modes) and earliest start time in ms (0 = any).
+    pub queue: String,
+    pub since: i64,
 }
 
 /// Points for the heatmap plus the callouts they cluster in.
@@ -144,10 +147,11 @@ pub struct HeatOpts {
 /// layer: me / team / enemy. Points are [x, y, good] where good = round won (duel won for opening).
 pub fn heatmap(c: &Connection, kb: &Kb, me: &Me, o: &HeatOpts) -> Value {
     let mi = kb.map(&o.map);
-    let mut data = load_rows(c, me, &o.map, "", 300);
+    let mut data = load_rows(c, me, &o.map, &o.queue, 300);
     if !o.match_id.is_empty() {
         data.retain(|(r, _)| r.id == o.match_id);
     }
+    data.retain(|(r, _)| r.started >= o.since);
     let mut pts: Vec<(f64, f64, bool)> = vec![];
     for (r, m) in &data {
         let cx = ctx(m, &me.puuid);
@@ -657,6 +661,8 @@ mod tests {
             outcome: String::new(),
             rtype: String::new(),
             match_id: String::new(),
+            queue: String::new(),
+            since: 0,
         };
         // p0 dies once per match; p1 (teammate) gets one kill per match.
         assert_eq!(

@@ -131,13 +131,17 @@ pub fn matches(
     map: Option<String>,
     agent: Option<String>,
     limit: Option<i64>,
+    days: Option<i64>,
 ) -> Res {
     let me = need_me(&st)?;
     let f = Filter {
         queue: queue.unwrap_or_default(),
         map: map.unwrap_or_default(),
         agent: agent.unwrap_or_default(),
-        since: 0,
+        since: days
+            .filter(|d| *d > 0)
+            .map(|d| now_ms() - d * 86_400_000)
+            .unwrap_or(0),
         limit: limit.unwrap_or(200),
     };
     Ok(queries::match_list(&st.db.lock().unwrap(), &me, &f))
@@ -646,24 +650,51 @@ pub fn live_status(live: State<'_, crate::live::Live>) -> Res {
 
 /// Your lifetime stats from stored matches (no requests). Cached until a new match arrives.
 #[tauri::command]
-pub fn my_career(st: State<'_, AppState>, queue: Option<String>) -> Res {
+#[allow(clippy::too_many_arguments)]
+pub fn my_career(
+    st: State<'_, AppState>,
+    queue: Option<String>,
+    map: Option<String>,
+    agent: Option<String>,
+    season: Option<String>,
+    days: Option<i64>,
+    history: Option<bool>,
+) -> Res {
     let me = need_me(&st)?;
-    let q = queue.unwrap_or_default();
+    let f = crate::career::Filt {
+        queue: queue.unwrap_or_default(),
+        map: map.unwrap_or_default(),
+        agent: agent.unwrap_or_default(),
+        season: season.unwrap_or_default(),
+        since: days
+            .filter(|d| *d > 0)
+            .map(|d| now_ms() - d * 86_400_000)
+            .unwrap_or(0),
+    };
+    let with_history = history.unwrap_or(true);
     let c = st.db.lock().unwrap();
-    let (n, newest): (i64, i64) = c
+    let (n, newest, h): (i64, i64, i64) = c
         .query_row(
-            "SELECT COUNT(*), COALESCE(MAX(started_at),0) FROM matches",
+            "SELECT COUNT(*), COALESCE(MAX(started_at),0), (SELECT COUNT(*) FROM history) FROM matches",
             [],
-            |r| Ok((r.get(0)?, r.get(1)?)),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
         )
-        .unwrap_or((0, 0));
-    let key = format!("{n}:{newest}:{q}");
+        .unwrap_or((0, 0, 0));
+    let key = format!(
+        "{n}:{newest}:{h}:{}:{}:{}:{}:{}:{with_history}",
+        f.queue,
+        f.map,
+        f.agent,
+        f.season,
+        days.unwrap_or(0)
+    );
     if let Some((k, v)) = st.career_cache.lock().unwrap().as_ref() {
         if *k == key {
             return Ok(v.clone());
         }
     }
-    let v = crate::players::career_local(&c, &me.puuid, &q);
+    let mut v = crate::players::career_lifetime(&c, &me.puuid, &f, with_history);
+    v["history"] = crate::history::status(&c, &me.puuid);
     *st.career_cache.lock().unwrap() = Some((key, v.clone()));
     Ok(v)
 }
@@ -851,11 +882,18 @@ pub fn heatmap(
     outcome: Option<String>,
     rtype: Option<String>,
     match_id: Option<String>,
+    queue: Option<String>,
+    days: Option<i64>,
 ) -> Res {
     let kb = kb.get();
     let me = need_me(&st)?;
     let o = crate::insights::HeatOpts {
         match_id: match_id.unwrap_or_default(),
+        queue: queue.unwrap_or_default(),
+        since: days
+            .filter(|d| *d > 0)
+            .map(|d| now_ms() - d * 86_400_000)
+            .unwrap_or(0),
         map,
         event: event.unwrap_or_else(|| "deaths".into()),
         side: side.unwrap_or_default(),
@@ -954,4 +992,34 @@ pub fn dataset_status(app: AppHandle) -> Res {
 #[tauri::command]
 pub async fn check_dataset(app: AppHandle) -> Res {
     crate::dataset::check(&app).await
+}
+
+/// Lifetime record download status (count, date range, complete, running).
+#[tauri::command]
+pub fn history_status(st: State<'_, AppState>) -> Res {
+    let me = need_me(&st)?;
+    Ok(crate::history::status(&st.db.lock().unwrap(), &me.puuid))
+}
+
+/// Download my HenrikDev match record now (up to 80 requests the first time).
+#[tauri::command]
+pub async fn history_backfill(app: AppHandle) -> Res {
+    crate::history::backfill(&app, Prio::Foreground, true).await
+}
+
+/// Save a PNG the UI rendered (heatmap or replay image) to a path the user picked in the save dialog.
+#[tauri::command]
+pub fn save_png(path: String, b64: String) -> Res {
+    use base64::Engine;
+    if !path.to_lowercase().ends_with(".png") {
+        return Err("Only .png files can be saved here.".into());
+    }
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(b64.as_bytes())
+        .map_err(err)?;
+    if !bytes.starts_with(&[0x89, b'P', b'N', b'G']) {
+        return Err("That isn't a PNG image.".into());
+    }
+    std::fs::write(&path, bytes).map_err(err)?;
+    Ok(json!({ "path": path }))
 }
