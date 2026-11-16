@@ -613,15 +613,78 @@ pub fn analytics(c: &Connection, me: &Me, since: i64, queue: &str) -> Value {
 }
 
 /// "When you play best" (plan 25.1).
-pub fn habits(c: &Connection, me: &Me) -> Value {
-    let rows = my_rows(
+/// Your HenrikDev record (stored-match rows, totals only) as rows, for matches not held in full.
+/// No party or length in that format: party is "?" (unknown) and length assumes 35 minutes.
+pub fn history_rows(c: &Connection, puuid: &str, queue: &str) -> Vec<Row> {
+    crate::history::rows(c, puuid)
+        .iter()
+        .filter_map(|m| {
+            let id = s(m, "/meta/id").to_string();
+            let q = crate::career::mode_id(s(m, "/meta/mode"));
+            if id.is_empty() || (!queue.is_empty() && q != queue) {
+                return None;
+            }
+            let team = s(m, "/stats/team").to_string();
+            let (mine, theirs) = if team.eq_ignore_ascii_case("red") {
+                (i(m, "/teams/red"), i(m, "/teams/blue"))
+            } else {
+                (i(m, "/teams/blue"), i(m, "/teams/red"))
+            };
+            Some(Row {
+                id,
+                started: parse::time_ms(m.pointer("/meta/started_at").unwrap_or(&Value::Null)),
+                length: 35 * 60_000,
+                map: s(m, "/meta/map/name").to_string(),
+                queue: q,
+                team,
+                agent: s(m, "/stats/character/name").to_string(),
+                agent_id: s(m, "/stats/character/id").to_string(),
+                my_score: mine,
+                their_score: theirs,
+                result: if mine > theirs {
+                    'W'
+                } else if mine < theirs {
+                    'L'
+                } else {
+                    'D'
+                },
+                k: i(m, "/stats/kills"),
+                d: i(m, "/stats/deaths"),
+                a: i(m, "/stats/assists"),
+                score: i(m, "/stats/score"),
+                rounds: (mine + theirs).max(1),
+                hs: i(m, "/stats/shots/head"),
+                body: i(m, "/stats/shots/body"),
+                leg: i(m, "/stats/shots/leg"),
+                dmg: i(m, "/stats/damage/made"),
+                rr: None,
+                party: "?".into(),
+                tier: i(m, "/stats/tier"),
+            })
+        })
+        .collect()
+}
+
+/// When you play best. `queue` "" = all modes. Uses matches held in full plus your HenrikDev
+/// record (each match once; the full copy wins).
+pub fn habits(c: &Connection, me: &Me, queue: &str) -> Value {
+    let mut rows = my_rows(
         c,
         &me.puuid,
         &Filter {
-            queue: "competitive".into(),
+            queue: queue.into(),
             ..Default::default()
         },
     );
+    let full = rows.len() as i64;
+    let held: std::collections::HashSet<String> =
+        rows.iter().map(|r| r.id.to_lowercase()).collect();
+    rows.extend(
+        history_rows(c, &me.puuid, queue)
+            .into_iter()
+            .filter(|r| !held.contains(&r.id.to_lowercase())),
+    );
+    rows.sort_by_key(|r| std::cmp::Reverse(r.started));
     let party_size = |id: &str, party: &str| -> i64 {
         if party.is_empty() {
             return 1;
@@ -675,6 +738,9 @@ pub fn habits(c: &Connection, me: &Me) -> Value {
                 after2.0 += 1;
                 after2.1 += won;
             }
+            if r.party == "?" {
+                continue;
+            }
             let ps = party_size(&r.id, &r.party);
             let pi = if ps <= 1 {
                 0
@@ -715,7 +781,7 @@ pub fn habits(c: &Connection, me: &Me) -> Value {
         None
     };
     json!({
-        "total": total, "enough": total >= 40, "verdict": verdict,
+        "total": total, "full": full, "history": total - full, "enough": total >= 40, "verdict": verdict,
         "by_index": (["1st", "2nd", "3rd", "4th", "5th +"]).iter().zip(idx).map(|(l, x)| row(l, x)).collect::<Vec<_>>(),
         "by_hour": (["Morning", "Afternoon", "Evening", "After midnight"]).iter().zip(hour).map(|(l, x)| row(l, x)).collect::<Vec<_>>(),
         "after_two_losses": row("After 2+ losses", after2), "overall": row("Overall", (total, all_w)),
@@ -762,6 +828,78 @@ pub fn rank(c: &Connection, me: &Me) -> Value {
         .unwrap_or(Value::Null);
     let seasons: Vec<Value> = arr(&mmr, "/seasonal").iter().map(|x| json!({ "season": s(x, "/season/short"), "wins": i(x, "/wins"), "games": i(x, "/games"), "end_tier": i(x, "/end_tier/id"), "end_rr": i(x, "/end_rr") })).collect();
     json!({ "now": now, "snapshots": snaps, "changes": changes, "wins_to_next": to_next, "avg_gain": avg_gain.map(|g| g.round()), "seasons": seasons })
+}
+
+/// Your ranked record by act, as Riot counts it (HenrikDev v3 MMR `seasonal[]`, cached by sync).
+/// Reaches every act you played ranked, whether or not we hold any of those matches.
+pub fn ranked_record(c: &Connection, puuid: &str) -> Value {
+    let Some((mmr, at)) = crate::db::cache_get(c, &format!("mmr:{puuid}"), -1) else {
+        return Value::Null;
+    };
+    let mut acts: Vec<Value> = arr(&mmr, "/seasonal")
+        .iter()
+        .filter(|x| i(x, "/games") > 0)
+        .map(|x| {
+            let (w, g) = (i(x, "/wins"), i(x, "/games"));
+            json!({ "season": s(x, "/season/short"), "wins": w, "games": g, "losses": g - w,
+                "win": (1000.0 * w as f64 / g as f64).round() / 10.0, "end_tier": i(x, "/end_tier/id") })
+        })
+        .collect();
+    acts.reverse(); // newest first
+    let (w, g) = acts
+        .iter()
+        .fold((0, 0), |(w, g), x| (w + i(x, "/wins"), g + i(x, "/games")));
+    json!({ "acts": acts, "wins": w, "games": g, "losses": g - w,
+        "win": if g > 0 { json!((1000.0 * w as f64 / g as f64).round() / 10.0) } else { Value::Null },
+        "peak": i(&mmr, "/peak/tier/id"), "updated": at, "modes": mode_totals(c, puuid, &mmr) })
+}
+
+/// Riot's own games and wins per mode (summed over every act), from the client's MMR read by the
+/// Riot import. Null until that has run once.
+pub fn mode_totals(c: &Connection, puuid: &str, mmr: &Value) -> Value {
+    let Some((v, at)) = crate::db::cache_get(c, &format!("riot_mmr:{puuid}"), -1) else {
+        return Value::Null;
+    };
+    let shorts: HashMap<String, String> = arr(mmr, "/seasonal")
+        .iter()
+        .map(|x| {
+            (
+                s(x, "/season/id").to_lowercase(),
+                s(x, "/season/short").to_string(),
+            )
+        })
+        .collect();
+    let mut modes: Vec<Value> = v
+        .pointer("/QueueSkills")
+        .and_then(|q| q.as_object())
+        .map(|q| {
+            q.iter()
+                .filter_map(|(name, qs)| {
+                    let acts: Vec<Value> = qs
+                        .pointer("/SeasonalInfoBySeasonID")
+                        .and_then(|x| x.as_object())
+                        .map(|o| {
+                            o.values()
+                                .filter(|x| i(x, "/NumberOfGames") > 0)
+                                .map(|x| {
+                                    let id = s(x, "/SeasonID").to_lowercase();
+                                    json!({ "season": shorts.get(&id).cloned().unwrap_or_default(),
+                                        "games": i(x, "/NumberOfGames"), "wins": i(x, "/NumberOfWinsWithPlacements").max(i(x, "/NumberOfWins")) })
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    let (g, w) = acts.iter().fold((0, 0), |(g, w), x| (g + i(x, "/games"), w + i(x, "/wins")));
+                    (g > 0).then(|| {
+                        json!({ "name": name, "games": g, "wins": w, "acts": acts.len(),
+                            "win": (1000.0 * w as f64 / g as f64).round() / 10.0 })
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    modes.sort_by_key(|m| -i(m, "/games"));
+    json!({ "list": modes, "updated": at })
 }
 
 pub fn people(c: &Connection, me: &Me) -> Value {
@@ -875,7 +1013,7 @@ mod tests {
         let (c, me) = setup();
         let a = analytics(&c, &me, 0, "competitive");
         assert_eq!(a["overall"]["games"], 4);
-        let h = habits(&c, &me);
+        let h = habits(&c, &me, "competitive");
         assert_eq!(h["total"], 4);
         assert_eq!(h["enough"], false);
         assert!(people(&c, &me)["people"].as_array().unwrap().len() >= 9);

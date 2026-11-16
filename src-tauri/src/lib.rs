@@ -15,6 +15,7 @@ pub mod parse;
 pub mod players;
 pub mod queries;
 pub mod recordings;
+pub mod riot_history;
 pub mod state;
 pub mod sync;
 pub mod transfer;
@@ -139,6 +140,8 @@ pub fn run() {
             overlay::apply_hotkeys(&handle);
             #[cfg(feature = "live")]
             live::start(handle.clone());
+            #[cfg(feature = "live")]
+            riot_history::start(handle.clone());
             updater::start(handle.clone());
             dataset::start(handle.clone());
             history::start(handle.clone());
@@ -204,6 +207,7 @@ pub fn run() {
             commands::my_career,
             commands::history_status,
             commands::history_backfill,
+            commands::riot_history_import,
             commands::save_png,
             commands::player_career,
             commands::player_rank,

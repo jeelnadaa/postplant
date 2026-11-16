@@ -45,10 +45,10 @@ impl Phase {
 }
 
 #[derive(Clone)]
-struct Session {
+pub(crate) struct Session {
     port: u16,
     password: String,
-    puuid: String,
+    pub(crate) puuid: String,
     access: String,
     entitlement: String,
     region: String,
@@ -103,7 +103,7 @@ impl Live {
     }
 }
 
-fn local_http() -> reqwest::Client {
+pub(crate) fn local_http() -> reqwest::Client {
     // The Riot Client's local API uses a self-signed certificate on 127.0.0.1 only.
     reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
@@ -112,7 +112,7 @@ fn local_http() -> reqwest::Client {
         .expect("local http")
 }
 
-fn remote_http() -> reqwest::Client {
+pub(crate) fn remote_http() -> reqwest::Client {
     reqwest::Client::builder()
         .timeout(Duration::from_secs(8))
         .build()
@@ -218,7 +218,7 @@ pub fn parse_presence(presences: &Value, puuid: &str) -> Option<(Phase, String, 
     Some((phase, map, queue))
 }
 
-async fn connect(local: &reqwest::Client) -> Result<Session, String> {
+pub(crate) async fn connect(local: &reqwest::Client) -> Result<Session, String> {
     let (port, password) = read_lockfile().ok_or("Riot Client isn't running")?;
     let tok = local_get(local, port, &password, "/entitlements/v1/token").await?;
     let sessions = local_get(
@@ -242,7 +242,7 @@ async fn connect(local: &reqwest::Client) -> Result<Session, String> {
     })
 }
 
-async fn riot_get(http: &reqwest::Client, s: &Session, url: &str) -> Result<Value, u16> {
+pub(crate) async fn riot_get(http: &reqwest::Client, s: &Session, url: &str) -> Result<Value, u16> {
     let r = http
         .get(url)
         .bearer_auth(&s.access)
@@ -285,11 +285,11 @@ async fn riot_put(
 fn glz(s: &Session) -> String {
     format!("https://glz-{}-1.{}.a.pvp.net", s.region, s.shard)
 }
-fn pd(s: &Session) -> String {
+pub(crate) fn pd(s: &Session) -> String {
     format!("https://pd.{}.a.pvp.net", s.shard)
 }
 
-fn enabled(st: &AppState) -> bool {
+pub(crate) fn enabled(st: &AppState) -> bool {
     let p = st.prefs();
     p["live_enabled"].as_bool().unwrap_or(false) && p["live_ack"]["at"].is_string()
 }
@@ -302,7 +302,7 @@ fn set_phase(app: &AppHandle, live: &Live, ph: Phase) {
 }
 
 /// Map path from presence ("/Game/Maps/Duality/Duality") → map name via the knowledge base.
-fn map_name(app: &AppHandle, path: &str) -> String {
+pub(crate) fn map_name(app: &AppHandle, path: &str) -> String {
     let kb = app.state::<crate::dataset::KbStore>().get();
     kb.maps
         .iter()
@@ -399,8 +399,21 @@ pub fn start(app: AppHandle) {
                 }
             };
             let prev = *live.phase.lock().unwrap();
-            if !map_path.is_empty() {
-                *live.map.lock().unwrap() = map_name(&app, &map_path);
+            if ph == Phase::Menus {
+                // Back in menus: forget the last match's map so a manual advisor open doesn't reuse it.
+                live.map.lock().unwrap().clear();
+            } else if !map_path.is_empty() {
+                let name = map_name(&app, &map_path);
+                let changed = {
+                    let mut m = live.map.lock().unwrap();
+                    let ch = *m != name;
+                    *m = name.clone();
+                    ch
+                };
+                // Presence often names the map a moment after agent select starts: follow it.
+                if changed && ph == Phase::Pregame && prev == Phase::Pregame && !name.is_empty() {
+                    let _ = app.emit("advisor-map", json!({ "map": name }));
+                }
             }
             if ph != prev {
                 on_leave(&app, prev);
@@ -426,7 +439,7 @@ fn on_pregame(app: &AppHandle) {
     let st = app.state::<AppState>();
     if st.prefs()["advisor_in_select"].as_bool().unwrap_or(true) {
         let map = app.state::<Live>().map.lock().unwrap().clone();
-        crate::overlay::open_advisor(app, Some(&map), true);
+        crate::overlay::open_advisor(app, (!map.is_empty()).then_some(map.as_str()), true);
     }
 }
 

@@ -4,6 +4,7 @@
   import { queueLabel } from "../lib/format";
   import { app, nav, toast } from "../lib/store.svelte";
   import Agent from "../components/Agent.svelte";
+  import Rank from "../components/Rank.svelte";
   import Career from "../components/Career.svelte";
   import Icon from "../components/Icon.svelte";
   import Select from "../components/Select.svelte";
@@ -63,6 +64,22 @@
     }
     histBusy = false;
   }
+  let riotBusy = $state(false);
+  async function loadRiot() {
+    riotBusy = true;
+    try {
+      const r = await api.riotHistory();
+      if (r.busy) toast("info", t("Already downloading from Riot"));
+      else toast("ok", `${r.added} ${t("matches added from Riot's match history")}`, r.total ? `${t("Riot lists")} ${r.total} ${t("matches for your account")}` : undefined);
+      app.version++;
+    } catch (e) {
+      toast("err", t("Couldn't read Riot's match history"), errText(e));
+    }
+    riotBusy = false;
+  }
+  const liveOn = $derived(!!app.s?.prefs?.live_enabled && !!app.s?.prefs?.live_ack);
+  const ranked = $derived(career?.ranked);
+  const riot = $derived(career?.riot);
   const seasonLabel = (x: string) => x.replace(/^e(\d+)a(\d+)$/i, "E$1 A$2").replace(/^s(\d+)a(\d+)$/i, "S$1 A$2");
   const day = (ms: number) => (ms ? new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "—");
   const src = $derived(career?.sources);
@@ -88,7 +105,7 @@
           <span class="muted">· {src.full} {t("in full on this PC")}{#if withHist}{" + "}{src.history} {t("from your HenrikDev record")}{/if}{#if src.first}{" · "}{day(src.first)} – {day(src.last)}{/if}</span>
         {/if}
         <div class="faint" style="font-size:12px;margin-top:2px">
-          {#if prog}{t("Downloading your record…")} {t("page")} {prog.page} · {prog.added} {t("new so far")}
+          {#if prog}{prog.source === "riot" ? t("Downloading from Riot…") : t("Downloading your record…")} {t("page")} {prog.page} · {prog.added} {t("new so far")}
           {:else if hist?.complete}{t("Your whole HenrikDev record is downloaded")} ({hist.count}). {t("It tops up by itself every 6 hours.")}
           {:else if hist?.count}{t("Part of your record is downloaded")} ({hist.count}). {t("The rest downloads in the background, or now with the button.")}
           {:else}{t("Your record hasn't been downloaded yet. It starts by itself a minute after Postplant opens, or now with the button.")}{/if}
@@ -96,6 +113,20 @@
       </div>
       <div class="row" style="gap:8px;font-size:13px"><Switch bind:checked={withHist} label="Include HenrikDev record" />{t("Include record")}</div>
       <button class="btn btn-sm {histBusy || prog ? 'is-loading' : ''}" onclick={loadHistory} disabled={histBusy || !!prog}><Icon name="download" />{hist?.complete ? t("Check for more") : t("Download record")}</button>
+    </div>
+    <div class="row" style="gap:12px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line, rgba(127,127,127,.18))">
+      <Icon name="swords" />
+      <div style="flex:1;min-width:260px;font-size:13px">
+        <b>{t("Riot's match history")}</b>{#if riot?.count}<span class="muted"> · {riot.count} {t("matches added from Riot")}</span>{/if}
+        <div class="faint" style="font-size:12px;margin-top:2px">
+          {#if !liveOn}{t("HenrikDev only keeps the matches it has seen. With live mode on (Settings), Postplant reads your older matches from Riot through the Riot Client: no HenrikDev requests.")}
+          {:else if !app.s?.game_running}{t("Start VALORANT to read your older matches from Riot. It also runs by itself in the menus.")}
+          {:else if riot?.complete}{t("Everything Riot lists for your account is downloaded.")}
+          {:else}{t("Reads every match Riot lists for your account, about one a second, while you're in the menus.")}{/if}
+        </div>
+      </div>
+      {#if liveOn}<button class="btn btn-sm {riotBusy || riot?.running ? 'is-loading' : ''}" onclick={loadRiot} disabled={riotBusy || riot?.running || !!prog || !app.s?.game_running}><Icon name="download" />{t("Download from Riot")}</button>
+      {:else}<button class="btn btn-sm btn-ghost" onclick={() => nav("settings")}><Icon name="settings" />{t("Live mode settings")}</button>{/if}
     </div>
     {#if withHist && src?.history > 0}<p class="faint" style="font-size:12px;margin:10px 0 0">{t("Totals (games, win rate, K/D, ACS, ADR, headshots) count every match. Round-level stats (KAST, first duels, plants, clutches, trades, economy) come from the")} {career?.overall?.detail_games ?? src.full} {t("matches held in full.")}</p>{/if}
   </div>
@@ -107,6 +138,25 @@
     <Select value={String(cdays)} icon="clock" options={[["0", "All time"], ["7", "Last 7 days"], ["30", "Last 30 days"], ["90", "Last 90 days"], ["365", "Last year"]]} onchange={(v) => (cdays = Number(v))} minWidth={150} />
     {#if cmap || cagent || cseason || cdays}<button class="btn btn-sm btn-ghost" onclick={() => { cmap = ""; cagent = ""; cseason = ""; cdays = 0; }}><Icon name="x" />{t("Clear filters")}</button>{/if}
   </div>
+  {#if ranked?.games}
+    <div class="card mb-4"><div class="card-head"><span class="h3">{t("Ranked record by act")}</span><span class="spacer"></span><span class="faint" style="font-size:12px">{t("as Riot counts it · every act, even without match data")}</span></div>
+      <div class="stat-grid mb-4" style="grid-template-columns:repeat(4,1fr)">
+        <div class="stat stat-sm"><div class="v">{ranked.games}</div><div class="l">{t("Ranked games")}</div></div>
+        <div class="stat stat-sm"><div class="v">{ranked.wins}–{ranked.losses}</div><div class="l">{t("Wins – losses")}</div></div>
+        <div class="stat stat-sm"><div class="v">{ranked.win ?? "—"}{ranked.win !== null ? "%" : ""}</div><div class="l">{t("Win rate")}</div></div>
+        <div class="stat stat-sm"><div class="v"><Rank tier={ranked.peak} short /></div><div class="l">{t("Peak")}</div></div>
+      </div>
+      <table class="table"><thead><tr><th>{t("Act")}</th><th class="num">{t("Games")}</th><th class="num">{t("Wins")}</th><th class="num">{t("Win")}</th><th>{t("Ended at")}</th></tr></thead><tbody>
+        {#each ranked.acts as a (a.season)}<tr><td><b>{seasonLabel(a.season)}</b></td><td class="num">{a.games}</td><td class="num">{a.wins}</td><td class="num">{a.win}%</td><td><Rank tier={a.end_tier} short /></td></tr>{/each}
+      </tbody></table>
+      {#if ranked.modes?.list?.length}
+        <div class="label mt-4 mb-2">{t("Every mode, as Riot counts it")}</div>
+        <table class="table"><thead><tr><th>{t("Mode")}</th><th class="num">{t("Games")}</th><th class="num">{t("Wins")}</th><th class="num">{t("Win")}</th><th class="num">{t("Acts")}</th></tr></thead><tbody>
+          {#each ranked.modes.list as m (m.name)}<tr><td><b>{queueLabel(m.name)}</b></td><td class="num">{m.games}</td><td class="num">{m.wins}</td><td class="num">{m.win}%</td><td class="num">{m.acts}</td></tr>{/each}
+        </tbody></table>
+      {:else if !liveOn}<p class="faint" style="font-size:12px;margin:10px 0 0">{t("With live mode on, Riot's own totals for every mode (unrated, swiftplay and more) show here too.")}</p>{/if}
+    </div>
+  {/if}
   {#if career}<Career d={career} />{:else}<div class="card" style="height:200px"><div class="skeleton" style="height:100%"></div></div>{/if}
 {:else if d && o.games === 0}
   <div class="card empty-inline">{t("No competitive matches in this period.")}</div>

@@ -75,6 +75,9 @@
     advTeam = [];
     picking = false;
   });
+  on("advisor-map", (p: J) => {
+    if (p.map) advMap = p.map;
+  });
   on("advisor-close", () => (picking = false));
   on("live", (r: J) => {
     live = r;
@@ -90,7 +93,8 @@
   });
   on("reset", () => location.reload());
 
-  const maps = $derived((app.kb?.maps ?? []).filter((m: J) => m.in_pool));
+  // The pool, plus the in-game map if the pool data hasn't caught up with a rotation yet.
+  const maps = $derived((app.kb?.maps ?? []).filter((m: J) => m.in_pool || m.name === advMap));
   const agents = $derived(app.kb?.agents ?? []);
   const byName = (n: string) => agents.find((a: J) => a.name === n);
   $effect(() => {

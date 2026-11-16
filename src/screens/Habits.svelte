@@ -3,20 +3,27 @@
   import { api, type J } from "../lib/api";
   import { app, nav } from "../lib/store.svelte";
   import Icon from "../components/Icon.svelte";
+  import Select from "../components/Select.svelte";
 
+  let q = $state("competitive");
   let d = $state<J>(null);
   $effect(() => {
     void app.version;
-    api.habits().then((r) => (d = r));
+    api.habits(q).then((r) => (d = r)).catch(() => (d = null));
   });
+  const modeName = $derived(q === "" ? t("All modes") : q === "competitive" ? t("Competitive") : q.charAt(0).toUpperCase() + q.slice(1));
   const bar = (r: J) => (r.win === null ? 0 : r.win);
 </script>
 
-<div class="page-head"><div><h1 class="h1">{t("Analytics")}</h1><div class="sub">{t("Competitive ·")} {d?.total ?? 0} {t("matches · sessions end after 45 min without a match")}</div></div></div>
-<div class="tabs mb-4"><button role="tab" class="tab" aria-selected="false" onclick={() => nav("analytics")}>{t("Overview")}</button><button role="tab" class="tab" aria-selected="true">{t("When you play best")}</button></div>
+<div class="page-head">
+  <div><h1 class="h1">{t("Analytics")}</h1><div class="sub">{modeName} · {d?.total ?? 0} {t("matches")}{#if d?.history}{" "}({d.full} {t("in full")} + {d.history} {t("from your HenrikDev record")}){/if} · {t("sessions end after 45 min without a match")}</div></div>
+  <span class="spacer"></span>
+  <Select bind:value={q} icon="swords" options={[["competitive", "Competitive"], ["unrated", "Unrated"], ["swiftplay", "Swiftplay"], ["premier", "Premier"], ["", "All modes"]]} minWidth={160} />
+</div>
+<div class="tabs mb-4"><button role="tab" class="tab" aria-selected="false" onclick={() => nav("analytics")}>{t("Overview")}</button><button role="tab" class="tab" aria-selected="false" onclick={() => nav("analytics", { view: "lifetime" })}>{t("Lifetime")}</button><button role="tab" class="tab" aria-selected="true">{t("When you play best")}</button></div>
 {#if d}
   {#if !d.enough}
-    <div class="banner info mb-4"><Icon name="info" />{t("Verdicts appear after about 40 competitive matches (")}{d.total} {t("so far). The numbers below show sample sizes; small ones swing a lot.")}</div>
+    <div class="banner info mb-4"><Icon name="info" />{t("Verdicts appear after about 40 matches (")}{d.total} {t("so far). The numbers below show sample sizes; small ones swing a lot.")}{#if q === "competitive"}{" "}<button class="btn btn-sm btn-ghost" onclick={() => (q = "")}>{t("Use all modes")}</button>{/if}</div>
   {:else if d.verdict}
     <div class="note-insight mb-4"><span class="ic"><Icon name="lightbulb" /></span><div style="font-size:14px"><b>{d.verdict}</b></div><span></span></div>
   {/if}
@@ -25,7 +32,7 @@
       <div class="card col-4"><div class="card-head"><span class="h3">{title}</span></div>
         <div class="stack" style="gap:10px">{#each rows as r (r.label)}
           <div class="bar-h"><span>{r.label}</span><span class="b"><i style="width:{bar(r)}%;background:{r.win !== null && r.win >= 50 ? 'var(--win)' : 'var(--loss)'}"></i></span><span class="mono" style="text-align:right">{r.win ?? "—"}{r.win !== null ? "%" : ""} · {r.games}</span></div>{/each}</div>
-        <p class="faint" style="font-size:12px;margin:10px 0 0">{t("Win rate · matches")}</p></div>
+        <p class="faint" style="font-size:12px;margin:10px 0 0">{t("Win rate · matches")}{#if title === "Party size" && d.history}{" · "}{t("matches held in full only")}{/if}</p></div>
     {/each}
     <div class="card col-6"><div class="card-head"><span class="h3">{t("After a losing streak")}</span></div>
       <div class="stat-grid" style="grid-template-columns:1fr 1fr"><div class="stat stat-sm"><div class="v">{d.overall.win ?? "—"}%</div><div class="l">{t("Normally ·")} {d.overall.games} g</div></div>

@@ -169,9 +169,13 @@ pub fn analytics(st: State<'_, AppState>, days: Option<i64>, queue: Option<Strin
 }
 
 #[tauri::command]
-pub fn habits(st: State<'_, AppState>) -> Res {
+pub fn habits(st: State<'_, AppState>, queue: Option<String>) -> Res {
     let me = need_me(&st)?;
-    Ok(queries::habits(&st.db.lock().unwrap(), &me))
+    Ok(queries::habits(
+        &st.db.lock().unwrap(),
+        &me,
+        &queue.unwrap_or_else(|| "competitive".into()),
+    ))
 }
 
 #[tauri::command]
@@ -688,14 +692,25 @@ pub fn my_career(
         f.season,
         days.unwrap_or(0)
     );
-    if let Some((k, v)) = st.career_cache.lock().unwrap().as_ref() {
-        if *k == key {
-            return Ok(v.clone());
+    let cached = st
+        .career_cache
+        .lock()
+        .unwrap()
+        .as_ref()
+        .filter(|(k, _)| *k == key)
+        .map(|(_, v)| v.clone());
+    let mut v = match cached {
+        Some(v) => v,
+        None => {
+            let mut v = crate::players::career_lifetime(&c, &me.puuid, &f, with_history);
+            v["history"] = crate::history::status(&c, &me.puuid);
+            *st.career_cache.lock().unwrap() = Some((key, v.clone()));
+            v
         }
-    }
-    let mut v = crate::players::career_lifetime(&c, &me.puuid, &f, with_history);
-    v["history"] = crate::history::status(&c, &me.puuid);
-    *st.career_cache.lock().unwrap() = Some((key, v.clone()));
+    };
+    // Cheap, and they change without a new match: always fresh.
+    v["riot"] = crate::riot_history::status(&c, &me.puuid);
+    v["ranked"] = crate::queries::ranked_record(&c, &me.puuid);
     Ok(v)
 }
 
@@ -1005,6 +1020,12 @@ pub fn history_status(st: State<'_, AppState>) -> Res {
 #[tauri::command]
 pub async fn history_backfill(app: AppHandle) -> Res {
     crate::history::backfill(&app, Prio::Foreground, true).await
+}
+
+/// Download my match record from Riot through the Riot Client (live mode, VALORANT running).
+#[tauri::command]
+pub async fn riot_history_import(app: AppHandle) -> Res {
+    crate::riot_history::import(&app, true).await
 }
 
 /// Save a PNG the UI rendered (heatmap or replay image) to a path the user picked in the save dialog.

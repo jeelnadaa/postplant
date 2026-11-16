@@ -35,6 +35,19 @@ Rate-limit headers read: `x-ratelimit-limit`, `x-ratelimit-remaining`, `retry-af
 - `rounds[]`: `result`, `winning_team`, `plant.site`, `plant.player.puuid`, `defuse.player.puuid`, `stats[]` with `player.puuid`, `economy.{loadout_value,spent}`, `damage`, `kills`
 - `kills[]`: `round`, `time_in_round_in_ms`, `time_in_match_in_ms`, `killer.puuid`, `victim.puuid`, `weapon.{id,name}`, `location.{x,y}`, `player_locations[]` (for "nearest teammate")
 
+## Riot match history (live mode only, `src-tauri/src/riot_history.rs`)
+
+HenrikDev's stored matches only hold matches HenrikDev has seen, often just the last few dozen. With live mode on and VALORANT running, Postplant reads your older matches from Riot's own services through the Riot Client (same tokens as live mode, no HenrikDev quota), about one request a second:
+
+| Path (host `pd.{shard}.a.pvp.net`) | Used for |
+|---|---|
+| `/match-history/v1/history/{puuid}?startIndex=N&endIndex=N+20` | Match ids, newest first: `History[].MatchID`, `Total` |
+| `/match-details/v1/matches/{match_id}` | One match, reduced to a record row (totals only) for matches we don't hold |
+
+**Fields read (unverified, parsed defensively):** `matchInfo.{matchId,mapId,gameStartMillis,gameLengthMillis,queueID,seasonId,isCompleted,gameVersion}`, `players[].{subject,teamId,characterId,competitiveTier,stats.{score,kills,deaths,assists}}`, `teams[].{teamId,roundsWon}`, `roundResults[].playerStats[].{subject,damage[].{receiver,damage,headshots,bodyshots,legshots}}`. Customs (empty `queueID`) and modes without two teams (deathmatch) are skipped. Map names come from the knowledge base `map_url`, agent names from `data/agents.json`, act names from `seasonal[].season.{id,short}` in the cached v3 MMR. Rows are stored in the `history` table with `"source": "riot"`.
+
+**Ranked record by act:** the Lifetime tab also shows `seasonal[].{wins,games,end_tier}` from the cached v3 MMR, which is Riot's own count for every act, with or without match data.
+
 ## Derived rules
 
 - **Side:** Red attacks rounds 1–12, Blue attacks 13–24; overtime alternates every round.
