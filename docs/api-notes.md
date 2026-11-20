@@ -37,7 +37,7 @@ Rate-limit headers read: `x-ratelimit-limit`, `x-ratelimit-remaining`, `retry-af
 
 ## Riot match history (live mode only, `src-tauri/src/riot_history.rs`)
 
-HenrikDev's stored matches only hold matches HenrikDev has seen, often just the last few dozen. With live mode on and VALORANT running, Postplant reads your older matches from Riot's own services through the Riot Client (same tokens as live mode, no HenrikDev quota), about one request a second:
+HenrikDev's stored matches only hold matches HenrikDev has seen, often just the last few dozen. With live mode on and VALORANT running, Postplant reads available records for your profile or a searched profile on the connected shard from Riot's own services through the Riot Client (same tokens as live mode, no HenrikDev quota), about one request a second:
 
 | Path (host `pd.{shard}.a.pvp.net`) | Used for |
 |---|---|
@@ -54,3 +54,6 @@ HenrikDev's stored matches only hold matches HenrikDev has seen, often just the 
 - **Sessions:** matches less than 45 minutes apart (end of one to start of the next).
 - **Traded death:** a teammate killed your killer within 5 seconds.
 - **Economy buckets** (your loadout value): eco < 2,000, force < 3,900, full buy otherwise; rounds 1 and 13 are pistol rounds.
+
+
+The Lifetime kill table uses Riot account game counts and scoreboards. Kill records are keyed by player and match so two searched players can share a match. Attack and defense figures require identifiable sides and round kill counts that reconcile with the scoreboard. Missing round detail stays unavailable. Existing Riot-imported history rows can supply totals until a sync adds the side breakdown. HenrikDev records are available in Match archive and recent views.

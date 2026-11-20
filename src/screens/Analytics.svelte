@@ -5,6 +5,8 @@
   import { app, nav, toast } from "../lib/store.svelte";
   import Agent from "../components/Agent.svelte";
   import Rank from "../components/Rank.svelte";
+  import RiotLifetime from "../components/RiotLifetime.svelte";
+  import KillTable from "../components/KillTable.svelte";
   import Career from "../components/Career.svelte";
   import Icon from "../components/Icon.svelte";
   import Select from "../components/Select.svelte";
@@ -16,7 +18,9 @@
   let d = $state<J>(null);
   $effect(() => {
     void app.version;
-    api.analytics(days, aq).then((r) => (d = r));
+    let current = true;
+    if (view === "overview") api.analytics(days, aq).then((r) => { if(current) d=r; });
+    return () => { current=false; };
   });
   const o = $derived(d?.overall);
   let tr = $state<J>(null);
@@ -40,7 +44,7 @@
   let histBusy = $state(false);
   $effect(() => {
     void app.version;
-    if (view === "lifetime")
+    if (view === "archive")
       api.myCareer({ queue: cq, map: cmap, agent: cagent, season: cseason, days: cdays, history: withHist }).then((r) => (career = r)).catch(() => (career = null));
   });
   $effect(() => {
@@ -94,15 +98,17 @@
   <div class="segmented">{#each [[7, "7 d"], [30, "30 d"], [90, "90 d"], [0, "All"]] as [v, l] (v)}<button aria-pressed={days === v} onclick={() => (days = v as number)}>{t(String(l))}</button>{/each}</div>
   {/if}
 </div>
-<div class="tabs mb-4"><button role="tab" class="tab" aria-selected={view === "overview"} onclick={() => (view = "overview")}>{t("Overview")}</button><button role="tab" class="tab" aria-selected={view === "lifetime"} onclick={() => (view = "lifetime")}>{t("Lifetime")}</button><button role="tab" class="tab" aria-selected="false" onclick={() => nav("habits")}>{t("When you play best")}</button></div>
+<div class="tabs mb-4"><button role="tab" class="tab" aria-selected={view === "overview"} onclick={() => (view = "overview")}>{t("Overview")}</button><button role="tab" class="tab" aria-selected={view === "lifetime"} onclick={() => (view = "lifetime")}>{t("Lifetime")}</button><button class="tab" role="tab" aria-selected={view === "archive"} onclick={() => (view = "archive")}>{t("Match archive")}</button><button role="tab" class="tab" aria-selected="false" onclick={() => nav("habits")}>{t("When you play best")}</button></div>
 {#if view === "lifetime"}
+  {#if app.s?.me?.puuid}<RiotLifetime puuid={app.s.me.puuid} />{/if}
+{:else if view === "archive"}
   <div class="card mb-4">
     <div class="row" style="gap:12px;flex-wrap:wrap;align-items:center">
       <Icon name="history" />
       <div style="flex:1;min-width:260px">
         {#if src}
           <b>{(src.full ?? 0) + (src.history ?? 0)} {t("matches")}</b>
-          <span class="muted">· {src.full} {t("in full on this PC")}{#if withHist}{" + "}{src.history} {t("from your HenrikDev record")}{/if}{#if src.first}{" · "}{day(src.first)} – {day(src.last)}{/if}</span>
+          <span class="muted">· {src.full} {t("in full on this PC")}{#if withHist}{" + "}{src.history} {t("from downloaded records")}{/if}{#if src.first}{" · "}{day(src.first)} – {day(src.last)}{/if}</span>
         {/if}
         <div class="faint" style="font-size:12px;margin-top:2px">
           {#if prog}{prog.source === "riot" ? t("Downloading from Riot…") : t("Downloading your record…")} {t("page")} {prog.page} · {prog.added} {t("new so far")}
@@ -121,7 +127,7 @@
         <div class="faint" style="font-size:12px;margin-top:2px">
           {#if !liveOn}{t("HenrikDev only keeps the matches it has seen. With live mode on (Settings), Postplant reads your older matches from Riot through the Riot Client: no HenrikDev requests.")}
           {:else if !app.s?.game_running}{t("Start VALORANT to read your older matches from Riot. It also runs by itself in the menus.")}
-          {:else if riot?.complete}{t("Everything Riot lists for your account is downloaded.")}
+          {:else if riot?.complete}{t("Finished checking the history Riot made available.")}
           {:else}{t("Reads every match Riot lists for your account, about one a second, while you're in the menus.")}{/if}
         </div>
       </div>
@@ -161,6 +167,7 @@
 {:else if d && o.games === 0}
   <div class="card empty-inline">{t("No competitive matches in this period.")}</div>
 {:else if d}
+  <KillTable rows={d.kill_rows ?? []} />
   <div class="grid-12">
     <div class="col-12 stat-grid" style="grid-template-columns:repeat(6,1fr)">
       {#each [[`${o.win}%`, "Win rate"], [o.acs, "ACS"], [o.kd, "K/D"], [`${o.hs}%`, "Headshot"], [o.adr, "ADR"], [d.untraded !== null ? `${d.untraded}%` : "—", "Untraded deaths"]] as [v, l] (l)}

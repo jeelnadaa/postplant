@@ -348,16 +348,25 @@
           <Switch checked={!!p.live_enabled} onchange={setLive} /></div>
         {#if p.live_enabled}
           <div class="banner info"><Icon name="wifi" />{t("Status:")} <b style="margin-left:4px">{liveSt?.phase ?? "…"}</b>{#if liveSt?.map}&nbsp;· {liveSt.map}{/if}{#if liveSt?.error}&nbsp;· <span class="faint">{liveSt.error}</span>{/if}</div>
-          <div class="setting"><div><b>{t("Open the Comp Advisor in agent select")}</b><div class="faint">{t("Your own planning panel, with the map filled in. Teammates' picks are still typed by you.")}</div></div>
+          <div class="setting"><div><b>{t("Open the Comp Advisor in agent select")}</b><div class="faint">{t("Opens when the client reports a match and fills in the map when available.")}</div></div>
             <Switch checked={p.advisor_in_select} onchange={(v) => savePrefs({ advisor_in_select: v })} /></div>
+          <div class="setting"><div><b>{t("Sync allied picks")}</b><div class="faint">{t("Show allied players and their current selections in Comp Advisor using Riot�s services.")}</div></div>
+            <Switch checked={!!p.advisor_sync_picks} onchange={(v) => savePrefs({ advisor_sync_picks: v })} /></div>
           <div class="setting"><div><b>{t("Hold Tab for ranks")}</b><div class="faint">{t("Shows rank, peak and form next to the scoreboard while Tab is held")}</div></div>
             <Switch checked={p.live_tab} onchange={(v) => savePrefs({ live_tab: v })} /></div>
+          {#if p.live_tab}
+            <label class="setting"><b>{t("Hold Tab layout")}</b>
+              <select class="input" style="width:auto" value={p.live_tab_layout ?? "rail"} onchange={(e) => savePrefs({ live_tab_layout: e.currentTarget.value })}>
+                <option value="rail">{t("Compact panel")}</option><option value="full">{t("Full table")}</option>
+              </select>
+            </label>
+          {/if}
           <div class="setting"><div><b>{t("Recent form")}</b><div class="faint">{t("One extra request per player for win %, K/D and experience on their agent")}</div></div>
             <Switch checked={p.live_form} onchange={(v) => savePrefs({ live_form: v })} /></div>
           <div class="setting"><div><b>{t("Full table")}</b><div class="faint">{t("Hotkey")} {p.hotkeys.live_table || "off"}</div></div>
             <button class="btn btn-sm" onclick={() => { hkKey = "live_table"; hkOpen = true; }}><Icon name="keyboard" />{t("Change")}</button></div>
         {/if}
-        <p class="notice">{t("Nothing about other players is read during agent select. Players who hide their name stay hidden, and Postplant never tries to find out who they are. Riot sign-in tokens stay in memory and only go to Riot. Use windowed fullscreen so the overlay can show.")}</p>
+        <p class="notice">{t("Players who hide their name stay hidden, and Postplant never tries to find out who they are. Riot sign-in tokens stay in memory and only go to Riot. Use windowed fullscreen so the overlay can show.")}</p>
       </div>
     {:else if tab === "recordings"}
       <div class="card stack" style="gap:14px">
@@ -397,6 +406,10 @@
       <div class="card stack" style="gap:16px">
         <div class="setting"><div><b>{t("Check for updates automatically")}</b><div class="faint">{t("At start and every 6 hours, one request to GitHub. Never while VALORANT is running, and an update never installs mid-match.")}</div></div>
           <Switch checked={p.update_check} onchange={(v) => savePrefs({ update_check: v })} /></div>
+        {#if p.update_check && !app.s?.portable}
+          <div class="setting"><div><b>{t("Install signed updates automatically")}</b><div class="faint">{t("Postplant restarts after updating while VALORANT is closed.")}</div></div>
+            <Switch checked={p.update_install !== false} onchange={(v) => savePrefs({ update_install: v })} /></div>
+        {/if}
         <div class="row" style="gap:10px"><button class="btn btn-sm" disabled={updBusy} onclick={checkUpdate}><Icon name="refresh" />{t("Check now")}</button>
           {#if upd?.skipped}<span class="faint">{t("Skipped while the game runs.")}</span>
           {:else if upd?.newer && upd.signed}<span>{t("Version")} <b>{upd.latest}</b> {t("is ready.")}</span>
@@ -472,7 +485,7 @@
 <Modal bind:open={liveWarn} title="Turn on Live match?" icon="wifi" tone="warn">
   <p>{t("Live match reads the Riot Client's local API on this PC, the same way well-known trackers do. It is not an official Riot integration.")}</p>
   <ul class="reasons">
-    <li>{t("In agent select it only opens your Comp Advisor. Nothing about other players is read.")}</li>
+    <li>{t("In agent select, Comp Advisor can sync allied picks when you enable that setting.")}</li>
     <li>{t("In a match it shows ranks, peaks and recent form, and only for players who show their name.")}</li>
     <li>{t("It never reads game memory, never changes the game, and your Riot tokens never leave this PC except to Riot.")}</li>
     <li>{t("Riot could change or block this at any time. Turn it off whenever you like.")}</li>

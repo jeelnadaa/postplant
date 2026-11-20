@@ -12,6 +12,9 @@ struct Acc {
     losses: i64,
     rounds: i64,
     k: i64,
+    atk_k: i64,
+    def_k: i64,
+    side_games: i64,
     d: i64,
     a: i64,
     score: i64,
@@ -72,7 +75,7 @@ impl Acc {
         json!({
             "games": self.games, "wins": self.wins, "losses": self.losses, "draws": self.games - self.wins - self.losses,
             "win": Acc::pct(self.wins, self.games), "rounds": self.rounds,
-            "k": self.k, "d": self.d, "a": self.a, "kd": Acc::ratio(self.k, self.d), "kda": Acc::ratio(self.k + self.a, self.d),
+            "atk_k": self.atk_k, "def_k": self.def_k, "side_games": self.side_games, "k": self.k, "d": self.d, "a": self.a, "kd": Acc::ratio(self.k, self.d), "kda": Acc::ratio(self.k + self.a, self.d),
             "kpr": ((self.k as f64 / r) * 100.0).round() / 100.0, "dpr": ((self.d as f64 / r) * 100.0).round() / 100.0,
             "acs": (self.score as f64 / r).round(), "adr": (self.dmg as f64 / r).round(), "dd": ((self.dmg - self.dmg_recv) as f64 / r).round(),
             "hs": Acc::pct(self.hs, shots), "kast": Acc::pct(self.kast_rounds, self.drounds),
@@ -100,6 +103,9 @@ impl Acc {
             losses,
             rounds,
             k,
+            atk_k,
+            def_k,
+            side_games,
             d,
             a,
             score,
@@ -138,6 +144,30 @@ impl Acc {
             self.casts[n] += o.casts[n];
         }
     }
+}
+
+/// Fixed-length halves for queues where round number determines the side.
+pub fn kill_side(team: &str, round: i64, queue: &str) -> Option<&'static str> {
+    if round < 0 || !(team.eq_ignore_ascii_case("red") || team.eq_ignore_ascii_case("blue")) {
+        return None;
+    }
+    let half = match queue.to_ascii_lowercase().as_str() {
+        "competitive" | "unrated" => 12,
+        "swiftplay" | "onefa" => 4,
+        "spikerush" => 3,
+        _ => return None,
+    };
+    if round >= 2 * half && queue != "competitive" {
+        return None;
+    }
+    let equivalent = if round < half {
+        0
+    } else if round < 2 * half {
+        12
+    } else {
+        round
+    };
+    Some(side(team, equivalent))
 }
 
 const TRADE_MS: i64 = 5000;
@@ -309,6 +339,13 @@ fn one(
                 died_at = Some((t, killer.to_string()));
             }
         }
+        if let Some(side) = kill_side(&team, n, s(m, "/metadata/queue/id")) {
+            if side == "atk" {
+                a.atk_k += my_kills;
+            } else {
+                a.def_k += my_kills;
+            }
+        }
         match &died_at {
             None => kast = true,
             Some((t, killer)) => {
@@ -355,6 +392,17 @@ fn one(
             a.clutch_att += 1;
             a.clutch_won += won as i64;
         }
+    }
+    if !rounds.is_empty()
+        && kill_side(&team, 0, s(m, "/metadata/queue/id")).is_some()
+        && kill_side(&team, rounds.len() as i64 - 1, s(m, "/metadata/queue/id")).is_some()
+        && m["kills"].is_array()
+        && a.atk_k + a.def_k == a.k
+    {
+        a.side_games = 1;
+    } else {
+        a.atk_k = 0;
+        a.def_k = 0;
     }
     let wv: Vec<(String, i64, i64)> = weapons.into_iter().map(|(k, v)| (k, v.0, v.1)).collect();
     a.dgames = 1;

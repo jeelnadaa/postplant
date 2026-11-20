@@ -208,6 +208,7 @@ pub fn run() {
             commands::history_status,
             commands::history_backfill,
             commands::riot_history_import,
+            commands::riot_profile,
             commands::save_png,
             commands::player_career,
             commands::player_rank,

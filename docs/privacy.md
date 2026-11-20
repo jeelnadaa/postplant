@@ -12,7 +12,7 @@ Postplant has no telemetry, no analytics, no accounts and no servers of its own.
 | `github.com` (advisor data) | Once a day if **Update advisor data automatically** is on (default), and when you press **Check advisor data**; never while VALORANT runs | Downloads `dataset.json.sig` and, if needed, `dataset.json` from the `dataset` release. Nothing about you is sent. |
 | `api.github.com` | Fallback update check (portable build, or a release without an update manifest) | One unauthenticated request for the latest release. |
 | `127.0.0.1` (Riot Client) | Only with **Live match** turned on: every 2 s while the Riot Client runs | Reads the lockfile password from `%LOCALAPPDATA%\Riot Games\Riot Client\Config\lockfile` and asks the local client for your session tokens, region and your own presence (game phase and map). |
-| `glz-*.a.pvp.net`, `pd.*.a.pvp.net` (Riot) | Only with **Live match** on, once per match once it is **in game**; once per session for your owned agents | Your Riot tokens (held in memory only), the match ID and the PUUIDs in it, to get agents, teams, levels and the names of players who don't hide them. Nothing during agent select. |
+| `glz-*.a.pvp.net`, `pd.*.a.pvp.net` (Riot) | Only with **Live match** on, when downloading a Lifetime profile (your own or a searched player accessible on the connected shard), during agent select with **Sync allied picks** enabled, once per in-game roster (retrying while unavailable); once per session for your owned agents | Your Riot tokens (held in memory only), the match ID and the PUUIDs in it, to get agents, teams, levels and the names of players who don't hide them. Agent-select sync reads the allied team, hovered or locked agents, and visible names. These selections stay in memory. |
 
 `valorant-api.com` and the LiquipediaDB API are queried by the weekly meta pipeline in GitHub Actions, never by the app on your PC.
 
@@ -21,7 +21,7 @@ Opening links (HenrikDev docs, GitHub, release pages) happens in your own browse
 ## What Postplant never does
 
 - Read game memory or inject into the game.
-- Read anything about other players during agent select (no scouting). With Live match on, agent select only opens your own Comp Advisor with the map filled in.
+- Look up opponent identities, ranks or stats during agent select.
 - Store or send Riot session tokens anywhere: they stay in memory and go only to Riot's own hosts.
 - Look up players whose names are hidden in a live match, or try to reveal hidden names.
 - Write your API key anywhere except Windows Credential Manager. Logs and errors redact anything shaped like a key; backups and exports never contain it.

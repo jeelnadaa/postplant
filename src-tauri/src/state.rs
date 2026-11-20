@@ -105,9 +105,9 @@ pub fn default_prefs() -> Value {
         },
         "recordings_dir": null,
         "auto_backup": true, "backups_keep": 4,
-        "update_check": true,
+        "update_check": true, "update_install": true,
         "close_to_tray": true,
-        "live_enabled": false, "live_ack": null, "live_tab": true, "live_form": true, "advisor_in_select": true,
+        "live_enabled": false, "live_ack": null, "live_tab": true, "live_tab_layout": "rail", "live_form": true, "advisor_in_select": true, "advisor_sync_picks": false,
         "stack": []
     })
 }

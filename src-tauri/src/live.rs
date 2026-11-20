@@ -7,8 +7,7 @@
 //! Ranks and recent form come from HenrikDev by PUUID through the budget governor.
 //!
 //! Guardrails, checked here in code:
-//!   * During agent select (PREGAME) nothing about other players is requested. The only thing that
-//!     happens is opening YOUR Comp Advisor with the map preset; teammates' picks are still typed in.
+//!   * Optional agent-select sync reads only allied picks and visible names from Riot.
 //!   * Players with a hidden name are shown by agent name and never looked up.
 //!   * Tokens stay in memory, are only sent to Riot's own hosts, and are dropped when the toggle is off.
 use crate::api::Prio;
@@ -63,6 +62,7 @@ pub struct Live {
     pub map: Mutex<String>,
     pub match_id: Mutex<String>,
     pub roster: Mutex<Value>,
+    draft: Mutex<Value>,
     pub error: Mutex<Option<String>>,
     gen: AtomicU64,
     pub tab_down: AtomicBool,
@@ -78,6 +78,7 @@ impl Default for Live {
             map: Mutex::new(String::new()),
             match_id: Mutex::new(String::new()),
             roster: Mutex::new(Value::Null),
+            draft: Mutex::new(Value::Null),
             error: Mutex::new(None),
             gen: AtomicU64::new(0),
             tab_down: AtomicBool::new(false),
@@ -90,7 +91,7 @@ impl Default for Live {
 impl Live {
     pub fn status(&self) -> Value {
         json!({ "phase": self.phase.lock().unwrap().as_str(), "map": *self.map.lock().unwrap(),
-            "roster": *self.roster.lock().unwrap(), "error": *self.error.lock().unwrap(),
+            "draft": *self.draft.lock().unwrap(), "roster": *self.roster.lock().unwrap(), "error": *self.error.lock().unwrap(),
             "table": self.table_open.load(Ordering::SeqCst) })
     }
     fn clear(&self) {
@@ -208,11 +209,19 @@ pub fn parse_presence(presences: &Value, puuid: &str) -> Option<(Phase, String, 
             .to_string()
     };
     let state = pick("/sessionLoopState", "/matchPresenceData/sessionLoopState");
-    let map = pick("/matchMap", "/matchPresenceData/matchMap");
+    let mut map = pick("/matchMap", "/matchPresenceData/matchMap");
     let queue = pick("/queueId", "/queueId");
+    let party = pick("/partyState", "/partyPresenceData/partyState");
+    if map.is_empty() && party == "MATCHMADE_GAME_STARTING" {
+        map = pick(
+            "/partyOwnerMatchMap",
+            "/partyPresenceData/partyOwnerMatchMap",
+        );
+    }
     let phase = match state.as_str() {
         "PREGAME" => Phase::Pregame,
         "INGAME" => Phase::Ingame,
+        "MENUS" if party == "MATCHMADE_GAME_STARTING" => Phase::Pregame,
         _ => Phase::Menus,
     };
     Some((phase, map, queue))
@@ -344,13 +353,18 @@ pub fn start(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
         let local = local_http();
         let remote = remote_http();
+        let mut draft_id = String::new();
+        let mut names = std::collections::HashMap::new();
         loop {
             let st = app.state::<AppState>();
             let live = app.state::<Live>();
             let on = enabled(&st) && st.game_running.load(Ordering::SeqCst);
             if !on {
                 if *live.phase.lock().unwrap() != Phase::Off {
-                    on_leave(&app, *live.phase.lock().unwrap());
+                    let prev = *live.phase.lock().unwrap();
+                    on_leave(&app, prev);
+                    draft_id.clear();
+                    names.clear();
                     live.clear();
                     set_phase(&app, &live, Phase::Off);
                 }
@@ -374,6 +388,10 @@ pub fn start(app: AppHandle) {
                     Err(e) => {
                         *live.error.lock().unwrap() = Some(e);
                         *live.session.lock().unwrap() = None;
+                        let prev = *live.phase.lock().unwrap();
+                        on_leave(&app, prev);
+                        draft_id.clear();
+                        names.clear();
                         set_phase(&app, &live, Phase::NoClient);
                         tokio::time::sleep(Duration::from_secs(5)).await;
                         continue;
@@ -395,7 +413,8 @@ pub fn start(app: AppHandle) {
                     if pres.is_err() {
                         *live.session.lock().unwrap() = None;
                     }
-                    (Phase::Menus, String::new())
+                    tokio::time::sleep(Duration::from_secs(1)).await;
+                    continue;
                 }
             };
             let prev = *live.phase.lock().unwrap();
@@ -418,23 +437,139 @@ pub fn start(app: AppHandle) {
             if ph != prev {
                 on_leave(&app, prev);
                 set_phase(&app, &live, ph);
-                match ph {
-                    Phase::Pregame => on_pregame(&app),
-                    Phase::Ingame => {
-                        let gen = live.gen.fetch_add(1, Ordering::SeqCst) + 1;
-                        if let Err(e) = on_ingame(&app, &remote, &sess, gen).await {
-                            *live.error.lock().unwrap() = Some(e);
-                        }
-                    }
-                    _ => {}
+                draft_id.clear();
+                names.clear();
+                if ph == Phase::Pregame {
+                    on_pregame(&app);
                 }
             }
-            tokio::time::sleep(Duration::from_secs(2)).await;
+            if ph == Phase::Pregame {
+                let sync = st.prefs()["advisor_sync_picks"].as_bool().unwrap_or(false);
+                if sync {
+                    if let Err(code) =
+                        refresh_draft(&app, &remote, &sess, &mut draft_id, &mut names).await
+                    {
+                        if code == 401 || code == 403 {
+                            *live.session.lock().unwrap() = None;
+                        }
+                        if code == 404 {
+                            draft_id.clear();
+                            names.clear();
+                            publish_draft(&app, Value::Null);
+                        }
+                    }
+                } else {
+                    names.clear();
+                    draft_id.clear();
+                    publish_draft(&app, Value::Null);
+                }
+            }
+            if ph == Phase::Ingame && live.roster.lock().unwrap().is_null() {
+                let gen = live.gen.fetch_add(1, Ordering::SeqCst) + 1;
+                *live.error.lock().unwrap() = None;
+                if let Err(e) = on_ingame(&app, &remote, &sess, gen).await {
+                    *live.error.lock().unwrap() = Some(e);
+                }
+            }
+            tokio::time::sleep(Duration::from_secs(if ph == Phase::Ingame { 2 } else { 1 })).await;
         }
     });
 }
 
-/// Agent select: open YOUR Comp Advisor with the map preset. Nothing about other players is requested.
+fn publish_draft(app: &AppHandle, value: Value) {
+    let live = app.state::<Live>();
+    let mut draft = live.draft.lock().unwrap();
+    if *draft != value {
+        *draft = value.clone();
+        drop(draft);
+        let _ = app.emit("advisor-draft", value);
+    }
+}
+
+async fn refresh_draft(
+    app: &AppHandle,
+    http: &reqwest::Client,
+    s: &Session,
+    id: &mut String,
+    names: &mut std::collections::HashMap<String, String>,
+) -> Result<(), u16> {
+    if id.is_empty() {
+        let player = riot_get(
+            http,
+            s,
+            &format!("{}/pregame/v1/players/{}", glz(s), s.puuid),
+        )
+        .await?;
+        *id = player["MatchID"]
+            .as_str()
+            .filter(|x| !x.is_empty())
+            .ok_or(404u16)?
+            .into();
+    }
+    let m = riot_get(http, s, &format!("{}/pregame/v1/matches/{}", glz(s), id)).await?;
+    let map = map_name(app, m["MapID"].as_str().unwrap_or(""));
+    let live = app.state::<Live>();
+    if !map.is_empty() && *live.map.lock().unwrap() != map {
+        *live.map.lock().unwrap() = map.clone();
+        let _ = app.emit("advisor-map", json!({ "map": map }));
+    }
+    let players = m
+        .pointer("/AllyTeam/Players")
+        .and_then(Value::as_array)
+        .ok_or(404u16)?;
+    let visible = |p: &Value| {
+        p.pointer("/PlayerIdentity/Incognito")
+            .and_then(Value::as_bool)
+            == Some(false)
+    };
+    let missing: Vec<_> = players
+        .iter()
+        .filter(|p| visible(p))
+        .filter_map(|p| p["Subject"].as_str())
+        .filter(|pu| *pu != s.puuid && !names.contains_key(*pu))
+        .collect();
+    if !missing.is_empty() {
+        if let Ok(records) = riot_put(
+            http,
+            s,
+            &format!("{}/name-service/v2/players", pd(s)),
+            &json!(missing),
+        )
+        .await
+        {
+            for r in records.as_array().into_iter().flatten() {
+                if let (Some(pu), Some(name)) = (r["Subject"].as_str(), r["GameName"].as_str()) {
+                    names.insert(pu.into(), name.into());
+                }
+            }
+        }
+    }
+    let kb = app.state::<crate::dataset::KbStore>().get();
+    let rows: Vec<_> = players.iter().enumerate().map(|(index, p)| {
+        let pu = p["Subject"].as_str().unwrap_or("");
+        let me = pu == s.puuid;
+        let name = if me {
+            Some("You")
+        } else if visible(p) {
+            names.get(pu).map(String::as_str)
+        } else {
+            None
+        };
+        let agent = kb.agents.iter().find(|a| a.agent_id.eq_ignore_ascii_case(p["CharacterID"].as_str().unwrap_or("")));
+        json!({"name": name.map(str::to_owned).unwrap_or_else(|| format!("Teammate {}", index+1)),
+            "me":me, "agent":agent.map(|a| &a.name), "locked":p["CharacterSelectionState"] == "locked"})
+    }).collect();
+    if enabled(&app.state::<AppState>())
+        && app.state::<AppState>().prefs()["advisor_sync_picks"] == true
+    {
+        publish_draft(
+            app,
+            json!({"map": *live.map.lock().unwrap(), "players": rows}),
+        );
+    }
+    Ok(())
+}
+
 fn on_pregame(app: &AppHandle) {
     let st = app.state::<AppState>();
     if st.prefs()["advisor_in_select"].as_bool().unwrap_or(true) {
@@ -445,9 +580,13 @@ fn on_pregame(app: &AppHandle) {
 
 fn on_leave(app: &AppHandle, prev: Phase) {
     match prev {
-        Phase::Pregame => crate::overlay::close_advisor(app, true),
+        Phase::Pregame => {
+            publish_draft(app, Value::Null);
+            crate::overlay::close_advisor(app, true);
+        }
         Phase::Ingame => {
             let live = app.state::<Live>();
+            live.gen.fetch_add(1, Ordering::SeqCst);
             let id = live.match_id.lock().unwrap().clone();
             let roster = live.roster.lock().unwrap().clone();
             if !id.is_empty() && !roster.is_null() {
@@ -504,6 +643,9 @@ async fn on_ingame(
         }
     }
     let players = m["Players"].as_array().cloned().unwrap_or_default();
+    if !players.iter().any(|p| p["Subject"] == s.puuid.as_str()) {
+        return Err("Waiting for the match roster".into());
+    }
     let my_team = players
         .iter()
         .find(|p| p["Subject"] == s.puuid.as_str())
@@ -583,7 +725,9 @@ async fn on_ingame(
     let rematch = rematch_line(&st, me.as_ref(), &roster);
     *live.roster.lock().unwrap() = json!({ "match_id": mid, "map": *live.map.lock().unwrap(), "players": roster, "context": ctx, "rematch": rematch, "started": now_ms() });
     emit_roster(app);
-    crate::overlay::show_live_compact(app);
+    if !live.tab_down.load(Ordering::SeqCst) && !live.table_open.load(Ordering::SeqCst) {
+        crate::overlay::show_live_compact(app);
+    }
     // Fetch ranks, then recent form, one request every 3.5 s.
     let app2 = app.clone();
     let region = me.map(|m| m.region).unwrap_or_else(|| s.region.clone());
@@ -628,6 +772,9 @@ async fn on_ingame(
                 } else {
                     crate::players::form(&st, &region, &pu, &agent, Prio::Foreground).await
                 };
+                if app2.state::<Live>().gen.load(Ordering::SeqCst) != gen {
+                    return;
+                }
                 set_field(&app2, &pu, field, v);
                 tokio::time::sleep(Duration::from_millis(3500)).await;
             }
@@ -748,6 +895,7 @@ pub fn start_tab_watch(app: AppHandle) {
     std::thread::spawn(move || loop {
         let live = app.state::<Live>();
         let active = *live.phase.lock().unwrap() == Phase::Ingame
+            && !live.roster.lock().unwrap().is_null()
             && app.state::<AppState>().prefs()["live_tab"]
                 .as_bool()
                 .unwrap_or(true);
@@ -827,9 +975,10 @@ mod tests {
     }
 
     #[test]
-    fn pregame_never_reads_players() {
-        // The phase handler for agent select only opens the advisor; it has no session or HTTP client
-        // to call with. This test pins that contract: on_pregame takes only the app handle.
-        let _f: fn(&AppHandle) = on_pregame;
+    fn countdown_starts_advisor() {
+        let p = presence(
+            json!({"sessionLoopState": "MENUS", "partyPresenceData":{"partyState":"MATCHMADE_GAME_STARTING"}}),
+        );
+        assert_eq!(parse_presence(&p, "me").unwrap().0, Phase::Pregame);
     }
 }

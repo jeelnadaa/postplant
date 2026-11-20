@@ -514,28 +514,22 @@ pub fn analytics(c: &Connection, me: &Me, since: i64, queue: &str) -> Value {
         by_agent.entry(r.agent.clone()).or_default().push(r);
         by_map.entry(r.map.clone()).or_default().push(r);
     }
-    let ids: Vec<&str> = rows.iter().map(|r| r.id.as_str()).collect();
-    let team_by_match: HashMap<&str, &str> = rows
-        .iter()
-        .map(|r| (r.id.as_str(), r.team.as_str()))
-        .collect();
-    let map_by_match: HashMap<&str, &str> = rows
-        .iter()
-        .map(|r| (r.id.as_str(), r.map.as_str()))
-        .collect();
+    let mut kill_rows = Vec::new();
     // Side round win rates per map, and economy buckets.
     let mut side: HashMap<(String, &'static str), (i64, i64)> = HashMap::new();
     let mut econ: HashMap<&'static str, (i64, i64)> = HashMap::new();
     let mut weapons: HashMap<String, i64> = HashMap::new();
     let (mut deaths, mut untraded) = (0i64, 0i64);
-    for id in &ids {
-        let team = team_by_match[id];
+    for row in &rows {
+        let id = &row.id;
+        let team = row.team.as_str();
+        let map = &row.map;
         if let Ok(mut st) = c.prepare("SELECT r.round_no, r.winning_team, COALESCE(s.loadout_value,-1) FROM rounds r LEFT JOIN round_player_stats s ON s.match_id=r.match_id AND s.round_no=r.round_no AND s.puuid=?2 WHERE r.match_id=?1") {
             let it = st.query_map(params![id, me.puuid], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, i64>(2)?)));
             if let Ok(it) = it {
                 for (n, w, lo) in it.flatten() {
                     let won = w.eq_ignore_ascii_case(team);
-                    let e = side.entry((map_by_match[id].to_string(), parse::side(team, n))).or_default();
+                    let e = side.entry((map.clone(), parse::side(team, n))).or_default();
                     e.0 += 1;
                     e.1 += won as i64;
                     if lo >= 0 {
@@ -547,17 +541,41 @@ pub fn analytics(c: &Connection, me: &Me, since: i64, queue: &str) -> Value {
                 }
             }
         }
-        if let Ok(mut st) =
-            c.prepare("SELECT weapon_name FROM kills WHERE match_id=?1 AND killer=?2")
-        {
-            if let Ok(it) = st.query_map(params![id, me.puuid], |r| r.get::<_, String>(0)) {
-                for w in it.flatten() {
+        let (mut atk, mut def) = (0, 0);
+        let mut known =
+            row.rounds > 0 && crate::career::kill_side(team, row.rounds - 1, &row.queue).is_some();
+        let mut st = c.prepare(
+            "SELECT weapon_name,round_no,victim FROM kills WHERE match_id=?1 AND killer=?2",
+        );
+        if let Ok(st) = st.as_mut() {
+            if let Ok(it) = st.query_map(params![id, me.puuid], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, i64>(1)?,
+                    r.get::<_, String>(2)?,
+                ))
+            }) {
+                for (w, round, victim) in it.flatten() {
                     *weapons
                         .entry(if w.is_empty() { "Ability".into() } else { w })
                         .or_default() += 1;
+                    if victim != me.puuid {
+                        match crate::career::kill_side(team, round, &row.queue) {
+                            Some("atk") => atk += 1,
+                            Some("def") => def += 1,
+                            _ => known = false,
+                        }
+                    }
                 }
+            } else {
+                known = false;
             }
+        } else {
+            known = false;
         }
+        known &= atk + def == row.k;
+        kill_rows.push(json!({"agent":row.agent,"map":map,"games":1,"k":row.k,
+            "side_games":i64::from(known),"atk_k":known.then_some(atk),"def_k":known.then_some(def)}));
         // Untraded deaths: no teammate killed my killer within 3 s.
         if let Ok(mut st) = c.prepare(
             "SELECT k.killer, k.time_in_match_ms, (SELECT COUNT(*) FROM kills t JOIN match_players tp ON tp.match_id=t.match_id AND tp.puuid=t.killer
@@ -604,7 +622,7 @@ pub fn analytics(c: &Connection, me: &Me, since: i64, queue: &str) -> Value {
     let mut w: Vec<(String, i64)> = weapons.into_iter().collect();
     w.sort_by_key(|x| -x.1);
     json!({
-        "overall": Agg::of(rows.iter()).json(), "agents": agents, "maps": maps,
+        "overall": Agg::of(rows.iter()).json(), "agents": agents, "maps": maps, "kill_rows":kill_rows,
         "economy": (["Pistol", "Eco", "Force", "Full buy"]).iter().map(|b| json!({ "name": b, "rounds": econ.get(b).map(|x| x.0).unwrap_or(0), "win": pct(*econ.get(b).unwrap_or(&(0, 0))) })).collect::<Vec<_>>(),
         "weapons": w.iter().take(6).map(|(n, k)| json!({ "name": n, "kills": k, "share": if total_kills > 0 { 100 * k / total_kills } else { 0 } })).collect::<Vec<_>>(),
         "untraded": if deaths > 0 { json!((100.0 * untraded as f64 / deaths as f64).round()) } else { Value::Null },

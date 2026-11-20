@@ -3,7 +3,7 @@ use anyhow::Result;
 use rusqlite::{params, Connection, OptionalExtension};
 use std::path::Path;
 
-pub const SCHEMA_VERSION: i64 = 3;
+pub const SCHEMA_VERSION: i64 = 4;
 
 const MIGRATION_1: &str = r#"
 CREATE TABLE IF NOT EXISTS schema_info(version INTEGER NOT NULL, app_version TEXT, created_at TEXT);
@@ -77,6 +77,7 @@ pub const DATA_TABLES: &[&str] = &[
     "agent_pool",
     "live_rosters",
     "history",
+    "riot_kills",
 ];
 
 pub fn open(path: &Path) -> Result<Connection> {
@@ -124,6 +125,23 @@ pub fn migrate(conn: &Connection) -> Result<()> {
         conn.execute(
             "INSERT INTO schema_info(version, app_version, created_at) VALUES (3, ?1, ?2)",
             params![env!("CARGO_PKG_VERSION"), chrono::Utc::now().to_rfc3339()],
+        )?;
+    }
+    if schema_version(conn) < 4 {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS riot_kills(
+            puuid TEXT NOT NULL, match_id TEXT NOT NULL, agent TEXT NOT NULL, map TEXT NOT NULL,
+            queue TEXT NOT NULL, kills INTEGER NOT NULL, atk INTEGER, def INTEGER, career_row TEXT,
+            PRIMARY KEY(puuid, match_id));
+            CREATE VIEW IF NOT EXISTS riot_player_records AS
+                SELECT puuid,match_id,agent,map,queue,kills,atk,def,career_row FROM riot_kills
+                UNION ALL
+                SELECT puuid,match_id,json_extract(row_json,'$.stats.character.name'),json_extract(row_json,'$.meta.map.name'),
+                    json_extract(row_json,'$.meta.mode'),json_extract(row_json,'$.stats.kills'),NULL,NULL,row_json
+                FROM history h WHERE json_extract(row_json,'$.source')='riot'
+                    AND json_type(row_json,'$.stats.kills')='integer'
+                    AND NOT EXISTS(SELECT 1 FROM riot_kills r WHERE h.puuid=r.puuid AND h.match_id=r.match_id);
+            INSERT INTO schema_info(version) VALUES (4);",
         )?;
     }
     Ok(())

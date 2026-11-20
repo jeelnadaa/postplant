@@ -71,6 +71,14 @@ pub async fn check(app: &AppHandle) -> Result<Value, String> {
 
 /// Download, verify the signature, install and restart. Refuses while the game runs.
 pub async fn install(app: &AppHandle) -> Result<(), String> {
+    install_update(app, false).await
+}
+
+async fn install_update(app: &AppHandle, automatic: bool) -> Result<(), String> {
+    static INSTALL: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+    let _guard = INSTALL
+        .try_lock()
+        .map_err(|_| "An update is already in progress.")?;
     if app.state::<AppState>().game_running.load(Ordering::SeqCst) {
         return Err("VALORANT is running. The update will wait until you close the game.".into());
     }
@@ -88,15 +96,27 @@ pub async fn install(app: &AppHandle) -> Result<(), String> {
         .ok_or("Already up to date.")?;
     let app2 = app.clone();
     let mut got: usize = 0;
-    up.download_and_install(
-        move |chunk, total| {
-            got += chunk;
-            let _ = app2.emit("update-progress", json!({ "got": got, "total": total }));
-        },
-        || {},
-    )
-    .await
-    .map_err(|e| e.to_string())?;
+    let bytes = up
+        .download(
+            move |chunk, total| {
+                got += chunk;
+                let _ = app2.emit("update-progress", json!({ "got": got, "total": total }));
+            },
+            || {},
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    let st = app.state::<AppState>();
+    if st.game_running.load(Ordering::SeqCst) {
+        return Err("Update deferred while VALORANT is running.".into());
+    }
+    if automatic {
+        let prefs = st.prefs();
+        if prefs["update_check"] == false || prefs["update_install"] == false {
+            return Err("Automatic installation is turned off.".into());
+        }
+    }
+    up.install(bytes).map_err(|e| e.to_string())?;
     app.restart();
 }
 
@@ -111,6 +131,13 @@ pub fn start(app: AppHandle) {
             if enabled && !st.game_running.load(Ordering::SeqCst) {
                 if let Ok(v) = check(&app).await {
                     let latest = v["latest"].as_str().unwrap_or("").to_string();
+                    if !cfg!(debug_assertions)
+                        && v["signed"] == true
+                        && v["newer"] == true
+                        && st.prefs()["update_install"] != false
+                    {
+                        let _ = install_update(&app, true).await;
+                    }
                     if v["newer"] == true && latest != told {
                         let _ = app.emit("update-available", v);
                         told = latest;

@@ -271,8 +271,13 @@ pub fn live_tab(app: &AppHandle, down: bool) {
     if down {
         // Size, place and switch the page first, then show, so the hidden window never appears
         // with its previous layout.
-        layout(app, "rail");
-        let _ = app.emit_to(LABEL, "live-show", json!({ "mode": "rail" }));
+        let mode = if app.state::<AppState>().prefs()["live_tab_layout"] == "full" {
+            "full"
+        } else {
+            "rail"
+        };
+        layout(app, mode);
+        let _ = app.emit_to(LABEL, "live-show", json!({ "mode": mode }));
         show_auto(app);
     } else {
         let _ = app.emit_to(LABEL, "live-show", json!({ "mode": "none" }));

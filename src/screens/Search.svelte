@@ -2,11 +2,12 @@
   import { t } from "../lib/i18n.svelte";
   import { api, errText, type J } from "../lib/api";
   import { fmtDate, parseRiotId, timeAgo } from "../lib/format";
-  import { nav, toast } from "../lib/store.svelte";
+  import { app, nav, toast } from "../lib/store.svelte";
   import Agent from "../components/Agent.svelte";
   import Icon from "../components/Icon.svelte";
   import NoteModal from "../components/NoteModal.svelte";
   import Rank from "../components/Rank.svelte";
+  import RiotLifetime from "../components/RiotLifetime.svelte";
   import Career from "../components/Career.svelte";
 
   let { params }: { params: Record<string, string> } = $props();
@@ -44,6 +45,7 @@
   const mmr = $derived(res?.data?.mmr);
   // Detailed career: n full matches (1 request each, kept forever, so asking again is free).
   let career = $state<J>(null);
+  let scope = $state("recent");
   let careerN = $state(10);
   let careerBusy = $state(false);
   let careerErr = $state("");
@@ -115,6 +117,10 @@
       {:else}<p class="faint">{t("Match history unavailable")}{res.data.recent?.error ? `: ${res.data.recent.error}` : ""}.</p>{/if}
     </div>
   </div>
+  <div class="tabs mt-4 mb-4"><button class="tab" role="tab" aria-selected={scope === "recent"} onclick={() => scope="recent"}>{t("Match stats")}</button><button class="tab" role="tab" aria-selected={scope === "lifetime"} onclick={() => scope="lifetime"}>{t("Lifetime")}</button></div>
+  {#if scope === "lifetime"}
+    {#key acc.puuid}<RiotLifetime puuid={acc.puuid} privateHistory={acc.puuid !== app.s?.me?.puuid && !!res.data.recent?.private} />{/key}
+  {:else}
   <div class="card mt-4">
     <div class="card-head"><span class="h3">{t("Career")}</span><span class="spacer"></span>
       <select class="input" style="width:auto" bind:value={careerN}>{#each [5, 10, 15, 20, 25] as n (n)}<option value={n}>{t("Last")} {n} {t("competitive")}</option>{/each}</select>
@@ -127,6 +133,7 @@
       <Career d={res.data.summary} quick />
     {:else}<p class="faint">{t("Load detailed stats for per-agent kills, defuses, clutches, KAST, trades and more.")}</p>{/if}
   </div>
+  {/if}
   <NoteModal bind:open={noteOpen} puuid={acc.puuid} who="{acc.name}#{acc.tag}" {note} onsaved={() => { loadRecent(); toast("ok", "Note saved"); }} />
 {:else if !busy && recent.length}
   <div class="card">

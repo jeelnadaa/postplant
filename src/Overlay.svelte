@@ -1,7 +1,10 @@
 <script lang="ts">
+  import AdvisorRoster from "./components/AdvisorRoster.svelte";
+  import { useAdvisorDraft } from "./lib/advisorDraft.svelte";
+  const draft = useAdvisorDraft();
   import { t } from "./lib/i18n.svelte";
   // The in-game overlay. Panels draw from local data; the live views show what the Rust side already
-  // fetched. Agent select only ever shows the advisor (your own planning), never other players.
+  // fetched. The advisor can follow allied agent selections.
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { api, on, type J } from "./lib/api";
   import { app, applyPrefs } from "./lib/store.svelte";
@@ -71,7 +74,7 @@
   });
   on("advisor-open", (p: J) => {
     advAuto = !!p.auto;
-    if (p.map) advMap = p.map;
+    advMap = p.map || "";
     advTeam = [];
     picking = false;
   });
@@ -98,12 +101,14 @@
   const agents = $derived(app.kb?.agents ?? []);
   const byName = (n: string) => agents.find((a: J) => a.name === n);
   $effect(() => {
-    if (!advMap && maps.length) advMap = maps[0].name;
+    if (!advAuto && !advMap && maps.length) advMap = maps[0].name;
   });
   $effect(() => {
     if (layout !== "advisor" || !advMap) return;
-    const t = [...advTeam];
-    api.suggest(advMap, t).then((r) => (advRes = r)).catch(() => (advRes = null));
+    const t = draft.players ? draft.picks : [...advTeam];
+    let current = true;
+    api.suggest(advMap, t).then((r) => { if (current) advRes = r; }).catch(() => { if (current) advRes = null; });
+    return () => { current = false; };
   });
   function addTeammate(n: string) {
     if (advTeam.length < 4 && !advTeam.includes(n)) advTeam = [...advTeam, n];
@@ -157,19 +162,22 @@
         <b style="font-size:12px">{t("Comp advisor")}{advAuto ? " · agent select" : ""}</b>
         <button class="btn btn-icon btn-ghost btn-sm" style="margin-left:auto" aria-label="Close advisor" onclick={() => api.overlay("advisor")}><Icon name="x" /></button>
       </div>
-      <select class="input" style="width:100%;margin-bottom:8px" bind:value={advMap}>
+      <select aria-label={t("Map")} class="input" style="width:100%;margin-bottom:8px" bind:value={advMap}>
+        {#if !advMap}<option value="">{t("Waiting for map�")}</option>{/if}
         {#each maps as m (m.name)}<option value={m.name}>{m.name}</option>{/each}
       </select>
+      {#if draft.players}<AdvisorRoster players={draft.players} />{:else}
       <div class="caps faint" style="font-size:10px;margin-bottom:4px">{t("Teammates locked so far · type them in")}</div>
       <div class="row" style="gap:4px;flex-wrap:wrap;margin-bottom:8px">
         {#each advTeam as n (n)}<Agent name={n} id={byName(n)?.id} sm title="Remove {n}" onclick={() => (advTeam = advTeam.filter((x) => x !== n))} />{/each}
         {#if advTeam.length < 4}<button class="btn btn-sm" onclick={() => (picking = !picking)}><Icon name={picking ? "x" : "plus"} />{picking ? "Done" : "Add"}</button>{/if}
       </div>
-      {#if picking}
+      {/if}
+      {#if picking && !draft.players}
         <div class="ov-agents">
           {#each agents.filter((a: J) => !advTeam.includes(a.name)) as a (a.id)}<Agent name={a.name} id={a.id} sm title={a.name} onclick={() => addTeammate(a.name)} />{/each}
         </div>
-      {:else if advRes}
+      {:else if advMap && advRes}
         {#each advRes.agents.slice(0, 3) as a, i (a.name)}
           <div class="ov-pick" style="--i:{i}">
             <Agent name={a.name} id={a.id} sm />
@@ -184,6 +192,8 @@
         {/if}
         {#if advRes.notes}<div class="faint" style="font-size:10.5px;margin-top:8px">{advRes.notes}</div>{/if}
       {/if}
+    {:else if ["compact", "rail", "full"].includes(layout) && !showLive}
+      <div class="ov-head" role="status">{t("Loading live roster...")}</div>
     {:else if showLive}
       <div class="ov-head">
         <span class="logo"><svg style="color:var(--accent)"><use href="#logo" /></svg></span>

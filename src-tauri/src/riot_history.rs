@@ -18,17 +18,15 @@ use tauri::{AppHandle, Emitter, Manager};
 
 /// Riot pages match history 20 at a time.
 const PAGE: i64 = 20;
-/// Up to 1,000 match ids per run.
-const MAX_PAGES: i64 = 50;
 static RUNNING: AtomicBool = AtomicBool::new(false);
 
 fn done_key(puuid: &str) -> String {
-    format!("riot_history_complete:{puuid}")
+    format!("riot_kills_scanned:{puuid}")
 }
 
 /// Match ids not worth fetching again (customs, deathmatch): kept so each run skips them.
 fn skip_key(puuid: &str) -> String {
-    format!("riot_history_skip:{puuid}")
+    format!("riot_kills_skip:{puuid}")
 }
 
 /// Names the conversion needs: map path → name, agent id → name, season id → "e9a3".
@@ -160,21 +158,126 @@ pub fn status(c: &rusqlite::Connection, puuid: &str) -> Value {
         "running": RUNNING.load(Ordering::SeqCst) })
 }
 
+/// Match kill totals remain usable even when a mode or old record has no side information.
+fn record_kills(
+    c: &rusqlite::Connection,
+    m: &Value,
+    puuid: &str,
+    names: &Names,
+    row: Option<&Value>,
+) -> Result<bool, rusqlite::Error> {
+    let info = &m["matchInfo"];
+    let id = s(info, "/matchId").to_lowercase();
+    if id.is_empty() || info["isCompleted"] == false {
+        return Ok(false);
+    }
+    let Some(me) = arr(m, "/players")
+        .iter()
+        .find(|p| s(p, "/subject").eq_ignore_ascii_case(puuid))
+    else {
+        return Ok(false);
+    };
+    let Some(kills) = me.pointer("/stats/kills").and_then(Value::as_i64) else {
+        return Ok(false);
+    };
+    let queue = s(info, "/queueID").to_lowercase();
+    let team = s(me, "/teamId");
+    let rounds = arr(m, "/roundResults");
+    let sides = rounds
+        .iter()
+        .try_fold((0, 0), |(atk, def), r| {
+            let side = crate::career::kill_side(team, r["roundNum"].as_i64()?, &queue)?;
+            let player = arr(r, "/playerStats")
+                .iter()
+                .find(|p| s(p, "/subject").eq_ignore_ascii_case(puuid))?;
+            let events = player["kills"].as_array()?;
+            let n = events
+                .iter()
+                .filter(|k| {
+                    s(k, "/killer").eq_ignore_ascii_case(puuid)
+                        && !s(k, "/victim").eq_ignore_ascii_case(puuid)
+                })
+                .count() as i64;
+            Some(if side == "atk" {
+                (atk + n, def)
+            } else {
+                (atk, def + n)
+            })
+        })
+        .filter(|(a, d)| !rounds.is_empty() && a + d == kills);
+    let map_path = s(info, "/mapId");
+    let map = names
+        .maps
+        .get(&map_path.to_lowercase())
+        .cloned()
+        .unwrap_or_else(|| map_fallback(map_path));
+    let agent = names
+        .agents
+        .get(&s(me, "/characterId").to_lowercase())
+        .map(String::as_str)
+        .unwrap_or("Unknown agent");
+    c.execute("INSERT OR IGNORE INTO riot_kills(puuid,match_id,agent,map,queue,kills,atk,def,career_row) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)",
+        rusqlite::params![puuid,id,agent,map,queue,kills,sides.map(|x|x.0),sides.map(|x|x.1),row.map(Value::to_string)])?;
+    Ok(true)
+}
+
+pub fn profile(c: &rusqlite::Connection, puuid: &str) -> Result<Value, String> {
+    let mut q = c.prepare("SELECT agent,map,queue,count(*),sum(kills),sum(atk),sum(def),count(atk) FROM riot_player_records WHERE puuid=?1 GROUP BY agent,map,queue ORDER BY sum(kills) DESC").map_err(|e|e.to_string())?;
+    let combos = q.query_map([puuid], |r| Ok(json!({"agent":r.get::<_,String>(0)?,"map":r.get::<_,String>(1)?,"queue":r.get::<_,String>(2)?,
+        "games":r.get::<_,i64>(3)?,"k":r.get::<_,i64>(4)?,"atk_k":r.get::<_,Option<i64>>(5)?,"def_k":r.get::<_,Option<i64>>(6)?,"side_games":r.get::<_,i64>(7)?})))
+        .and_then(|rows|rows.collect::<Result<Vec<_>,_>>()).map_err(|e|e.to_string())?;
+    let mut q = c
+        .prepare(
+            "SELECT career_row FROM riot_player_records WHERE puuid=?1 AND career_row IS NOT NULL",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = q
+        .query_map([puuid], |r| r.get::<_, String>(0))
+        .and_then(|r| r.collect::<Result<Vec<_>, _>>())
+        .map_err(|e| e.to_string())?;
+    let rows: Vec<Value> = rows
+        .iter()
+        .filter_map(|r| serde_json::from_str(r).ok())
+        .collect();
+    Ok(
+        json!({"combos":combos,"modes":crate::queries::mode_totals(c,puuid,&Value::Null),"career":crate::career::from_stored(&rows)}),
+    )
+}
+
 /// Download what Riot's match history lists that we don't hold. `full`: keep paging past pages
 /// with nothing new (first run); otherwise stop at the first page we already hold.
 pub async fn import(app: &AppHandle, full: bool) -> Result<Value, String> {
+    import_for(app, full, None).await
+}
+
+pub async fn import_for(
+    app: &AppHandle,
+    full: bool,
+    target: Option<String>,
+) -> Result<Value, String> {
     let st = app.state::<AppState>();
     let me = st.me().ok_or("Set your Riot ID first.")?;
+    let target = target.unwrap_or_else(|| me.puuid.clone());
+    if target.is_empty()
+        || !target
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    {
+        return Err("Invalid player ID".into());
+    }
     if !live::enabled(&st) {
         return Err("Turn on live mode in Settings first: Riot's match history is read through the Riot Client.".into());
     }
     if RUNNING.swap(true, Ordering::SeqCst) {
         return Ok(json!({ "busy": true }));
     }
-    let r = run(app, &me, full).await;
+    let r = run(app, &me, &target, full).await;
     RUNNING.store(false, Ordering::SeqCst);
     let s = status(&st.db.lock().unwrap(), &me.puuid);
-    let _ = app.emit("history-progress", json!({ "done": true, "riot": s }));
+    let _ = app.emit(
+        "history-progress",
+        json!({ "done": true, "puuid":target, "riot": s }),
+    );
     r
 }
 
@@ -205,19 +308,21 @@ async fn fetch_one(
     let url = format!("{}/match-details/v1/matches/{id}", live::pd(sess));
     let m = get(http, sess, &url).await?;
     let st = app.state::<AppState>();
-    Ok(match to_row(&m, puuid, names) {
-        Some(row) => (
-            true,
-            crate::history::store_rows(&st.db.lock().unwrap(), puuid, &[row]),
-        ),
-        None => (false, 0),
-    })
+    let row = to_row(&m, puuid, names);
+    let c = st.db.lock().unwrap();
+    let stored = record_kills(&c, &m, puuid, names, row.as_ref()).map_err(|_| 500u16)?;
+    if let Some(row) = row {
+        if puuid.eq_ignore_ascii_case(&sess.puuid) {
+            crate::history::store_rows(&c, puuid, &[row]);
+        }
+    }
+    Ok((stored, usize::from(stored)))
 }
 
 /// Riot's per-mode, per-act totals (games and wins for competitive, unrated, swiftplay…), kept
 /// for the Lifetime tab. One request.
 async fn fetch_mode_totals(app: &AppHandle, http: &reqwest::Client, sess: &Session, puuid: &str) {
-    let url = format!("{}/mmr/v1/players/{}", live::pd(sess), sess.puuid);
+    let url = format!("{}/mmr/v1/players/{}", live::pd(sess), puuid);
     if let Ok(v) = get(http, sess, &url).await {
         if v.get("QueueSkills").is_some() {
             let st = app.state::<AppState>();
@@ -243,7 +348,12 @@ pub fn store_comp_updates(c: &rusqlite::Connection, puuid: &str, v: &Value) -> V
     ids
 }
 
-async fn run(app: &AppHandle, me: &crate::state::Me, full: bool) -> Result<Value, String> {
+async fn run(
+    app: &AppHandle,
+    me: &crate::state::Me,
+    target: &str,
+    full: bool,
+) -> Result<Value, String> {
     let sess: Session = live::connect(&live::local_http())
         .await
         .map_err(|e| format!("{e}. Start VALORANT, then try again."))?;
@@ -251,17 +361,17 @@ async fn run(app: &AppHandle, me: &crate::state::Me, full: bool) -> Result<Value
         return Err("The Riot Client is signed in to a different account.".into());
     }
     let http = live::remote_http();
-    let names = Names::load(app, &me.puuid);
+    let names = Names::load(app, target);
     let st = app.state::<AppState>();
-    fetch_mode_totals(app, &http, &sess, &me.puuid).await;
-    let mut skip: HashSet<String> = db::get_json(&st.db.lock().unwrap(), &skip_key(&me.puuid))
+    fetch_mode_totals(app, &http, &sess, target).await;
+    let mut skip: HashSet<String> = db::get_json(&st.db.lock().unwrap(), &skip_key(target))
         .and_then(|v| serde_json::from_value(v).ok())
         .unwrap_or_default();
     let held = |id: &str| -> bool {
         let c = st.db.lock().unwrap();
         c.query_row(
-            "SELECT (SELECT COUNT(*) FROM matches WHERE match_id=?1) + (SELECT COUNT(*) FROM history WHERE match_id=?1)",
-            [id],
+            "SELECT COUNT(*) FROM riot_kills WHERE match_id=?1 AND puuid=?2",
+            [id, target],
             |r| r.get::<_, i64>(0),
         )
         .unwrap_or(0)
@@ -269,28 +379,30 @@ async fn run(app: &AppHandle, me: &crate::state::Me, full: bool) -> Result<Value
     };
     let pace = || tokio::time::sleep(Duration::from_millis(1100));
     let (mut added, mut skipped, mut total) = (0usize, 0usize, 0i64);
-    let mut reached_end = false;
+    let mut reached_end = true;
+    let mut failed = 0usize;
     let mut seen: HashSet<String> = HashSet::new();
     // Two lists of match ids: the general match history, then the competitive updates (every
     // ranked match with its RR change), which can list ranked matches the first one no longer does.
     for (pass, source) in ["history", "competitive"].into_iter().enumerate() {
         let mut page = 0i64;
         let mut pass_end = false;
-        while page < MAX_PAGES {
+        let mut pages_seen = HashSet::new();
+        loop {
             let (from, to) = (page * PAGE, page * PAGE + PAGE);
             let url = if source == "history" {
                 format!(
                     "{}/match-history/v1/history/{}?startIndex={from}&endIndex={to}",
                     live::pd(&sess),
-                    sess.puuid
+                    target
                 )
             } else {
-                format!("{}/mmr/v1/players/{}/competitiveupdates?startIndex={from}&endIndex={to}&queue=competitive", live::pd(&sess), sess.puuid)
+                format!("{}/mmr/v1/players/{}/competitiveupdates?startIndex={from}&endIndex={to}&queue=competitive", live::pd(&sess), target)
             };
             let v = match get(&http, &sess, &url).await {
                 Ok(v) => v,
                 Err(code) if page == 0 && pass == 0 => {
-                    return Err(format!("Riot's match history answered {code}."))
+                    return Err(format!("Riot did not provide this player's history on the connected shard (status {code})."))
                 }
                 Err(code) => {
                     eprintln!("riot history: {source} stopped at page {page}: {code}");
@@ -304,38 +416,57 @@ async fn run(app: &AppHandle, me: &crate::state::Me, full: bool) -> Result<Value
                     .map(|h| s(h, "/MatchID").to_lowercase())
                     .collect()
             } else {
-                store_comp_updates(&st.db.lock().unwrap(), &me.puuid, &v)
+                if target == sess.puuid {
+                    store_comp_updates(&st.db.lock().unwrap(), target, &v)
+                } else {
+                    arr(&v, "/Matches")
+                        .iter()
+                        .map(|m| s(m, "/MatchID").to_lowercase())
+                        .collect()
+                }
             };
+            let listed_repeat = !listed.is_empty() && !pages_seen.insert(listed.clone());
             let n_listed = listed.len() as i64;
             let ids: Vec<String> = listed
                 .into_iter()
                 .filter(|x| !x.is_empty() && seen.insert(x.clone()))
                 .collect();
+            if page > 0 && listed_repeat {
+                break;
+            }
             let mut new_here = 0;
             for id in &ids {
+                if !live::enabled(&st) {
+                    return Err("Riot download stopped because Live match was turned off.".into());
+                }
                 if skip.contains(id) || held(id) {
                     continue;
                 }
                 new_here += 1;
                 pace().await;
-                match fetch_one(app, &http, &sess, &names, &me.puuid, id).await {
+                match fetch_one(app, &http, &sess, &names, target, id).await {
                     Ok((true, n)) => added += n,
                     Ok((false, _)) => {
                         skipped += 1;
                         skip.insert(id.clone());
+                    }
+                    Err(code @ (401 | 403)) => {
+                        return Err(format!("Riot denied match details ({code})."))
                     }
                     Err(code) => {
                         skipped += 1;
                         // Riot no longer serves details this old: don't ask again.
                         if code == 404 {
                             skip.insert(id.clone());
+                        } else {
+                            failed += 1;
                         }
                         eprintln!("riot history: match {id}: {code}");
                     }
                 }
                 let _ = app.emit(
                     "history-progress",
-                    json!({ "source": "riot", "page": page + 1, "added": added, "total": total }),
+                    json!({ "source": "riot", "puuid":target, "page": page + 1, "added": added, "total": total }),
                 );
             }
             page += 1;
@@ -348,19 +479,19 @@ async fn run(app: &AppHandle, me: &crate::state::Me, full: bool) -> Result<Value
             }
             pace().await;
         }
-        if pass == 0 {
-            reached_end = pass_end;
-        }
+        reached_end &= pass_end;
     }
     {
         let c = st.db.lock().unwrap();
-        let _ = db::set_setting(&c, &skip_key(&me.puuid), &json!(skip).to_string());
+        let _ = db::set_setting(&c, &skip_key(target), &json!(skip).to_string());
     }
-    if reached_end {
+    if reached_end && failed == 0 {
         let c = st.db.lock().unwrap();
-        let _ = db::set_setting(&c, &done_key(&me.puuid), &now_ms().to_string());
+        let _ = db::set_setting(&c, &done_key(target), &now_ms().to_string());
     }
-    Ok(json!({ "added": added, "skipped": skipped, "total": total }))
+    Ok(
+        json!({ "added": added, "skipped": skipped, "total": total, "partial": !reached_end || failed > 0 }),
+    )
 }
 
 /// While VALORANT runs with live mode on: once per app run, in the menus, top up from Riot
@@ -445,6 +576,37 @@ mod tests {
         assert_eq!(v["overall"]["games"], 1);
         assert_eq!(v["overall"]["win"], 100.0);
         assert_eq!(v["overall"]["acs"], 236.0);
+    }
+
+    #[test]
+    fn lifetime_records_are_riot_only_and_separate_players_and_missing_sides() {
+        let c = db::open_memory().unwrap();
+        let names = Names::default();
+        let mut m = details();
+        m["players"][0]["stats"]["kills"] = json!(2);
+        m["roundResults"] = json!([{"roundNum":0,"playerStats":[{"subject":"ME","kills":[{"killer":"ME","victim":"OTHER"}]}]},
+            {"roundNum":12,"playerStats":[{"subject":"ME","kills":[{"killer":"ME","victim":"OTHER"}]}]}]);
+        let legacy = to_row(&m, "me", &names).unwrap();
+        let mut third_party = legacy.clone();
+        third_party["source"] = json!("henrik");
+        third_party["meta"]["id"] = json!("else");
+        crate::history::store_rows(&c, "me", &[legacy.clone(), third_party]);
+        let old = profile(&c, "me").unwrap();
+        assert_eq!(old["combos"][0]["games"], 1);
+        assert_eq!(old["combos"][0]["side_games"], 0);
+        record_kills(&c, &m, "me", &names, Some(&legacy)).unwrap();
+        record_kills(&c, &m, "other", &names, None).unwrap();
+        for _ in 0..2 {
+            record_kills(&c, &m, "me", &names, Some(&legacy)).unwrap();
+            let p = profile(&c, "me").unwrap();
+            assert_eq!(p["combos"][0]["k"], 2);
+            assert_eq!(p["combos"][0]["games"], 1);
+            assert_eq!(p["combos"][0]["atk_k"], 1);
+            assert_eq!(p["combos"][0]["def_k"], 1);
+        }
+        let other = profile(&c, "other").unwrap();
+        assert_eq!(other["combos"][0]["k"], 10);
+        assert!(other["combos"][0]["atk_k"].is_null());
     }
 
     #[test]

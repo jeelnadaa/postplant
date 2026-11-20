@@ -4,12 +4,13 @@
   // `d` is the output of career::compute (or from_stored for the quick summary, which lacks round data).
   import type { J } from "../lib/api";
   import { queueLabel } from "../lib/format";
+  import KillTable from "./KillTable.svelte";
   import Agent from "./Agent.svelte";
 
-  let { d, quick = false }: { d: J; quick?: boolean } = $props();
+  let { d, quick = false, kills = true }: { d: J; quick?: boolean; kills?: boolean } = $props();
 
   type Col = [key: string, label: string, fmt?: "pct" | "num"];
-  const BASIC: Col[] = [["games", "Games"], ["win", "Win", "pct"], ["kd", "K/D"], ["kda", "KDA"], ["acs", "ACS"], ["adr", "ADR"], ["hs", "HS", "pct"]];
+  const BASIC: Col[] = [["games", "Games"], ["k","Kills"], ["win", "Win", "pct"], ["kd", "K/D"], ["kda", "KDA"], ["acs", "ACS"], ["adr", "ADR"], ["hs", "HS", "pct"]];
   const DEEP: Col[] = [
     ["kast", "KAST", "pct"], ["fb", "FB"], ["fd", "FD"], ["plants", "Plants"], ["defuses", "Defuses"], ["defuse_rate", "Defuse %", "pct"],
     ["post_plant_kills", "Post-plant K"], ["retake_kills", "Retake K"], ["clutches", "Clutches"], ["k3", "3K"], ["k4", "4K"], ["aces", "Aces"],
@@ -47,6 +48,7 @@
 {#if !o.games}
   <div class="card empty-inline">{t("No matches to show yet.")}</div>
 {:else}
+  {#if kills}<KillTable rows={d.combos ?? []} />{/if}
   <div class="stat-grid mb-4" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
     {#each tiles as [v, l, sub] (l)}
       <div class="stat"><div class="v">{v}</div><div class="l">{l}</div>{#if sub}<div class="faint" style="font-size:11px;margin-top:2px">{sub}</div>{/if}</div>
@@ -71,7 +73,7 @@
     {:else}
       <table class="table career-t"><thead><tr>
         <th>{view === "agents" ? "Agent" : view === "maps" ? "Map" : view === "patches" ? "Patch" : view === "seasons" ? "Act" : "Agent · map"}</th>
-        {#each cols as [k, l] (k)}<th class="num sortable" aria-sort={sortKey === k ? (desc ? "descending" : "ascending") : undefined} onclick={() => sortBy(k)}>{l}</th>{/each}
+        {#each cols as [k, l] (k)}<th scope="col" class="num sortable" aria-sort={sortKey === k ? (desc ? "descending" : "ascending") : undefined}><button type="button" onclick={() => sortBy(k)}>{l}</button></th>{/each}
       </tr></thead><tbody>
         {#each rows as r, i (i)}
           <tr>
@@ -84,10 +86,11 @@
       </tbody></table>
     {/if}
   </div>
-  {#if quick}<p class="faint mt-2" style="font-size:12px">{t("Quick summary from the last")} {o.games} {t("matches. Load detailed stats for defuses, clutches, KAST, trades and more.")}</p>{/if}
+  {#if quick && kills}<p class="faint mt-2" style="font-size:12px">{t("Quick summary from the last")} {o.games} {t("matches. Load detailed stats for defuses, clutches, KAST, trades and more.")}</p>{/if}
 {/if}
 
 <style>
+  .career-t th.sortable button { background:transparent; border:0; color:inherit; font:inherit; min-height:24px; width:100%; text-align:inherit; cursor:pointer; }
   .career-t th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
   .career-t th.sortable:hover { color: var(--text); }
   .career-t td, .career-t th { white-space: nowrap; }

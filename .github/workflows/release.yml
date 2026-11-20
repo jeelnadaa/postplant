@@ -64,21 +64,15 @@ jobs:
       - name: Build installer
         if: steps.ver.outputs.skip != 'true'
         env:
-          # Signs the update bundle for the in-app updater (plan 20.3). Without the secret the
-          # release still builds, just without latest.json, and the app falls back to a download link.
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -n "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
-            npm run tauri -- build --bundles nsis
-          else
-            echo "::warning::TAURI_SIGNING_PRIVATE_KEY is not set: building without signed updates."
-            npm run tauri -- build --bundles nsis --config '{"bundle":{"createUpdaterArtifacts":false}}'
-          fi
+          : "${TAURI_SIGNING_PRIVATE_KEY:?Configure the existing updater signing key in repository secrets}"
+          npm run tauri -- build --bundles nsis
           mkdir -p out
           cp src-tauri/target/release/bundle/nsis/*_x64-setup.exe out/
-          cp src-tauri/target/release/bundle/nsis/*_x64-setup.exe.sig out/ 2>/dev/null || true
+          cp src-tauri/target/release/bundle/nsis/*_x64-setup.exe.sig out/
 
       - name: Updater manifest (latest.json)
         if: steps.ver.outputs.skip != 'true'
@@ -86,7 +80,7 @@ jobs:
           set -euo pipefail
           V="${{ steps.ver.outputs.version }}"
           SIG="out/Postplant_${V}_x64-setup.exe.sig"
-          if [ ! -f "$SIG" ]; then echo "No signature, no latest.json."; exit 0; fi
+          test -s "$SIG"
           node -e '
             const fs = require("fs");
             const [v, sig, notes] = process.argv.slice(1);
@@ -134,4 +128,4 @@ jobs:
             git tag -a "$TAG" -m "Postplant ${{ steps.ver.outputs.version }}" "$GITHUB_SHA"
             git push origin "refs/tags/$TAG"
           fi
-          gh release create "$TAG" out/* --verify-tag --title "Postplant ${{ steps.ver.outputs.version }}" --notes-file notes.md
+          gh release create "$TAG" out/* --latest --verify-tag --title "Postplant ${{ steps.ver.outputs.version }}" --notes-file notes.md

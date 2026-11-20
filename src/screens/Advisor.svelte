@@ -1,4 +1,7 @@
 <script lang="ts">
+  import AdvisorRoster from "../components/AdvisorRoster.svelte";
+  import { useAdvisorDraft } from "../lib/advisorDraft.svelte";
+  const draft = useAdvisorDraft();
   import { t } from "../lib/i18n.svelte";
   import { api, errText, type J } from "../lib/api";
   import { app, loadKb, toast } from "../lib/store.svelte";
@@ -17,21 +20,24 @@
   let picker = $state(false);
   let error = $state("");
 
-  const maps = $derived((app.kb?.maps ?? []).filter((m: J) => m.in_pool));
+  const maps = $derived((app.kb?.maps ?? []).filter((m: J) => m.in_pool || m.name === draft.map));
   const agents = $derived(app.kb?.agents ?? []);
   const owned = $derived(new Set<string>(app.kb?.owned ?? []));
   const byName = (n: string) => agents.find((a: J) => a.name === n);
 
+  $effect(() => { if (draft.map) map = draft.map; });
   $effect(() => {
     if (!map && maps.length) map = maps[0].name;
   });
   $effect(() => {
     if (!map) return;
     void app.version;
-    const t = [...team];
+    const t = draft.players ? draft.picks : [...team];
+    let current = true;
     error = "";
-    api.suggest(map, t).then((r) => (res = r)).catch((e) => (error = errText(e)));
-    api.learn(map).then((r) => (learn = r)).catch(() => (learn = null));
+    api.suggest(map, t).then((r) => { if (current) res = r; }).catch((e) => { if (current) error = errText(e); });
+    api.learn(map).then((r) => { if (current) learn = r; }).catch(() => { if (current) learn = null; });
+    return () => { current = false; };
   });
 
   function add(name: string) {
@@ -68,14 +74,16 @@
 {#if tab === "pick"}
   <div class="grid-12">
     <div class="card col-12">
-      <div class="card-head"><span class="h3">{t("Teammates' picks so far")}</span><span class="spacer"></span>{#if team.length}<button class="link-btn" onclick={() => (team = [])}>{t("Clear")}</button>{/if}</div>
+      <div class="card-head"><span class="h3">{t("Teammates' picks so far")}</span><span class="spacer"></span>{#if !draft.players && team.length}<button class="link-btn" onclick={() => (team = [])}>{t("Clear")}</button>{/if}</div>
+      {#if draft.players}<AdvisorRoster players={draft.players} />{:else}
       <div class="row" style="gap:10px;flex-wrap:wrap">
         {#each team as n (n)}
           <div class="chip" style="padding-right:4px"><Agent name={n} id={byName(n)?.id} sm />{n}<button class="btn btn-icon btn-ghost btn-sm" aria-label="Remove {n}" onclick={() => (team = team.filter((x) => x !== n))}><Icon name="x" /></button></div>
         {/each}
         {#if team.length < 4}<button class="btn btn-sm" onclick={() => (picker = true)}><Icon name="plus" />{t("Add a teammate's agent")}</button>{/if}
       </div>
-      <p class="faint" style="font-size:12px;margin:10px 0 0">{t("Type them in yourself. Postplant never reads agent select.")}</p>
+      <p class="faint" style="font-size:12px;margin:10px 0 0">{t("Plan manually or turn on Sync allied picks in Live match settings.")}</p>
+      {/if}
     </div>
     {#if res}
       {#if res.notes}<div class="note-insight col-12"><span class="ic"><Icon name="map-pin" /></span><div style="font-size:13px">{res.notes}</div><span></span></div>{/if}

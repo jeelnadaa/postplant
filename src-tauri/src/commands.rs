@@ -249,9 +249,10 @@ pub async fn search_player(
                 "result": if mine > theirs { "W" } else if mine < theirs { "L" } else { "D" } })
         }).collect::<Vec<_>>())
         }
-        Err(crate::api::ApiError::Status(code, _)) if code == 404 || code == 403 => {
+        Err(crate::api::ApiError::Status(code, _)) if code == 403 => {
             json!({ "private": true })
         }
+        Err(crate::api::ApiError::Status(404, _)) => json!({"error":"No recent record"}),
         Err(e) => json!({ "error": e.to_string() }),
     };
     let data = json!({ "account": a, "mmr": mmr, "recent": recent, "summary": summary });
@@ -685,7 +686,8 @@ pub fn my_career(
         )
         .unwrap_or((0, 0, 0));
     let key = format!(
-        "{n}:{newest}:{h}:{}:{}:{}:{}:{}:{with_history}",
+        "{}:{n}:{newest}:{h}:{}:{}:{}:{}:{}:{with_history}",
+        me.puuid,
         f.queue,
         f.map,
         f.agent,
@@ -1024,8 +1026,8 @@ pub async fn history_backfill(app: AppHandle) -> Res {
 
 /// Download my match record from Riot through the Riot Client (live mode, VALORANT running).
 #[tauri::command]
-pub async fn riot_history_import(app: AppHandle) -> Res {
-    crate::riot_history::import(&app, true).await
+pub async fn riot_history_import(app: AppHandle, puuid: Option<String>) -> Res {
+    crate::riot_history::import_for(&app, true, puuid).await
 }
 
 /// Save a PNG the UI rendered (heatmap or replay image) to a path the user picked in the save dialog.
@@ -1043,4 +1045,9 @@ pub fn save_png(path: String, b64: String) -> Res {
     }
     std::fs::write(&path, bytes).map_err(err)?;
     Ok(json!({ "path": path }))
+}
+
+#[tauri::command]
+pub fn riot_profile(st: State<'_, AppState>, puuid: String) -> Res {
+    crate::riot_history::profile(&st.db.lock().unwrap(), &puuid)
 }
