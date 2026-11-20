@@ -249,9 +249,7 @@ pub async fn search_player(
                 "result": if mine > theirs { "W" } else if mine < theirs { "L" } else { "D" } })
         }).collect::<Vec<_>>())
         }
-        Err(crate::api::ApiError::Status(code, _)) if code == 403 => {
-            json!({ "private": true })
-        }
+        Err(crate::api::ApiError::Status(403, _)) => json!({ "private": true }),
         Err(crate::api::ApiError::Status(404, _)) => json!({"error":"No recent record"}),
         Err(e) => json!({ "error": e.to_string() }),
     };
