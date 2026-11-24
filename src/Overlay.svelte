@@ -105,9 +105,10 @@
   });
   $effect(() => {
     if (layout !== "advisor" || !advMap) return;
-    const t = draft.players ? draft.picks : [...advTeam];
+    const players = draft.settledPlayers;
+    const t = players ? [] : [...advTeam];
     let current = true;
-    api.suggest(advMap, t).then((r) => { if (current) advRes = r; }).catch(() => { if (current) advRes = null; });
+    api.suggest(advMap, t, players).then((r) => { if (current) advRes = r; }).catch(() => { if (current) advRes = null; });
     return () => { current = false; };
   });
   function addTeammate(n: string) {
@@ -129,7 +130,7 @@
   });
   const liveTeam = (mine: boolean) => (live?.players ?? []).filter((p: J) => !!p.mine === mine);
   const showLive = $derived(live && ["compact", "rail", "full"].includes(layout) && liveMode !== "none");
-  const label = (p: J) => (p.hidden || !p.name ? p.agent || "Hidden" : p.name);
+  const label = (p: J) => (p.me ? "You" : p.name || (p.hidden ? p.agent || "Hidden" : (p.agent || "Player") + " · name unavailable"));
   function drag(e: MouseEvent) {
     if (edit && e.button === 0 && !(e.target as HTMLElement).closest("button")) getCurrentWindow().startDragging();
   }
@@ -140,7 +141,7 @@
   {:else if r.state === "loading"}<span class="faint pulse">…</span>
   {:else if r.state === "hidden"}<span class="faint">{t("hidden")}</span>
   {:else if r.state === "private"}<span class="faint">{t("private")}</span>
-  {:else if r.state === "error"}<span class="faint">n/a</span>
+  {:else if r.state === "error" || r.state === "unavailable"}<span class="faint">n/a</span>
   {:else if peak}{#if r.peak_tier}<Rank tier={r.peak_tier} short />{:else}<span class="faint">–</span>{/if}
   {:else}<Rank tier={r.tier} rr={r.tier ? r.rr : null} short />{/if}
 {/snippet}
@@ -148,9 +149,9 @@
 {#snippet formCell(f: J)}
   {#if !f || f.state === "queued"}<span class="faint">·</span>
   {:else if f.state === "loading"}<span class="faint pulse">…</span>
-  {:else if f.state === "ok"}<span class="mono">{f.win}%</span> <span class="faint mono">{f.kd}</span>
+  {:else if f.state === "ok"}<span class="mono">{f.kd} K/D · {f.acs} ACS</span>{#if liveMode !== "compact"}<br/><span class="faint">{f.win}% W · {f.games} games</span>{/if}
   {:else if f.state === "empty"}<span class="faint">{t("no comp")}</span>
-  {:else}<span class="faint">{f.state === "hidden" ? "hidden" : "n/a"}</span>{/if}
+  {:else}<span class="faint">{f.state === "hidden" ? "hidden" : f.state === "private" ? "private" : f.state === "off" ? "off" : "n/a"}</span>{/if}
 {/snippet}
 
 {#if d}
@@ -177,7 +178,9 @@
         <div class="ov-agents">
           {#each agents.filter((a: J) => !advTeam.includes(a.name)) as a (a.id)}<Agent name={a.name} id={a.id} sm title={a.name} onclick={() => addTeammate(a.name)} />{/each}
         </div>
-      {:else if advMap && advRes}
+      {:else if draft.players && advRes?.draft_notes}
+        <ul class="reasons">{#each advRes.draft_notes as note}<li>{note}</li>{/each}</ul>{#if advRes.lineup?.length === 5}<p class="faint">{t("Suggested lineup")} · {advRes.lineup.join(" · ")}</p>{/if}
+      {:else if advMap && advRes && !advRes.draft_notes && !draft.players}
         {#each advRes.agents.slice(0, 3) as a, i (a.name)}
           <div class="ov-pick" style="--i:{i}">
             <Agent name={a.name} id={a.id} sm />
@@ -205,7 +208,7 @@
       {#each [true, false] as mine (mine)}
         <div class="caps faint" style="font-size:10px;margin:6px 0 2px">{t(mine ? "Your team" : "Enemy team")}</div>
         {#if liveMode === "full"}
-          <div class="lt lt-h"><span></span><span>{t("Player")}</span><span>{t("Rank")}</span><span>{t("Peak")}</span><span>{t("Last act")}</span><span>{t("Recent")}</span><span>{t("On agent")}</span><span>{t("Met")}</span></div>
+          <div class="lt lt-h"><span></span><span>{t("Player")}</span><span>{t("Rank")}</span><span>{t("Peak")}</span><span>{t("Last act")}</span><span>{t("Recent comp")}</span><span>{t("On agent")}</span><span>{t("Met")}</span></div>
           {#each liveTeam(mine) as p, i (p.puuid)}
             <div class="lt {p.me ? 'me' : ''}" style="--i:{i}">
               <Agent name={p.agent} id={p.agent_id} sm />
@@ -213,7 +216,7 @@
               <span>{@render rankCell(p.rank)}</span><span>{@render rankCell(p.rank, true)}</span>
               <span>{#if p.rank?.last_act_tier}<Rank tier={p.rank.last_act_tier} short />{:else}<span class="faint">–</span>{/if}</span>
               <span>{@render formCell(p.form)}</span>
-              <span class="mono">{#if p.form?.on_agent}{p.form.on_agent.wins}/{p.form.on_agent.games}{:else}<span class="faint">·</span>{/if}</span>
+              <span class="mono">{#if p.form?.on_agent}{p.form.on_agent.kd} K/D · {p.form.on_agent.acs} ACS<br/><span class="faint">{p.form.on_agent.wins}W / {p.form.on_agent.games} {t("games")}</span>{:else if p.form?.state === "ok" || p.form?.state === "empty"}<span class="faint">0 {t("games")}</span>{:else}<span class="faint">·</span>{/if}</span>
               <span class="mono faint">{p.met || ""}</span>
             </div>
           {/each}
@@ -222,8 +225,7 @@
             <div class="lr2 {p.me ? 'me' : ''} {liveMode === 'rail' ? 'wide' : ''}" style="--i:{i}">
               <Agent name={p.agent} id={p.agent_id} sm />
               <span class="nm">{label(p)}{#if p.met} <span class="faint">{t("· met")} {p.met}</span>{/if}</span>
-              <span>{@render rankCell(p.rank)}</span>
-              {#if liveMode === "rail"}<span>{@render rankCell(p.rank, true)}</span><span>{@render formCell(p.form)}</span>{/if}
+              {#if liveMode === "rail" || p.form?.state === "off"}<span>{@render rankCell(p.rank)}</span>{/if}{#if liveMode === "rail" || p.form?.state !== "off"}<span>{@render formCell(p.form)}</span>{/if}
             </div>
           {/each}
         {/if}

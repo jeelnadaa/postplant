@@ -5,7 +5,7 @@
 [![CI](https://github.com/jeelnadaa/postplant/actions/workflows/ci.yml/badge.svg)](https://github.com/jeelnadaa/postplant/actions/workflows/ci.yml)
 [![Release](https://github.com/jeelnadaa/postplant/actions/workflows/release.yml/badge.svg)](https://github.com/jeelnadaa/postplant/releases/latest)
 
-> **Status: v0.8.0.** Everything below is built. The API field names follow HenrikDev's documentation and still need a check against live data (see [docs/api-notes.md](docs/api-notes.md)). Track progress in [PROGRESS.md](PROGRESS.md); the full design is in [plan.md](plan.md).
+> **Status: v0.9.0.** Everything below is built. The API field names follow HenrikDev's documentation and still need a check against live data (see [docs/api-notes.md](docs/api-notes.md)). Track progress in [PROGRESS.md](PROGRESS.md); the full design is in [plan.md](plan.md).
 
 **Watch the 33-second launch film:** [postplant.solarquack.in](https://postplant.solarquack.in/#film) ([MP4](site/assets/media/postplant-launch.mp4)).
 

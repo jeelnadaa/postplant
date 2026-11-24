@@ -20,7 +20,7 @@ pub async fn mmr(st: &AppState, region: &str, puuid: &str, max_age_ms: i64, prio
     }
     let private = db::cache_get(
         &st.db.lock().unwrap(),
-        &format!("mmr-private:{puuid}"),
+        &format!("mmr-forbidden:{puuid}"),
         max_age_ms.max(30 * 60_000),
     );
     if let Some((_, at)) = private {
@@ -34,10 +34,11 @@ pub async fn mmr(st: &AppState, region: &str, puuid: &str, max_age_ms: i64, prio
             r["at"] = json!(now_ms());
             r
         }
-        Err(ApiError::Status(code, _)) if code == 404 || code == 403 => {
+        Err(ApiError::Status(404, _)) => json!({ "state": "unavailable" }),
+        Err(ApiError::Status(403, _)) => {
             let _ = db::cache_put(
                 &st.db.lock().unwrap(),
-                &format!("mmr-private:{puuid}"),
+                &format!("mmr-forbidden:{puuid}"),
                 &json!(true),
             );
             json!({ "state": "private", "at": now_ms() })
@@ -83,36 +84,31 @@ pub async fn form(st: &AppState, region: &str, puuid: &str, agent: &str, prio: P
                 let _ = db::cache_put(&st.db.lock().unwrap(), &key, &d);
                 d
             }
-            Err(ApiError::Status(code, _)) if code == 404 || code == 403 => {
-                return json!({ "state": "private" })
-            }
+            Err(ApiError::Status(404, _)) => return json!({ "state": "empty" }),
+            Err(ApiError::Status(403, _)) => return json!({ "state": "private" }),
             Err(e) => return json!({ "state": "error", "error": e.to_string() }),
         },
     };
-    let list = rows.as_array().cloned().unwrap_or_default();
-    let sum = career::from_stored(&list);
+    summarize_form(
+        rows.as_array().map(Vec::as_slice).unwrap_or_default(),
+        agent,
+    )
+}
+
+fn summarize_form(list: &[Value], agent: &str) -> Value {
+    let sum = career::from_stored(list);
     let o = &sum["overall"];
-    let on: Vec<&Value> = list
-        .iter()
-        .filter(|m| s(m, "/stats/character/name").eq_ignore_ascii_case(agent))
-        .collect();
-    let on_wins = on
-        .iter()
-        .filter(|m| {
-            let team = s(m, "/stats/team").to_lowercase();
-            let (a, b) = if team == "red" {
-                (i(m, "/teams/red"), i(m, "/teams/blue"))
-            } else {
-                (i(m, "/teams/blue"), i(m, "/teams/red"))
-            };
-            a > b
-        })
-        .count();
+    let on = sum["agents"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(|a| !agent.is_empty() && s(a, "/name").eq_ignore_ascii_case(agent));
     json!({
         "state": if list.is_empty() { "empty" } else { "ok" },
         "games": o["games"], "win": o["win"], "kd": o["kd"], "hs": o["hs"], "acs": o["acs"],
         "agents": sum["agents"].as_array().map(|a| a.iter().take(3).map(|x| json!({ "name": x["name"], "id": x["id"], "games": x["games"] })).collect::<Vec<_>>()).unwrap_or_default(),
-        "on_agent": { "games": on.len(), "wins": on_wins },
+        "on_agent": on.map(|a| json!({"games": a["games"], "wins": a["wins"], "kd": a["kd"], "acs": a["acs"]})),
+
     })
 }
 
@@ -259,4 +255,30 @@ pub fn career_lifetime(c: &Connection, puuid: &str, f: &career::Filt, with_histo
     let mut v = career::compute_with(&raws, &hist, puuid, f);
     v["held"] = json!(raws.len());
     v
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn agent_form_uses_only_matching_games_and_weights_by_rounds_and_deaths() {
+        let row = |id: &str, agent: &str, k: i64, d: i64, score: i64, red: i64, blue: i64| {
+            json!({
+                "meta":{"id":id},"teams":{"red":red,"blue":blue},
+                "stats":{"team":"red","character":{"name":agent},"kills":k,"deaths":d,"score":score}
+            })
+        };
+        let rows = [
+            row("a", "Jett", 20, 5, 4000, 13, 7),
+            row("b", "Jett", 10, 15, 5000, 7, 13),
+            row("c", "Sage", 4, 2, 1000, 13, 0),
+        ];
+        assert_eq!(
+            summarize_form(&rows, "jett")["on_agent"],
+            json!({"games":2,"wins":1,"kd":1.5,"acs":225.0})
+        );
+        assert!(summarize_form(&rows, "Omen")["on_agent"].is_null());
+        assert_eq!(summarize_form(&[], "Jett")["state"], "empty");
+    }
 }

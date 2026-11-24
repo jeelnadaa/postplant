@@ -32,10 +32,11 @@
   $effect(() => {
     if (!map) return;
     void app.version;
-    const t = draft.players ? draft.picks : [...team];
+    const players = draft.settledPlayers;
+    const t = players ? [] : [...team];
     let current = true;
     error = "";
-    api.suggest(map, t).then((r) => { if (current) res = r; }).catch((e) => { if (current) error = errText(e); });
+    api.suggest(map, t, players).then((r) => { if (current) res = r; }).catch((e) => { if (current) error = errText(e); });
     api.learn(map).then((r) => { if (current) learn = r; }).catch(() => { if (current) learn = null; });
     return () => { current = false; };
   });
@@ -85,7 +86,9 @@
       <p class="faint" style="font-size:12px;margin:10px 0 0">{t("Plan manually or turn on Sync allied picks in Live match settings.")}</p>
       {/if}
     </div>
-    {#if res}
+    {#if draft.players && res?.draft_notes}
+      <div class="card col-12"><h3 class="h3">{t("Team composition")}</h3><ul class="reasons">{#each res.draft_notes as note}<li>{note}</li>{/each}</ul>{#if res.lineup?.length === 5}<p class="faint">{t("Suggested lineup")} · {res.lineup.join(" · ")}</p>{/if}</div>
+    {:else if res && !res.draft_notes && !draft.players}
       {#if res.notes}<div class="note-insight col-12"><span class="ic"><Icon name="map-pin" /></span><div style="font-size:13px">{res.notes}</div><span></span></div>{/if}
       <div class="col-7 stack" style="gap:10px">
         <div class="h3">{t("Suggested for you")}</div>

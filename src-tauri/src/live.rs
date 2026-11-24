@@ -557,7 +557,7 @@ async fn refresh_draft(
         };
         let agent = kb.agents.iter().find(|a| a.agent_id.eq_ignore_ascii_case(p["CharacterID"].as_str().unwrap_or("")));
         json!({"name": name.map(str::to_owned).unwrap_or_else(|| format!("Teammate {}", index+1)),
-            "me":me, "agent":agent.map(|a| &a.name), "locked":p["CharacterSelectionState"] == "locked"})
+            "me":me, "agent":agent.map(|a| &a.name), "locked":p["CharacterSelectionState"].as_str().is_some_and(|s|s.eq_ignore_ascii_case("locked"))})
     }).collect();
     if enabled(&app.state::<AppState>())
         && app.state::<AppState>().prefs()["advisor_sync_picks"] == true
@@ -656,9 +656,9 @@ async fn on_ingame(
     let visible: Vec<String> = players
         .iter()
         .filter(|p| {
-            !p.pointer("/PlayerIdentity/Incognito")
-                .and_then(|x| x.as_bool())
-                .unwrap_or(false)
+            p.pointer("/PlayerIdentity/Incognito")
+                .and_then(Value::as_bool)
+                == Some(false)
         })
         .filter_map(|p| p["Subject"].as_str().map(|x| x.to_string()))
         .collect();
@@ -677,6 +677,12 @@ async fn on_ingame(
         let notes = crate::queries::notes_map(&c);
         let mut met = std::collections::HashMap::new();
         for p in &players {
+            if p.pointer("/PlayerIdentity/Incognito")
+                .and_then(Value::as_bool)
+                != Some(false)
+            {
+                continue;
+            }
             let pu = p["Subject"].as_str().unwrap_or("");
             let row: (i64, i64, i64) = c
                 .query_row(
@@ -690,11 +696,12 @@ async fn on_ingame(
         }
         (notes, met)
     };
+    let fetch_form = st.prefs()["live_form"].as_bool().unwrap_or(true);
     let mut roster: Vec<Value> = players
         .iter()
         .map(|p| {
             let pu = p["Subject"].as_str().unwrap_or("").to_string();
-            let hidden = p.pointer("/PlayerIdentity/Incognito").and_then(|x| x.as_bool()).unwrap_or(false);
+            let hidden = p.pointer("/PlayerIdentity/Incognito").and_then(Value::as_bool) != Some(false);
             let agent_id = p["CharacterID"].as_str().unwrap_or("").to_lowercase();
             let agent = kb.agents.iter().find(|a| a.agent_id.eq_ignore_ascii_case(&agent_id)).map(|a| a.name.clone()).unwrap_or_default();
             let nm = names.as_array().and_then(|a| a.iter().find(|x| x["Subject"] == pu.as_str())).cloned().unwrap_or(Value::Null);
@@ -706,8 +713,8 @@ async fn on_ingame(
                 "name": if hidden { Value::Null } else { nm["GameName"].clone() }, "tag": if hidden { Value::Null } else { nm["TagLine"].clone() },
                 "level": if hide_level { Value::Null } else { p.pointer("/PlayerIdentity/AccountLevel").cloned().unwrap_or(Value::Null) },
                 "rank": { "state": if hidden { "hidden" } else { "queued" } },
-                "form": { "state": if hidden { "hidden" } else { "queued" } },
-                "note": notes.get(&pu).cloned(), "met": games, "with": with, "against": games - with, "today": today,
+                "form": { "state": if hidden { "hidden" } else if !fetch_form { "off" } else { "queued" } },
+                "note": if hidden {None} else {notes.get(&pu).cloned()}, "met": games, "with": with, "against": games - with, "today": today,
             })
         })
         .collect();
@@ -728,46 +735,91 @@ async fn on_ingame(
     if !live.tab_down.load(Ordering::SeqCst) && !live.table_open.load(Ordering::SeqCst) {
         crate::overlay::show_live_compact(app);
     }
-    // Fetch ranks, then recent form, one request every 3.5 s.
+    // A missing name-service entry can be temporary even for a visible player.
+    let missing: Vec<_> = visible
+        .into_iter()
+        .filter(|pu| {
+            !names.as_array().is_some_and(|rs| {
+                rs.iter().any(|r| {
+                    r["Subject"] == pu.as_str()
+                        && r["GameName"].as_str().is_some_and(|n| !n.is_empty())
+                })
+            })
+        })
+        .collect();
+    if !missing.is_empty() {
+        let app = app.clone();
+        let session = s.clone();
+        let http = http.clone();
+        tauri::async_runtime::spawn(async move {
+            let mut pending = missing;
+            for delay in [3, 10, 30] {
+                tokio::time::sleep(Duration::from_secs(delay)).await;
+                if app.state::<Live>().gen.load(Ordering::SeqCst) != gen {
+                    return;
+                }
+                let response = riot_put(
+                    &http,
+                    &session,
+                    &format!("{}/name-service/v2/players", pd(&session)),
+                    &json!(pending),
+                )
+                .await;
+                if let Ok(rows) = response {
+                    let live = app.state::<Live>();
+                    {
+                        let mut roster = live.roster.lock().unwrap();
+                        if live.gen.load(Ordering::SeqCst) != gen {
+                            return;
+                        }
+                        for p in roster["players"].as_array_mut().into_iter().flatten() {
+                            if p["hidden"] != false || !p["name"].as_str().unwrap_or("").is_empty()
+                            {
+                                continue;
+                            }
+                            if let Some(r) = rows.as_array().into_iter().flatten().find(|r| {
+                                r["Subject"] == p["puuid"]
+                                    && r["GameName"].as_str().is_some_and(|n| !n.is_empty())
+                            }) {
+                                p["name"] = r["GameName"].clone();
+                                p["tag"] = r["TagLine"].clone();
+                                pending.retain(|pu| p["puuid"] != pu.as_str());
+                            }
+                        }
+                    }
+                    emit_roster(&app);
+                    if pending.is_empty() {
+                        return;
+                    }
+                }
+            }
+        });
+    }
     let app2 = app.clone();
     let region = me.map(|m| m.region).unwrap_or_else(|| s.region.clone());
     tauri::async_runtime::spawn(async move {
-        let fetch_form = app2.state::<AppState>().prefs()["live_form"]
-            .as_bool()
-            .unwrap_or(true);
-        for pass in 0..2 {
-            if pass == 1 && !fetch_form {
-                break;
+        for field in ["form", "rank"] {
+            if field == "form" && !fetch_form {
+                continue;
             }
-            let list: Vec<(String, String, bool)> = {
+            let list = {
                 let live = app2.state::<Live>();
-                let r = live.roster.lock().unwrap();
-                r["players"]
-                    .as_array()
-                    .cloned()
-                    .unwrap_or_default()
-                    .iter()
-                    .map(|p| {
-                        (
-                            p["puuid"].as_str().unwrap_or("").to_string(),
-                            p["agent"].as_str().unwrap_or("").to_string(),
-                            p["hidden"].as_bool().unwrap_or(false)
-                                || p["me"].as_bool().unwrap_or(false),
-                        )
-                    })
-                    .collect()
+                let roster = live.roster.lock().unwrap();
+                stat_order(
+                    roster["players"]
+                        .as_array()
+                        .map(Vec::as_slice)
+                        .unwrap_or_default(),
+                    field,
+                )
             };
-            for (pu, agent, skip) in list {
+            for (pu, agent) in list {
                 if app2.state::<Live>().gen.load(Ordering::SeqCst) != gen {
                     return;
                 }
-                if skip {
-                    continue;
-                }
                 let st = app2.state::<AppState>();
-                let field = if pass == 0 { "rank" } else { "form" };
                 set_field(&app2, &pu, field, json!({ "state": "loading" }));
-                let v = if pass == 0 {
+                let v = if field == "rank" {
                     crate::players::mmr(&st, &region, &pu, 10 * 60_000, Prio::Foreground).await
                 } else {
                     crate::players::form(&st, &region, &pu, &agent, Prio::Foreground).await
@@ -791,6 +843,30 @@ async fn on_ingame(
         }
     });
     Ok(())
+}
+
+fn stat_order(players: &[Value], field: &str) -> Vec<(String, String)> {
+    let eligible = players
+        .iter()
+        .filter(|p| p["hidden"] == false && !(field == "rank" && p["me"] == true));
+    let mut allies = eligible.clone().filter(|p| p["mine"] == true);
+    let mut enemies = eligible.filter(|p| p["mine"] == false);
+    let mut order = Vec::new();
+    loop {
+        let pair = [allies.next(), enemies.next()];
+        if pair == [None, None] {
+            break;
+        }
+        for p in pair.into_iter().flatten() {
+            if let Some(id) = p["puuid"].as_str() {
+                order.push((
+                    id.to_owned(),
+                    p["agent"].as_str().unwrap_or_default().to_owned(),
+                ));
+            }
+        }
+    }
+    order
 }
 
 fn set_field(app: &AppHandle, puuid: &str, field: &str, v: Value) {
@@ -931,6 +1007,26 @@ mod tests {
             { "puuid": "me", "product": "league_of_legends", "private": "" },
             { "puuid": "me", "product": "valorant", "private": b }
         ]})
+    }
+
+    #[test]
+    fn requests_alternate_visible_teams_then_finish_the_longer_team() {
+        let players = json!([
+            {"puuid":"hidden","hidden":true,"mine":true},
+            {"puuid":"self","me":true,"hidden":false,"mine":true},
+            {"puuid":"ally","hidden":false,"mine":true},
+            {"puuid":"e1","hidden":false,"mine":false},
+            {"puuid":"e2","hidden":false,"mine":false},
+            {"puuid":"e3","hidden":false,"mine":false}
+        ]);
+        let ids = |field| {
+            stat_order(players.as_array().unwrap(), field)
+                .into_iter()
+                .map(|p| p.0)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(ids("form"), ["self", "e1", "ally", "e2", "e3"]);
+        assert_eq!(ids("rank"), ["ally", "e1", "e2", "e3"]);
     }
 
     #[test]

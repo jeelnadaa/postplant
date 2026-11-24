@@ -428,6 +428,7 @@ pub fn advisor_suggest(
     kb: State<'_, KbStore>,
     map: String,
     team: Vec<String>,
+    draft: Option<Vec<advisor::DraftPick>>,
 ) -> Res {
     let kb = kb.get();
     let me = need_me(&st)?;
@@ -437,6 +438,9 @@ pub fn advisor_suggest(
         owned: owned(&st, &me),
         comfort: comfort_map(&st, &me, Some(&map)),
     };
+    if let Some(picks) = draft.filter(|p| !p.is_empty()) {
+        return advisor::live_plan(&kb, &inp, &picks);
+    }
     advisor::suggest(&kb, &inp)
 }
 

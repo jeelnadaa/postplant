@@ -363,6 +363,149 @@ pub struct Input<'a> {
     pub comfort: HashMap<String, Comfort>,
 }
 
+#[derive(Deserialize)]
+pub struct DraftPick {
+    name: String,
+    agent: Option<String>,
+    me: bool,
+    locked: bool,
+}
+
+pub fn live_plan(kb: &Kb, inp: &Input, picks: &[DraftPick]) -> Result<Value, String> {
+    let map = kb.map(inp.map).ok_or("Unknown map")?;
+    let chosen: Vec<_> = picks
+        .iter()
+        .map(|p| p.agent.as_deref().and_then(|n| kb.agent(n)))
+        .collect();
+    let mut plan = chosen.clone();
+    let mut notes = Vec::new();
+    for role in ["Duelist", "Initiator", "Sentinel", "Controller"] {
+        let mut slots: Vec<_> = chosen
+            .iter()
+            .enumerate()
+            .filter_map(|(i, a)| a.filter(|a| a.role == role).map(|a| (i, a)))
+            .collect();
+        let target = map.role_mix.get(role).copied().unwrap_or(1.0).round() as usize;
+        if slots.len() <= target {
+            continue;
+        }
+        let others: Vec<_> = chosen
+            .iter()
+            .flatten()
+            .copied()
+            .filter(|a| a.role != role)
+            .collect();
+        slots.sort_by_cached_key(|(i, a)| {
+            let fit = score(kb, map, &others, a, None).score;
+            (
+                !picks[*i].locked,
+                std::cmp::Reverse((fit * 1000.0).round() as i64),
+                a.name.clone(),
+            )
+        });
+        let fixed = slots.iter().filter(|(i, _)| picks[*i].locked).count();
+        notes.push(format!(
+            "{} {} picks on {} (map target {}, {} locked).",
+            slots.len(),
+            role,
+            map.name,
+            target,
+            fixed
+        ));
+        for (n, (i, a)) in slots.into_iter().enumerate() {
+            if picks[i].locked {
+                continue;
+            }
+            if n < target {
+                let fit = score(kb, map, &others, a, None);
+                notes.push(format!(
+                    "Keep {} on {}. {}",
+                    picks[i].name,
+                    a.name,
+                    fit.reasons
+                        .first()
+                        .map(String::as_str)
+                        .unwrap_or("Best remaining fit on this map.")
+                ));
+            } else {
+                plan[i] = None;
+            }
+        }
+    }
+    let mut open: Vec<_> = picks.iter().enumerate().collect();
+    open.sort_by_key(|(_, pick)| !pick.me);
+    for (i, pick) in open {
+        if pick.locked || plan[i].is_some() {
+            continue;
+        }
+        let team: Vec<_> = plan.iter().flatten().copied().collect();
+        let best = kb
+            .agents
+            .iter()
+            .filter(|a| {
+                !team.iter().any(|b| b.name == a.name)
+                    && (!pick.me || inp.owned.contains(&a.agent_id))
+            })
+            .max_by_key(|a| {
+                let missing =
+                    role_count(&team, &a.role) < map.role_mix.get(&a.role).copied().unwrap_or(1.0);
+                let fit = score(
+                    kb,
+                    map,
+                    &team,
+                    a,
+                    if pick.me {
+                        inp.comfort.get(&a.name).copied()
+                    } else {
+                        None
+                    },
+                )
+                .score;
+                (
+                    missing,
+                    (fit * 1000.0).round() as i64,
+                    std::cmp::Reverse(&a.name),
+                )
+            });
+        if let Some(best) = best {
+            let from = chosen[i]
+                .map(|a| format!("{} → ", a.name))
+                .unwrap_or_default();
+            notes.push(format!(
+                "{}: {}{} for {} coverage{}.",
+                pick.name,
+                from,
+                best.name,
+                best.role.to_lowercase(),
+                if pick.me { "" } else { " if available" }
+            ));
+            plan[i] = Some(best);
+        } else {
+            notes.push(format!(
+                "No available agent in {}'s pool for this slot.",
+                pick.name
+            ));
+        }
+    }
+    if plan.iter().all(Option::is_some) {
+        let agents: Vec<_> = plan.iter().flatten().copied().collect();
+        for role in ["Controller", "Initiator", "Sentinel", "Duelist"] {
+            let target = map.role_mix.get(role).copied().unwrap_or(1.0);
+            if role_count(&agents, role) < target {
+                notes.push(format!(
+                    "With these picks, {} coverage is below the map target.",
+                    role.to_lowercase()
+                ));
+            }
+        }
+    }
+    if notes.is_empty() {
+        notes.push("Current picks fit the map’s role targets.".into());
+    }
+    let lineup: Vec<_> = plan.iter().flatten().map(|a| a.name.as_str()).collect();
+    Ok(json!({"draft_notes":notes,"lineup":lineup,"map":map.name}))
+}
+
 pub fn suggest(kb: &Kb, inp: &Input) -> Result<Value, String> {
     let map = kb.map(inp.map).ok_or("Unknown map")?;
     let team: Vec<&Agent> = inp.team.iter().filter_map(|n| kb.agent(n)).collect();
@@ -724,6 +867,38 @@ mod tests {
         assert_eq!(r["agents"][0]["tier"], "Pro play + role coverage");
         assert_eq!(r["pro"]["comps"][0]["n"], 3);
     }
+    #[test]
+    fn draft_preserves_locks_and_revises_the_local_hover() {
+        let kb = Kb::load();
+        let input = Input {
+            map: "Abyss",
+            team: vec![],
+            owned: all_owned(&kb),
+            comfort: HashMap::new(),
+        };
+        let mut picks: Vec<DraftPick> = serde_json::from_value(json!([
+            {"name":"Ally","agent":"Jett","locked":true,"me":false},
+            {"name":"You","agent":"Reyna","locked":false,"me":true},
+            {"name":"Third","agent":"Raze","locked":false,"me":false}
+        ]))
+        .unwrap();
+        let notes = live_plan(&kb, &input, &picks).unwrap()["draft_notes"].to_string();
+        assert!(
+            notes.contains("3 Duelist")
+                && notes.contains("You: Reyna")
+                && notes.contains("Third: Raze")
+        );
+        assert!(!notes.contains("Ally: Jett"));
+        picks[1].locked = true;
+        let notes = live_plan(&kb, &input, &picks).unwrap()["draft_notes"].to_string();
+        assert!(notes.contains("2 locked") && !notes.contains("You: Reyna"));
+        picks[0].locked = false;
+        picks[1].locked = false;
+        assert!(live_plan(&kb, &input, &picks).unwrap()["draft_notes"]
+            .to_string()
+            .contains("Keep "));
+    }
+
     #[test]
     fn no_third_duelist_first() {
         let kb = Kb::load();
